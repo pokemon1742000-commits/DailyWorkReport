@@ -1,0 +1,4592 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Work Report</title>
+    <style>
+        :root {
+            --bg: #eef3f8;
+            --bg-accent: #dbeafe;
+            --panel: #ffffff;
+            --panel-soft: #f8fbff;
+            --field: #ffffff;
+            --line: #cbd7e6;
+            --line-strong: #aebfd3;
+            --text: #132033;
+            --muted: #627188;
+            --blue: #1265b3;
+            --blue-strong: #0b4f93;
+            --green: #16835a;
+            --amber: #b36b00;
+            --red: #b42318;
+            --shadow: 0 16px 40px rgba(22, 42, 70, 0.10);
+            --shadow-soft: 0 8px 22px rgba(22, 42, 70, 0.07);
+            --focus: 0 0 0 3px rgba(18, 101, 179, 0.16);
+            --excel-head: #0b0b0b;
+            --excel-head-text: #ffffff;
+        }
+
+        body[data-theme="dark"] {
+            --bg: #111827;
+            --bg-accent: #172033;
+            --panel: #182233;
+            --panel-soft: #111c2d;
+            --field: #0f1726;
+            --line: #2f3d52;
+            --line-strong: #46566d;
+            --text: #e7edf5;
+            --muted: #a7b2c2;
+            --blue: #5aa9ff;
+            --blue-strong: #8fc4ff;
+            --green: #42c48b;
+            --amber: #f0b35a;
+            --red: #ff877d;
+            --shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+            --shadow-soft: 0 8px 22px rgba(0, 0, 0, 0.18);
+            --focus: 0 0 0 3px rgba(90, 169, 255, 0.20);
+            --excel-head: #0b1220;
+            --excel-head-text: #dcecff;
+        }
+
+        body[data-theme="garden"] {
+            --bg: #f1fbf3;
+            --bg-accent: #c9f7d5;
+            --panel: #ffffff;
+            --panel-soft: #effaf2;
+            --field: #ffffff;
+            --line: #b7dfc0;
+            --line-strong: #83c993;
+            --text: #12351f;
+            --muted: #5b7d65;
+            --blue: #169b8f;
+            --blue-strong: #087b70;
+            --green: #31a24c;
+            --amber: #e0a31d;
+            --red: #d9485f;
+            --shadow: 0 16px 40px rgba(37, 117, 61, 0.12);
+            --shadow-soft: 0 8px 22px rgba(37, 117, 61, 0.08);
+            --focus: 0 0 0 3px rgba(49, 162, 76, 0.18);
+            --excel-head: #185b2c;
+            --excel-head-text: #f4fff6;
+        }
+
+        body[data-theme="blossom"] {
+            --bg: #fff4fa;
+            --bg-accent: #ffd8ed;
+            --panel: #ffffff;
+            --panel-soft: #fff0f7;
+            --field: #ffffff;
+            --line: #f2b8d0;
+            --line-strong: #df82ad;
+            --text: #3f1830;
+            --muted: #805a70;
+            --blue: #e2559d;
+            --blue-strong: #bd337c;
+            --green: #1fae88;
+            --amber: #f4a336;
+            --red: #cc3654;
+            --shadow: 0 16px 40px rgba(166, 54, 113, 0.12);
+            --shadow-soft: 0 8px 22px rgba(166, 54, 113, 0.08);
+            --focus: 0 0 0 3px rgba(226, 85, 157, 0.18);
+            --excel-head: #9f2f6d;
+            --excel-head-text: #fff7fb;
+        }
+
+        body[data-theme="sunrise"] {
+            --bg: #fff8e8;
+            --bg-accent: #ffe29a;
+            --panel: #ffffff;
+            --panel-soft: #fff5d8;
+            --field: #ffffff;
+            --line: #efc36a;
+            --line-strong: #dc9d2b;
+            --text: #3d2812;
+            --muted: #836842;
+            --blue: #ee7b34;
+            --blue-strong: #c95719;
+            --green: #22a06b;
+            --amber: #d99100;
+            --red: #d94343;
+            --shadow: 0 16px 40px rgba(178, 103, 22, 0.13);
+            --shadow-soft: 0 8px 22px rgba(178, 103, 22, 0.08);
+            --focus: 0 0 0 3px rgba(238, 123, 52, 0.18);
+            --excel-head: #b55a16;
+            --excel-head-text: #fff9ef;
+        }
+
+        body[data-theme="ocean"] {
+            --bg: #eefcff;
+            --bg-accent: #bcefff;
+            --panel: #ffffff;
+            --panel-soft: #effbff;
+            --field: #ffffff;
+            --line: #aad9e8;
+            --line-strong: #70b9ce;
+            --text: #12313b;
+            --muted: #5b7580;
+            --blue: #1488c8;
+            --blue-strong: #086b9f;
+            --green: #00a889;
+            --amber: #e2a51d;
+            --red: #d54e63;
+            --shadow: 0 16px 40px rgba(22, 120, 158, 0.12);
+            --shadow-soft: 0 8px 22px rgba(22, 120, 158, 0.08);
+            --focus: 0 0 0 3px rgba(20, 136, 200, 0.18);
+            --excel-head: #086b9f;
+            --excel-head-text: #f0fcff;
+        }
+
+        body[data-theme="lime"] {
+            --bg: #fbffe8;
+            --bg-accent: #dcf86f;
+            --panel: #ffffff;
+            --panel-soft: #f8ffd9;
+            --field: #ffffff;
+            --line: #cbe36f;
+            --line-strong: #a7c63b;
+            --text: #26340f;
+            --muted: #667640;
+            --blue: #6aa80f;
+            --blue-strong: #4d8500;
+            --green: #24a148;
+            --amber: #e0a300;
+            --red: #c74343;
+            --shadow: 0 16px 40px rgba(102, 143, 27, 0.13);
+            --shadow-soft: 0 8px 22px rgba(102, 143, 27, 0.08);
+            --focus: 0 0 0 3px rgba(106, 168, 15, 0.18);
+            --excel-head: #5b8500;
+            --excel-head-text: #fbffe8;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background:
+                linear-gradient(135deg, var(--bg-accent) 0, transparent 280px),
+                var(--bg);
+            color: var(--text);
+            font-family: "Segoe UI", Arial, sans-serif;
+            font-size: 14px;
+            --detail-width: 480px;
+        }
+
+        header {
+            min-height: 62px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 0 20px;
+            background: color-mix(in srgb, var(--panel) 94%, transparent);
+            border-bottom: 1px solid var(--line);
+            box-shadow: var(--shadow-soft);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            backdrop-filter: blur(10px);
+            transition: margin-right 180ms ease;
+        }
+
+        body.detail-open header,
+        body.detail-open .tabs,
+        body.detail-open main {
+            margin-right: var(--detail-width);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 0;
+        }
+
+        .brand-icon {
+            width: 34px;
+            height: 34px;
+            border: 1px solid color-mix(in srgb, var(--blue) 52%, var(--line));
+            border-radius: 6px;
+            display: grid;
+            place-items: center;
+            color: #fff;
+            background: linear-gradient(135deg, var(--blue), var(--green));
+            font-weight: 800;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .header-actions .muted {
+            max-width: min(46vw, 720px);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .theme-dots {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .theme-dot {
+            width: 22px;
+            height: 22px;
+            min-width: 22px;
+            padding: 0;
+            border-radius: 999px;
+            border: 2px solid color-mix(in srgb, var(--panel) 80%, var(--line));
+            background: var(--swatch);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
+        }
+
+        .theme-dot.active {
+            outline: 2px solid var(--blue);
+            outline-offset: 2px;
+        }
+
+        .icon-btn {
+            min-width: 42px;
+            width: auto;
+            padding: 0;
+            display: inline-grid;
+            place-items: center;
+            font-size: 13px;
+            border-radius: 8px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            padding: 12px 18px 0;
+            background: transparent;
+            transition: margin-right 180ms ease;
+        }
+
+        .tab {
+            border: 1px solid transparent;
+            border-radius: 8px 8px 0 0;
+            background: color-mix(in srgb, var(--panel) 78%, transparent);
+            color: var(--muted);
+            padding: 10px 18px 11px;
+            border-bottom: 3px solid transparent;
+            font: inherit;
+            font-weight: 650;
+            cursor: pointer;
+        }
+
+        .tab.active {
+            color: var(--blue);
+            border-bottom-color: var(--blue);
+            background: var(--panel);
+            border-color: var(--line);
+            box-shadow: var(--shadow-soft);
+        }
+
+        main {
+            padding: 16px;
+            transition: margin-right 180ms ease;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .workspace {
+            display: grid;
+            grid-template-columns: minmax(390px, 0.9fr) minmax(680px, 1.55fr);
+            gap: 16px;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 13px 16px;
+            border-bottom: 1px solid var(--line);
+            background: color-mix(in srgb, var(--panel-soft) 80%, var(--panel));
+        }
+
+        h1, h2, h3 {
+            margin: 0;
+        }
+
+        h2 {
+            font-size: 16px;
+            letter-spacing: 0;
+        }
+
+        .panel-body {
+            padding: 16px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 465px;
+            resize: vertical;
+            border: 1px solid var(--line-strong);
+            border-radius: 8px;
+            padding: 14px;
+            color: var(--text);
+            background: var(--field);
+            line-height: 1.5;
+            font: 14px Consolas, "Segoe UI", monospace;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 650;
+            color: color-mix(in srgb, var(--text) 92%, var(--muted));
+        }
+
+        .field-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+            align-items: center;
+            margin-top: 12px;
+        }
+
+        input, select {
+            width: 100%;
+            height: 38px;
+            border: 1px solid var(--line-strong);
+            border-radius: 8px;
+            padding: 0 10px;
+            background: var(--field);
+            color: var(--text);
+            font: inherit;
+        }
+
+        button {
+            height: 38px;
+            border: 1px solid var(--line-strong);
+            border-radius: 8px;
+            background: var(--field);
+            color: var(--text);
+            padding: 0 12px;
+            font: inherit;
+            font-weight: 650;
+            cursor: pointer;
+            transition: border-color 0.14s ease, background 0.14s ease, color 0.14s ease, transform 0.14s ease;
+        }
+
+        button:hover {
+            border-color: var(--blue);
+            color: var(--blue);
+            transform: translateY(-1px);
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus,
+        button:focus-visible {
+            outline: none;
+            box-shadow: var(--focus);
+        }
+
+        .primary {
+            width: 100%;
+            height: 48px;
+            margin-top: 14px;
+            background: linear-gradient(135deg, var(--blue), color-mix(in srgb, var(--blue) 72%, var(--green)));
+            border-color: var(--blue);
+            color: #fff;
+            font-size: 16px;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .primary:hover {
+            color: #fff;
+            background: var(--blue-strong);
+        }
+
+        .excel-action {
+            display: none;
+            background: #17633a;
+            color: #fff;
+            border-color: #17633a;
+        }
+
+        .excel-action.visible {
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .status-line {
+            min-height: 24px;
+            margin-top: 10px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .status-line.error {
+            color: var(--red);
+        }
+
+        .summary {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            min-height: 28px;
+            padding: 3px 10px;
+            border-radius: 999px;
+            background: color-mix(in srgb, var(--blue) 12%, var(--panel));
+            color: var(--blue-strong);
+            font-weight: 650;
+            border: 1px solid color-mix(in srgb, var(--blue) 20%, var(--line));
+        }
+
+        .report-list {
+            display: grid;
+            gap: 12px;
+            max-height: 650px;
+            overflow: auto;
+            padding-right: 2px;
+        }
+
+        .report-card {
+            border: 1px solid var(--line);
+            border-left: 4px solid var(--blue);
+            border-radius: 8px;
+            background: var(--panel-soft);
+            padding: 14px;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .report-card.warning {
+            border-left-color: var(--amber);
+        }
+
+        .card-top {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .index-badge {
+            width: 40px;
+            height: 40px;
+            display: grid;
+            place-items: center;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--blue), var(--blue-strong));
+            color: #fff;
+            font-size: 18px;
+            font-weight: 800;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .checkline {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--muted);
+            font-weight: 650;
+            white-space: nowrap;
+        }
+
+        .checkline input {
+            width: 18px;
+            height: 18px;
+        }
+
+        .report-grid {
+            display: grid;
+            grid-template-columns: 0.8fr 1.5fr 1.1fr;
+            gap: 10px;
+        }
+
+        .report-grid .wide {
+            grid-column: span 2;
+        }
+
+        .value-box {
+            min-height: 38px;
+            border: 1px solid var(--line-strong);
+            border-radius: 8px;
+            background: var(--field);
+            padding: 9px 10px;
+            line-height: 1.35;
+            overflow-wrap: anywhere;
+        }
+
+        .value-box ul {
+            margin: 0;
+            padding-left: 18px;
+        }
+
+        .people-editor {
+            display: grid;
+            gap: 8px;
+        }
+
+        .person-row {
+            display: grid;
+            grid-template-columns: minmax(120px, 0.9fr) minmax(160px, 1.1fr);
+            gap: 8px;
+            align-items: center;
+        }
+
+        .person-source {
+            min-height: 38px;
+            display: flex;
+            align-items: center;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 8px 10px;
+            background: color-mix(in srgb, var(--panel-soft) 80%, var(--field));
+            color: var(--muted);
+            overflow-wrap: anywhere;
+        }
+
+        .folder-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+        }
+
+        .muted {
+            color: var(--muted);
+        }
+
+        .warning-text {
+            color: var(--amber);
+            font-weight: 650;
+            margin-top: 8px;
+        }
+
+        .search-layout {
+            display: grid;
+            gap: 12px;
+        }
+
+        .search-bar {
+            display: grid;
+            grid-template-columns: 1fr 180px 160px;
+            gap: 10px;
+            align-items: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border-bottom: 1px solid var(--line);
+            padding: 11px 10px;
+            vertical-align: top;
+            text-align: left;
+        }
+
+        th {
+            background: color-mix(in srgb, var(--panel-soft) 88%, var(--panel));
+            color: color-mix(in srgb, var(--text) 86%, var(--muted));
+            font-size: 13px;
+            position: sticky;
+            top: 0;
+        }
+
+        tbody tr:hover {
+            background: color-mix(in srgb, var(--blue) 7%, transparent);
+        }
+
+        .empty {
+            padding: 30px;
+            color: var(--muted);
+            text-align: center;
+            border: 1px dashed var(--line-strong);
+            border-radius: 8px;
+            background: color-mix(in srgb, var(--panel-soft) 74%, var(--panel));
+        }
+
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.38);
+            padding: 20px;
+            z-index: 20;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-backdrop.open {
+            display: flex;
+        }
+
+        .modal {
+            width: min(720px, 100%);
+            max-height: 86vh;
+            overflow: auto;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--line);
+            background: color-mix(in srgb, var(--panel-soft) 85%, var(--panel));
+        }
+
+        .modal-body {
+            padding: 16px;
+        }
+
+        .member-list {
+            display: grid;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .member-item {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+            align-items: center;
+            padding: 8px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--panel-soft);
+        }
+
+        .column-item {
+            grid-template-columns: 28px 1fr 86px auto;
+        }
+
+        .column-item.dragging {
+            opacity: 0.55;
+        }
+
+        .info-btn {
+            color: #fff;
+            background: #1677d2;
+            border-color: #1677d2;
+            font-weight: 800;
+            font-style: italic;
+        }
+
+        .about-hero {
+            display: grid;
+            grid-template-columns: 58px 1fr;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .about-icon {
+            width: 54px;
+            height: 54px;
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+            color: #fff;
+            background: linear-gradient(135deg, var(--blue), var(--green));
+            font-size: 26px;
+            font-weight: 800;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .about-version {
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        .about-grid {
+            display: grid;
+            gap: 10px;
+        }
+
+        .about-box {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 10px;
+            background: var(--panel-soft);
+        }
+
+        .about-box h3 {
+            margin: 0 0 8px;
+            font-size: 15px;
+        }
+
+        .about-box ul {
+            margin: 0;
+            padding-left: 18px;
+        }
+
+        .about-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+        }
+
+        .update-log {
+            white-space: pre-wrap;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .drag-handle {
+            cursor: grab;
+            color: var(--muted);
+            font-weight: 800;
+            user-select: none;
+            text-align: center;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .settings-card-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(150px, 1fr));
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+
+        .settings-card {
+            min-height: 118px;
+            border: 1px solid color-mix(in srgb, var(--blue) 36%, var(--line));
+            border-radius: 12px;
+            background:
+                linear-gradient(135deg, color-mix(in srgb, var(--bg-accent) 68%, var(--panel)), var(--panel-soft));
+            color: var(--text);
+            box-shadow: var(--shadow-soft);
+            font-weight: 700;
+        }
+
+        .settings-card.active {
+            border-color: var(--blue);
+            box-shadow: var(--focus), var(--shadow-soft);
+        }
+
+        .settings-section {
+            display: none;
+        }
+
+        .settings-section.active {
+            display: block;
+        }
+
+        .weekly-modal {
+            width: min(1180px, 100%);
+        }
+
+        .weekly-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 10px;
+            align-items: end;
+            margin-bottom: 14px;
+        }
+
+        .weekly-workspace {
+            display: none;
+        }
+
+        .weekly-workspace.visible {
+            display: block;
+        }
+
+        #weeklyPage .panel-header {
+            justify-content: center;
+            min-height: 72px;
+        }
+
+        #weeklyPage .panel-header h2 {
+            margin: 0;
+            font-size: 28px;
+            text-align: center;
+        }
+
+        .weekly-actions {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 18px 0 8px;
+        }
+
+        .weekly-actions button {
+            min-width: 148px;
+        }
+
+        #weeklyModal #weeklyWorkspace,
+        #weeklyModal #weeklyStatus {
+            display: none;
+        }
+
+        .weekly-preview-wrap {
+            max-height: none;
+            overflow: auto;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #111;
+        }
+
+        .excel-shell {
+            min-width: 1450px;
+            display: grid;
+            grid-template-columns: 28px 1fr;
+            grid-template-rows: 26px auto;
+            font-family: "Times New Roman", serif;
+        }
+
+        .excel-corner {
+            grid-column: 1;
+            grid-row: 1;
+            background: var(--excel-head);
+            border-right: 1px solid #4b5563;
+            border-bottom: 1px solid #4b5563;
+        }
+
+        .excel-cols {
+            grid-column: 2;
+            grid-row: 1;
+            display: grid;
+            grid-template-columns: 44px 132px 210px 322px 170px 230px 230px 214px;
+            background: var(--excel-head);
+            color: var(--excel-head-text);
+            font: 13px "Segoe UI", Arial, sans-serif;
+        }
+
+        .excel-cols span {
+            display: grid;
+            place-items: center;
+            border-right: 1px solid #4b5563;
+        }
+
+        .excel-rows {
+            grid-column: 1;
+            grid-row: 2;
+            background: var(--excel-head);
+            color: var(--excel-head-text);
+            font: 13px "Segoe UI", Arial, sans-serif;
+        }
+
+        .excel-rows div {
+            height: var(--row-height, 42px);
+            display: grid;
+            place-items: center;
+            border-bottom: 1px solid #4b5563;
+        }
+
+        .excel-paper {
+            grid-column: 2;
+            grid-row: 2;
+            background: #fff;
+            color: #000;
+        }
+
+        .weekly-report-head {
+            height: 128px;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            align-items: start;
+            border-bottom: 2px solid #000;
+            padding-top: 16px;
+        }
+
+        .weekly-logo-preview {
+            max-width: 220px;
+            max-height: 48px;
+            margin-left: 28px;
+        }
+
+        .weekly-report-title {
+            color: #ff0000;
+            font: bold 24px "Times New Roman", serif;
+            text-align: center;
+            padding-top: 28px;
+        }
+
+        .weekly-preview-table input,
+        .weekly-preview-table select,
+        .weekly-preview-table textarea {
+            width: 100%;
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        .weekly-preview-table textarea {
+            min-height: 64px;
+            font-family: "Times New Roman", serif;
+            line-height: 1.35;
+            resize: none;
+            overflow: hidden;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+            box-shadow: none;
+            color: #000;
+        }
+
+        .weekly-preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            color: #000;
+            background: #fff;
+        }
+
+        .weekly-preview-table th,
+        .weekly-preview-table td {
+            border: 1px solid #000;
+            color: #000;
+            background: #fff;
+            font-family: "Times New Roman", serif;
+        }
+
+        .weekly-preview-table th {
+            font-weight: bold;
+            text-align: center;
+            position: relative;
+        }
+
+        .weekly-col-resizer {
+            position: absolute;
+            top: 0;
+            right: -4px;
+            width: 8px;
+            height: 100%;
+            cursor: col-resize;
+            z-index: 2;
+        }
+
+        .weekly-col-resizer:hover {
+            background: rgba(18, 101, 179, 0.18);
+        }
+
+        .weekly-preview-table select,
+        .weekly-preview-table input {
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+            box-shadow: none;
+            color: #000;
+            font-family: "Times New Roman", serif;
+            text-align: center;
+        }
+
+        .weekly-preview-table textarea {
+            display: block;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .weekly-preview-table td {
+            overflow: hidden;
+            vertical-align: middle;
+        }
+
+        .weekly-project-label {
+            display: block;
+            width: 100%;
+            text-align: center;
+            font-family: "Times New Roman", serif;
+            color: #000;
+            cursor: context-menu;
+            user-select: text;
+        }
+
+        .weekly-category-cell {
+            font-weight: bold;
+        }
+
+        .weekly-stt-cell {
+            text-align: center;
+            position: relative;
+        }
+
+        .weekly-row-resizer {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -4px;
+            height: 8px;
+            cursor: row-resize;
+            z-index: 3;
+        }
+
+        .weekly-row-resizer:hover {
+            background: rgba(18, 101, 179, 0.18);
+        }
+
+        .image-preview-title {
+            margin-top: 14px;
+            font-weight: 700;
+        }
+
+        .image-list {
+            display: grid;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .image-toolbar {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .image-item {
+            display: grid;
+            grid-template-columns: 180px minmax(220px, 1fr) auto;
+            gap: 8px;
+            align-items: center;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 8px;
+            background: var(--panel-soft);
+        }
+
+        .image-group {
+            display: grid;
+            gap: 10px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 10px;
+            background: var(--panel-soft);
+        }
+
+        .image-group.drag-over {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(18, 101, 179, 0.15);
+        }
+
+        .image-group-head {
+            display: grid;
+            grid-template-columns: minmax(160px, auto) minmax(220px, 1fr) auto;
+            gap: 10px;
+            align-items: center;
+            font-weight: 700;
+        }
+
+        .image-group-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+            gap: 8px;
+        }
+
+        .image-group .image-item {
+            grid-template-columns: 1fr auto;
+            padding: 6px;
+            background: var(--field);
+            cursor: grab;
+        }
+
+        .image-group .image-item:active {
+            cursor: grabbing;
+        }
+
+        .image-thumb {
+            width: 170px;
+            height: 96px;
+            object-fit: cover;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            background: var(--field);
+        }
+
+        .project-context-menu {
+            position: fixed;
+            display: none;
+            z-index: 80;
+            min-width: 128px;
+            padding: 6px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--panel);
+            box-shadow: var(--shadow);
+        }
+
+        .project-context-menu.open {
+            display: block;
+        }
+
+        .project-context-menu button {
+            width: 100%;
+            height: 34px;
+            justify-content: flex-start;
+            padding: 0 10px;
+            background: transparent;
+            color: var(--text);
+            border: 0;
+        }
+
+        .project-context-menu button:hover {
+            background: var(--panel-soft);
+        }
+
+        .project-detail-drawer {
+            position: fixed;
+            top: 0;
+            right: 0;
+            z-index: 70;
+            width: var(--detail-width);
+            min-width: 360px;
+            max-width: min(76vw, 980px);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid var(--line);
+            background: var(--panel);
+            box-shadow: -18px 0 42px rgba(22, 42, 70, 0.16);
+            transform: translateX(102%);
+            transition: transform 220ms ease;
+        }
+
+        .project-detail-drawer.open {
+            transform: translateX(0);
+        }
+
+        .detail-resize-handle {
+            position: absolute;
+            left: -5px;
+            top: 0;
+            width: 10px;
+            height: 100%;
+            cursor: ew-resize;
+        }
+
+        .detail-drawer-header {
+            min-height: 62px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--line);
+            background: var(--panel-soft);
+        }
+
+        .detail-drawer-title {
+            min-width: 0;
+        }
+
+        .detail-drawer-title strong {
+            display: block;
+            font-size: 18px;
+        }
+
+        .detail-filters {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--line);
+            background: color-mix(in srgb, var(--panel-soft) 80%, var(--panel));
+        }
+
+        .detail-filters .wide {
+            grid-column: 1 / -1;
+        }
+
+        .detail-list {
+            flex: 1;
+            overflow: auto;
+            padding: 14px 16px 24px;
+            display: grid;
+            align-content: start;
+            gap: 10px;
+        }
+
+        .detail-item {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--panel-soft);
+            padding: 12px;
+        }
+
+        .detail-item-head {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 8px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .detail-item h4 {
+            margin: 0 0 8px;
+            font-size: 14px;
+        }
+
+        .detail-item ul {
+            margin: 6px 0 0 18px;
+            padding: 0;
+        }
+
+        .detail-people {
+            margin: 8px 0;
+            color: var(--text);
+        }
+
+        .detail-thumbs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .detail-thumb {
+            width: 72px;
+            height: 52px;
+            padding: 0;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            overflow: hidden;
+            background: var(--field);
+        }
+
+        .detail-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .image-viewer {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(3, 10, 20, 0.86);
+        }
+
+        .image-viewer.open {
+            display: flex;
+        }
+
+        .image-viewer img {
+            max-width: min(92vw, 1280px);
+            max-height: 88vh;
+            object-fit: contain;
+            border-radius: 8px;
+            background: #fff;
+        }
+
+        .image-viewer-close,
+        .image-viewer-nav {
+            position: absolute;
+            z-index: 101;
+            display: grid;
+            place-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            background: rgba(15, 23, 42, 0.78);
+            color: #fff;
+        }
+
+        .image-viewer-close {
+            top: 18px;
+            right: 18px;
+            width: 42px;
+            height: 42px;
+            font-size: 28px;
+        }
+
+        .image-viewer-nav {
+            top: 50%;
+            width: 48px;
+            height: 58px;
+            transform: translateY(-50%);
+            font-size: 42px;
+        }
+
+        .image-viewer-prev {
+            left: 18px;
+        }
+
+        .image-viewer-next {
+            right: 18px;
+        }
+
+        .folder-structure-panel {
+            margin-top: 16px;
+        }
+
+        .folder-structure-panel .panel-header {
+            cursor: default;
+        }
+
+        .folder-pin-btn {
+            min-width: 38px;
+            height: 34px;
+            border-radius: 999px;
+            font-size: 16px;
+            color: var(--muted);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .folder-structure-panel.pinned .folder-pin-btn {
+            color: #fff;
+            background: var(--blue);
+            border-color: var(--blue);
+            box-shadow: var(--focus);
+        }
+
+        .folder-structure-panel.collapsed .folder-pin-btn::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 25px;
+            height: 2px;
+            background: var(--red);
+            border-radius: 999px;
+            transform: translate(-50%, -50%) rotate(-35deg);
+            transform-origin: center;
+            pointer-events: none;
+        }
+
+        .folder-structure-panel.collapsed .panel-body {
+            display: none;
+        }
+
+        .folder-structure-panel.collapsed.hovering .panel-body {
+            display: block;
+        }
+
+        .folder-table-wrap {
+            overflow: auto;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--panel);
+        }
+
+        .folder-table {
+            width: 100%;
+            min-width: 1120px;
+            border-collapse: collapse;
+        }
+
+        .folder-table th,
+        .folder-table td {
+            border-bottom: 1px solid var(--line);
+            border-right: 1px solid var(--line);
+            padding: 8px 10px;
+            text-align: left;
+            vertical-align: middle;
+        }
+
+        .folder-table th {
+            background: var(--panel-soft);
+            font-weight: 700;
+        }
+
+        .folder-tree {
+            font-family: "Segoe UI", Arial, sans-serif;
+            line-height: 1.75;
+            white-space: nowrap;
+            font-size: 16px;
+        }
+
+        .folder-tree .tree-node {
+            padding-left: calc(var(--level) * 18px);
+        }
+
+        .tree-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 7px;
+            vertical-align: -4px;
+        }
+
+        .tree-toggle {
+            border: 0;
+            background: transparent;
+            color: var(--amber);
+            display: inline-grid;
+            place-items: center;
+            width: 16px;
+            height: 18px;
+            padding: 0;
+            margin-right: 4px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .tree-toggle:hover {
+            color: var(--blue);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            min-width: 92px;
+            justify-content: center;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .status-done {
+            background: color-mix(in srgb, var(--green) 18%, var(--panel));
+            color: var(--green);
+        }
+
+        .status-progress {
+            background: color-mix(in srgb, var(--blue) 16%, var(--panel));
+            color: var(--blue);
+        }
+
+        .status-wait {
+            background: color-mix(in srgb, var(--amber) 18%, var(--panel));
+            color: var(--amber);
+        }
+
+        .bottom-status {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: center;
+            padding: 10px 4px 0;
+            color: var(--muted);
+        }
+
+        .ready-dot {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .ready-dot::before {
+            content: "✓";
+            display: inline-grid;
+            place-items: center;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--green);
+            color: #fff;
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        @media (max-width: 1000px) {
+            .workspace,
+            .report-grid,
+            .search-bar,
+            .person-row,
+            .weekly-controls,
+            .image-item {
+                grid-template-columns: 1fr;
+            }
+
+            .report-grid .wide {
+                grid-column: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="brand">
+            <div class="brand-icon">D</div>
+            <div>Daily Work Report</div>
+        </div>
+        <div class="header-actions">
+            <button id="weeklyReportBtn" title="Xuất báo cáo tuần">Báo cáo tuần</button>
+            <div class="theme-dots" aria-label="Chọn theme">
+                <button class="theme-dot" data-theme-option="light" style="--swatch: linear-gradient(135deg, #dbeafe, #ffffff)" title="Theme sáng"></button>
+                <button class="theme-dot" data-theme-option="dark" style="--swatch: linear-gradient(135deg, #111827, #5aa9ff)" title="Theme tối"></button>
+                <button class="theme-dot" data-theme-option="garden" style="--swatch: linear-gradient(135deg, #c9f7d5, #31a24c, #169b8f)" title="Theme hoa lá"></button>
+                <button class="theme-dot" data-theme-option="blossom" style="--swatch: linear-gradient(135deg, #ffd8ed, #e2559d, #1fae88)" title="Theme hoa hồng"></button>
+                <button class="theme-dot" data-theme-option="sunrise" style="--swatch: linear-gradient(135deg, #ffe29a, #ee7b34, #22a06b)" title="Theme nắng mới"></button>
+                <button class="theme-dot" data-theme-option="ocean" style="--swatch: linear-gradient(135deg, #bcefff, #1488c8, #00a889)" title="Theme biển sáng"></button>
+                <button class="theme-dot" data-theme-option="lime" style="--swatch: linear-gradient(135deg, #dcf86f, #6aa80f, #24a148)" title="Theme xanh non"></button>
+            </div>
+            <button id="infoBtn" class="icon-btn info-btn" title="Thông tin phần mềm" aria-label="Thông tin phần mềm">i</button>
+            <button id="settingsBtn" class="icon-btn" title="Cài đặt" aria-label="Cài đặt">⚙</button>
+        </div>
+    </header>
+
+    <nav class="tabs">
+        <button class="tab active" data-tab="inputPage">Nhập liệu</button>
+        <button class="tab" data-tab="searchPage">Tìm kiếm</button>
+        <button class="tab" data-tab="weeklyPage">Báo cáo tuần</button>
+    </nav>
+
+    <main>
+        <section id="inputPage" class="page active">
+            <div class="workspace">
+                <section class="panel">
+                    <div class="panel-header">
+                        <h2>Dữ liệu copy vào</h2>
+                    </div>
+                    <div class="panel-body">
+                        <label for="rawInput">Nội dung báo cáo</label>
+                        <textarea id="rawInput" spellcheck="false"></textarea>
+
+                        <label style="margin-top: 12px;" for="rootFolder">Thư mục lưu ảnh / tài liệu</label>
+                        <div class="field-row">
+                            <input id="rootFolder" type="text" readonly placeholder="Chọn thư mục gốc để tạo folder ngày và người thực hiện">
+                            <button id="chooseFolderBtn">Chọn thư mục</button>
+                        </div>
+
+                        <button id="acceptBtn" class="primary">Accept / Xác nhận</button>
+                        <div class="status-line" id="inputStatus">Sẵn sàng.</div>
+                    </div>
+                </section>
+
+                <section class="panel">
+                    <div class="panel-header">
+                        <h2>Bảng chuẩn hóa</h2>
+                        <div class="summary">
+                            <span class="pill" id="totalPill">Tổng: 0</span>
+                            <button id="saveBtn">Lưu JSON + tạo folder</button>
+                            <button id="excelBtn" class="excel-action">Thêm vào Excel</button>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <div id="previewList" class="report-list">
+                            <div class="empty">Dán dữ liệu vào bên trái rồi bấm Accept / Xác nhận để xem bảng chuẩn hóa.</div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            <section class="panel folder-structure-panel">
+                <div class="panel-header">
+                    <h2>Cấu trúc thư mục</h2>
+                    <button id="folderPinBtn" class="folder-pin-btn" title="Ghim bảng cấu trúc" aria-label="Ghim bảng cấu trúc">📌</button>
+                </div>
+                <div class="panel-body">
+                    <div class="folder-table-wrap">
+                        <table class="folder-table">
+                            <thead>
+                                <tr>
+                                    <th>Cấu trúc thư mục</th>
+                                </tr>
+                            </thead>
+                            <tbody id="folderStructureBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="bottom-status">
+                        <div class="ready-dot">Sẵn sàng</div>
+                        <div id="currentDateTime"></div>
+                    </div>
+                </div>
+            </section>
+        </section>
+
+        <section id="searchPage" class="page">
+            <section class="panel search-layout">
+                <div class="panel-header">
+                    <h2>Tìm kiếm</h2>
+                    <button id="reloadBtn">Tải lại JSON</button>
+                </div>
+                <div class="panel-body">
+                    <div class="search-bar">
+                        <input id="searchInput" type="search" placeholder="Tìm theo dự án, người, trạng thái, ngày, nội dung...">
+                        <select id="excelFilter">
+                            <option value="all">Tất cả Excel</option>
+                            <option value="exported">Đã thêm Excel</option>
+                            <option value="not_exported">Chưa thêm Excel</option>
+                        </select>
+                        <button id="searchBtn">Tìm kiếm</button>
+                    </div>
+                    <div style="margin-top: 14px; overflow: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Mã dự án</th>
+                                    <th>Ngày</th>
+                                    <th>Người thực hiện</th>
+                                    <th>Nội dung</th>
+                                    <th>Trạng thái</th>
+                                    <th>Thư mục</th>
+                                </tr>
+                            </thead>
+                            <tbody id="searchResults"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </section>
+
+        <section id="weeklyPage" class="page">
+            <section class="panel">
+                <div class="panel-header">
+                    <h2>Xem trước báo cáo tuần</h2>
+                </div>
+                <div class="panel-body">
+                    <div id="weeklyWorkspace" class="weekly-workspace">
+                        <div id="weeklyPreviewWrap" class="weekly-preview-wrap">
+                            <div class="excel-shell">
+                                <div class="excel-corner"></div>
+                                <div class="excel-cols">
+                                    <span>A</span><span>B</span><span>C</span><span>D</span>
+                                    <span>E</span><span>F</span><span>G</span><span>H</span>
+                                </div>
+                                <div id="weeklyExcelRows" class="excel-rows"></div>
+                                <div class="excel-paper">
+                                    <div class="weekly-report-head">
+                                        <img class="weekly-logo-preview" src="file:///C:/Users/anhng/OneDrive/Desktop/Picture1.png" alt="MEIKO AUTOMATION">
+                                        <div id="weeklyPreviewTitle" class="weekly-report-title">BÁO CÁO SẢN XUẤT TUẦN</div>
+                                    </div>
+                                    <table class="weekly-preview-table">
+                                        <colgroup>
+                                            <col style="width:44px">
+                                            <col style="width:132px">
+                                            <col style="width:210px">
+                                            <col style="width:322px">
+                                            <col style="width:170px">
+                                            <col style="width:230px">
+                                            <col style="width:230px">
+                                            <col style="width:214px">
+                                        </colgroup>
+                                        <thead>
+                                            <tr>
+                                                <th>STT</th>
+                                                <th>HẠNG<br>MỤC</th>
+                                                <th>DỰ ÁN</th>
+                                                <th>NỘI DUNG CÔNG VIỆC</th>
+                                                <th>TIẾN ĐỘ CÔNG VIỆC</th>
+                                                <th>KHÓ KHĂN</th>
+                                                <th>HƯỚNG GIẢI QUYẾT</th>
+                                                <th>THÔNG TIN KHÁC</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="weeklyPreviewBody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="image-preview-title">Xem trước hình ảnh</div>
+                        <div id="weeklyImageList" class="image-list"></div>
+                        <div class="weekly-actions">
+                            <button id="addWeeklyImagesBtn">Load hình ảnh</button>
+                            <button id="chooseWeeklyOutputBtn">Chọn nơi lưu</button>
+                            <button id="confirmWeeklyExportBtn">Xác nhận xuất Excel</button>
+                        </div>
+                        <div class="field-row" style="margin-top: 14px;">
+                            <input id="weeklyOutputFolder" type="text" readonly placeholder="Chọn thư mục lưu báo cáo tuần">
+                        </div>
+                        <div class="status-line" id="weeklyStatus"></div>
+                    </div>
+                    <div id="weeklyEmptyState" class="empty">Bấm nút Báo cáo tuần trên thanh tiêu đề để chọn khoảng ngày và tạo bảng xem trước.</div>
+                </div>
+            </section>
+        </section>
+    </main>
+
+    <div id="infoModal" class="modal-backdrop">
+        <section class="modal" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+            <div class="modal-header">
+                <h2 id="infoTitle">Thông tin phần mềm</h2>
+                <button id="closeInfoBtn" class="icon-btn" title="Đóng" aria-label="Đóng">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="about-hero">
+                    <div class="about-icon">D</div>
+                    <div>
+                        <h2 id="aboutAppName" style="margin:0;">Daily Work Report</h2>
+                        <div id="aboutVersion" class="about-version"></div>
+                    </div>
+                </div>
+                <div class="about-grid">
+                    <div class="about-box">
+                        <h3>Thông tin cơ bản</h3>
+                        <p id="aboutDescription" class="muted" style="margin:0;"></p>
+                    </div>
+                    <div class="about-box">
+                        <h3>Bản cập nhật mới nhất</h3>
+                        <ul id="aboutUpdates"></ul>
+                    </div>
+                    <div class="about-box">
+                        <h3>GitHub</h3>
+                        <p id="aboutGithub" class="muted" style="margin:0;"></p>
+                    </div>
+                    <div id="updateLog" class="about-box update-log" style="display:none;"></div>
+                </div>
+                <div class="about-actions">
+                    <button id="updateAppBtn" class="primary">Update từ GitHub</button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div id="settingsModal" class="modal-backdrop">
+        <section class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+            <div class="modal-header">
+                <h2 id="settingsTitle">Cài đặt</h2>
+                <button id="closeSettingsBtn" class="icon-btn" title="Đóng" aria-label="Đóng">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-card-grid">
+                    <button class="settings-card active" data-settings-section="members">Danh sách thành viên</button>
+                    <button class="settings-card" data-settings-section="projects">Mã dự án</button>
+                    <button class="settings-card" data-settings-section="columns">Cột hiển thị báo cáo tuần</button>
+                </div>
+
+                <section id="settingsSectionMembers" class="settings-section active">
+                    <h3>Danh sách thành viên</h3>
+                    <p class="muted">Danh sách này dùng để tham chiếu tên người thực hiện trong bảng chuẩn hóa.</p>
+                    <div class="field-row">
+                        <input id="memberNameInput" type="text" placeholder="Nhập tên thành viên, ví dụ: Nguyễn Bá Tân">
+                        <button id="addMemberBtn">Thêm</button>
+                    </div>
+                    <div id="memberList" class="member-list"></div>
+                </section>
+
+                <section id="settingsSectionProjects" class="settings-section">
+                    <h3>Mã dự án</h3>
+                    <p class="muted">Danh sách lấy từ cột Dự án trong bảng báo cáo tuần. Bấm - để bỏ hàng dự án, bấm + để thêm hàng dự án.</p>
+                    <div class="field-row">
+                        <input id="weeklyProjectInput" type="text" placeholder="Nhập mã dự án, ví dụ: AUTM2602E8">
+                        <button id="addWeeklyProjectBtn">+</button>
+                    </div>
+                    <div id="weeklyProjectList" class="member-list"></div>
+                </section>
+
+                <section id="settingsSectionColumns" class="settings-section">
+                    <h3>Cột hiển thị báo cáo tuần</h3>
+                    <p class="muted">Có thể thêm/bớt cột và chỉnh độ rộng cột trong bảng xem trước.</p>
+                    <div class="field-row">
+                        <input id="weeklyColumnInput" type="text" placeholder="Tên cột mới, ví dụ: Ghi chú">
+                        <button id="addWeeklyColumnBtn">+</button>
+                    </div>
+                    <div id="weeklyColumnList" class="member-list"></div>
+                </section>
+            </div>
+        </section>
+    </div>
+
+    <div id="weeklyModal" class="modal-backdrop">
+        <section class="modal weekly-modal" role="dialog" aria-modal="true" aria-labelledby="weeklyTitle">
+            <div class="modal-header">
+                <h2 id="weeklyTitle">Xuất báo cáo tuần</h2>
+                <button id="closeWeeklyBtn" class="icon-btn" title="Đóng" aria-label="Đóng">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="weekly-controls">
+                    <div>
+                        <label for="weeklyDateFrom">Từ ngày</label>
+                        <input id="weeklyDateFrom" type="date">
+                    </div>
+                    <div>
+                        <label for="weeklyDateTo">Đến ngày</label>
+                        <input id="weeklyDateTo" type="date">
+                    </div>
+                    <button id="loadWeeklyPreviewBtn">Xem trước</button>
+                </div>
+
+                <div id="weeklyWorkspace" class="weekly-workspace">
+                    <div class="weekly-preview-wrap">
+                        <div class="excel-shell">
+                            <div class="excel-corner"></div>
+                            <div class="excel-cols">
+                                <span>A</span><span>B</span><span>C</span><span>D</span>
+                                <span>E</span><span>F</span><span>G</span><span>H</span>
+                            </div>
+                            <div id="weeklyExcelRows" class="excel-rows"></div>
+                            <div class="excel-paper">
+                                <div class="weekly-report-head">
+                                    <img class="weekly-logo-preview" src="file:///C:/Users/anhng/OneDrive/Desktop/Picture1.png" alt="MEIKO AUTOMATION">
+                                    <div id="weeklyPreviewTitle" class="weekly-report-title">BÁO CÁO SẢN XUẤT TUẦN</div>
+                                </div>
+                                <table class="weekly-preview-table">
+                                    <colgroup>
+                                        <col style="width:44px">
+                                        <col style="width:132px">
+                                        <col style="width:210px">
+                                        <col style="width:322px">
+                                        <col style="width:170px">
+                                        <col style="width:244px">
+                                        <col style="width:244px">
+                                        <col style="width:214px">
+                                    </colgroup>
+                                    <thead>
+                                        <tr>
+                                            <th>STT</th>
+                                            <th>HẠNG<br>MỤC</th>
+                                            <th>DỰ ÁN</th>
+                                            <th>NỘI DUNG CÔNG VIỆC</th>
+                                            <th>TIẾN ĐỘ CÔNG VIỆC</th>
+                                            <th>KHÓ KHĂN</th>
+                                            <th>HƯỚNG GIẢI QUYẾT</th>
+                                            <th>THÔNG TIN KHÁC</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="weeklyPreviewBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="addWeeklyImagesBtn" style="margin-top: 14px;">Load hình ảnh</button>
+                    <div class="image-preview-title">Xem trước hình ảnh</div>
+                    <div id="weeklyImageList" class="image-list"></div>
+                    <div class="field-row" style="margin-top: 14px;">
+                        <input id="weeklyOutputFolder" type="text" readonly placeholder="Chọn thư mục lưu báo cáo tuần">
+                        <button id="chooseWeeklyOutputBtn">Chọn nơi lưu</button>
+                    </div>
+                    <button id="confirmWeeklyExportBtn" class="primary">Xác nhận xuất Excel</button>
+                </div>
+                <div class="status-line" id="weeklyStatus"></div>
+            </div>
+        </section>
+    </div>
+
+    <div id="projectContextMenu" class="project-context-menu">
+        <button id="projectDetailMenuBtn" type="button">Detail</button>
+    </div>
+
+    <aside id="projectDetailDrawer" class="project-detail-drawer" aria-label="Chi tiết dự án">
+        <div id="detailResizeHandle" class="detail-resize-handle"></div>
+        <div class="detail-drawer-header">
+            <div class="detail-drawer-title">
+                <span class="muted">Chi tiết dự án</span>
+                <strong id="detailProjectTitle">-</strong>
+            </div>
+            <button id="closeProjectDetailBtn" class="icon-btn" title="Đóng" aria-label="Đóng">×</button>
+        </div>
+        <div class="detail-filters">
+            <div class="wide">
+                <label for="detailWeekPicker">Chọn tuần nhanh</label>
+                <input id="detailWeekPicker" type="week">
+            </div>
+            <div>
+                <label for="detailDateFrom">Từ ngày</label>
+                <input id="detailDateFrom" type="date">
+            </div>
+            <div>
+                <label for="detailDateTo">Đến ngày</label>
+                <input id="detailDateTo" type="date">
+            </div>
+        </div>
+        <div id="projectDetailList" class="detail-list"></div>
+    </aside>
+
+    <div id="imageViewer" class="image-viewer" aria-label="Xem ảnh">
+        <button id="closeImageViewerBtn" class="image-viewer-close" type="button" title="Đóng">×</button>
+        <button id="prevImageBtn" class="image-viewer-nav image-viewer-prev" type="button" title="Ảnh trước">‹</button>
+        <img id="imageViewerImg" alt="Ảnh chi tiết">
+        <button id="nextImageBtn" class="image-viewer-nav image-viewer-next" type="button" title="Ảnh tiếp">›</button>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+        const DEFAULT_WEEKLY_COLUMNS = [
+            { id: 'stt', label: 'STT', width: 44, locked: true },
+            { id: 'hang_muc', label: 'HẠNG\nMỤC', width: 132, locked: true },
+            { id: 'ten_may', label: 'TÊN MÁY', width: 190 },
+            { id: 'du_an', label: 'DỰ ÁN', width: 210, locked: true },
+            { id: 'noi_dung', label: 'NỘI DUNG CÔNG VIỆC', width: 322 },
+            { id: 'tien_do', label: 'TIẾN ĐỘ CÔNG VIỆC', width: 170 },
+            { id: 'kho_khan', label: 'KHÓ KHĂN', width: 230 },
+            { id: 'huong_giai_quyet', label: 'HƯỚNG GIẢI QUYẾT', width: 230 },
+            { id: 'ghi_chu', label: 'GHI CHÚ', width: 240 },
+            { id: 'thong_tin_khac', label: 'THÔNG TIN KHÁC', width: 214 }
+        ];
+
+        const state = {
+            rootFolder: localStorage.getItem('dailyWorkReportRootFolder') || '',
+            previewReports: [],
+            allReports: [],
+            savedReports: [],
+            dataFile: '',
+            sqliteFile: '',
+            members: loadMembers(),
+            weeklyRows: [],
+            weeklyImages: [],
+            weeklyImageGroups: [],
+            weeklyProjects: loadWeeklyProjects(),
+            weeklyProjectExclusions: loadWeeklyProjectExclusions(),
+            weeklyColumns: loadWeeklyColumns(),
+            weeklyZoom: Number(localStorage.getItem('dailyWorkReportWeeklyZoom')) || 1,
+            weeklyOutputFolder: localStorage.getItem('dailyWorkReportWeeklyOutputFolder') || '',
+            detailProject: '',
+            detailMenuProject: '',
+            detailResizeActive: false,
+            weeklyColumnResize: null,
+            weeklyRowResize: null,
+            collapsedFolderNodes: new Set(),
+            folderPinned: localStorage.getItem('dailyWorkReportFolderPinned') !== 'false',
+            detailImages: [],
+            detailImageIndex: 0
+        };
+
+        const els = {
+            rawInput: document.getElementById('rawInput'),
+            rootFolder: document.getElementById('rootFolder'),
+            chooseFolderBtn: document.getElementById('chooseFolderBtn'),
+            acceptBtn: document.getElementById('acceptBtn'),
+            saveBtn: document.getElementById('saveBtn'),
+            excelBtn: document.getElementById('excelBtn'),
+            inputStatus: document.getElementById('inputStatus'),
+            previewList: document.getElementById('previewList'),
+            totalPill: document.getElementById('totalPill'),
+            folderStructurePanel: document.querySelector('.folder-structure-panel'),
+            folderPinBtn: document.getElementById('folderPinBtn'),
+            folderStructureBody: document.getElementById('folderStructureBody'),
+            currentDateTime: document.getElementById('currentDateTime'),
+            weeklyReportBtn: document.getElementById('weeklyReportBtn'),
+            infoBtn: document.getElementById('infoBtn'),
+            infoModal: document.getElementById('infoModal'),
+            closeInfoBtn: document.getElementById('closeInfoBtn'),
+            aboutAppName: document.getElementById('aboutAppName'),
+            aboutVersion: document.getElementById('aboutVersion'),
+            aboutDescription: document.getElementById('aboutDescription'),
+            aboutUpdates: document.getElementById('aboutUpdates'),
+            aboutGithub: document.getElementById('aboutGithub'),
+            updateAppBtn: document.getElementById('updateAppBtn'),
+            updateLog: document.getElementById('updateLog'),
+            settingsBtn: document.getElementById('settingsBtn'),
+            settingsModal: document.getElementById('settingsModal'),
+            closeSettingsBtn: document.getElementById('closeSettingsBtn'),
+            memberNameInput: document.getElementById('memberNameInput'),
+            addMemberBtn: document.getElementById('addMemberBtn'),
+            memberList: document.getElementById('memberList'),
+            weeklyProjectInput: document.getElementById('weeklyProjectInput'),
+            addWeeklyProjectBtn: document.getElementById('addWeeklyProjectBtn'),
+            weeklyProjectList: document.getElementById('weeklyProjectList'),
+            weeklyColumnInput: document.getElementById('weeklyColumnInput'),
+            addWeeklyColumnBtn: document.getElementById('addWeeklyColumnBtn'),
+            weeklyColumnList: document.getElementById('weeklyColumnList'),
+            reloadBtn: document.getElementById('reloadBtn'),
+            searchInput: document.getElementById('searchInput'),
+            excelFilter: document.getElementById('excelFilter'),
+            searchBtn: document.getElementById('searchBtn'),
+            searchResults: document.getElementById('searchResults'),
+            weeklyModal: document.getElementById('weeklyModal'),
+            closeWeeklyBtn: document.getElementById('closeWeeklyBtn'),
+            weeklyDateFrom: document.getElementById('weeklyDateFrom'),
+            weeklyDateTo: document.getElementById('weeklyDateTo'),
+            loadWeeklyPreviewBtn: document.getElementById('loadWeeklyPreviewBtn'),
+            addWeeklyImagesBtn: document.getElementById('addWeeklyImagesBtn'),
+            weeklyWorkspace: document.getElementById('weeklyWorkspace'),
+            weeklyPreviewWrap: document.getElementById('weeklyPreviewWrap'),
+            weeklyExcelRows: document.getElementById('weeklyExcelRows'),
+            weeklyPreviewTitle: document.getElementById('weeklyPreviewTitle'),
+            weeklyPreviewBody: document.getElementById('weeklyPreviewBody'),
+            weeklyImageList: document.getElementById('weeklyImageList'),
+            weeklyEmptyState: document.getElementById('weeklyEmptyState'),
+            weeklyOutputFolder: document.getElementById('weeklyOutputFolder'),
+            chooseWeeklyOutputBtn: document.getElementById('chooseWeeklyOutputBtn'),
+            confirmWeeklyExportBtn: document.getElementById('confirmWeeklyExportBtn'),
+            weeklyStatus: document.getElementById('weeklyStatus'),
+            projectContextMenu: document.getElementById('projectContextMenu'),
+            projectDetailMenuBtn: document.getElementById('projectDetailMenuBtn'),
+            projectDetailDrawer: document.getElementById('projectDetailDrawer'),
+            detailResizeHandle: document.getElementById('detailResizeHandle'),
+            closeProjectDetailBtn: document.getElementById('closeProjectDetailBtn'),
+            detailProjectTitle: document.getElementById('detailProjectTitle'),
+            detailWeekPicker: document.getElementById('detailWeekPicker'),
+            detailDateFrom: document.getElementById('detailDateFrom'),
+            detailDateTo: document.getElementById('detailDateTo'),
+            projectDetailList: document.getElementById('projectDetailList'),
+            imageViewer: document.getElementById('imageViewer'),
+            imageViewerImg: document.getElementById('imageViewerImg'),
+            closeImageViewerBtn: document.getElementById('closeImageViewerBtn'),
+            prevImageBtn: document.getElementById('prevImageBtn'),
+            nextImageBtn: document.getElementById('nextImageBtn')
+        };
+
+        els.rawInput.value = '';
+        if (state.rootFolder) {
+            els.rootFolder.value = state.rootFolder;
+        }
+        if (state.weeklyOutputFolder) {
+            els.weeklyOutputFolder.value = state.weeklyOutputFolder;
+        }
+        applyTheme(localStorage.getItem('dailyWorkReportTheme') || 'light');
+        applyFolderPinState();
+        updateCurrentDateTime();
+        renderFolderStructure();
+        setInterval(updateCurrentDateTime, 1000);
+
+        document.querySelectorAll('.tab').forEach((tab) => {
+            tab.addEventListener('click', () => {
+                activateTab(tab.dataset.tab);
+            });
+        });
+
+        els.chooseFolderBtn.addEventListener('click', async () => {
+            const folder = await ipcRenderer.invoke('choose-root-folder');
+            if (folder) {
+                state.rootFolder = folder;
+                els.rootFolder.value = folder;
+                localStorage.setItem('dailyWorkReportRootFolder', folder);
+                setStatus(`Đã chọn thư mục: ${folder}`);
+                renderFolderStructure();
+            }
+        });
+
+        els.acceptBtn.addEventListener('click', () => {
+            const raw = els.rawInput.value.trim();
+            if (!raw) {
+                setStatus('Vui lòng nhập dữ liệu trước khi xác nhận.', true);
+                return;
+            }
+
+            state.previewReports = parseReport(raw);
+            renderPreview();
+            setStatus(`Đã chuẩn hóa ${state.previewReports.length} dự án. Kiểm tra lại rồi lưu.`);
+        });
+
+        els.saveBtn.addEventListener('click', async () => {
+            if (!state.previewReports.length) {
+                setStatus('Chưa có dữ liệu preview để lưu.', true);
+                return;
+            }
+
+            if (!state.rootFolder) {
+                setStatus('Vui lòng chọn thư mục trước khi lưu.', true);
+                return;
+            }
+
+            try {
+                const result = await ipcRenderer.invoke('save-reports', {
+                    rootFolder: state.rootFolder,
+                    reports: state.previewReports
+                });
+                state.dataFile = result.dataFile;
+                state.sqliteFile = result.sqliteFile || '';
+                state.previewReports = result.reports;
+                setStatus(`Đã lưu ${result.count} bản ghi và tạo folder thành công.`);
+                els.rawInput.value = '';
+                state.previewReports = [];
+                renderPreview();
+                await loadReports();
+                renderFolderStructure();
+            } catch (error) {
+                setStatus(error.message || 'Không lưu được dữ liệu.', true);
+            }
+        });
+
+        els.excelBtn.addEventListener('click', () => {
+            const selected = state.previewReports.filter((report) => report.selectedForExcel);
+            alert(`Đã chọn ${selected.length} công việc để thêm vào Excel.\nBản đầu tiên đã chuẩn bị luồng này. Khi có mẫu Excel chính thức, chương trình sẽ thêm bước chọn file, chọn sheet và ghi đúng cột.`);
+        });
+
+        els.reloadBtn.addEventListener('click', async () => {
+            await loadReports();
+            renderSearch();
+        });
+
+        els.searchBtn.addEventListener('click', renderSearch);
+        els.searchInput.addEventListener('input', debounce(renderSearch, 180));
+        els.excelFilter.addEventListener('change', renderSearch);
+        els.folderPinBtn.addEventListener('click', () => {
+            state.folderPinned = !state.folderPinned;
+            localStorage.setItem('dailyWorkReportFolderPinned', String(state.folderPinned));
+            applyFolderPinState();
+        });
+        els.folderStructurePanel.addEventListener('mouseenter', () => {
+            if (!state.folderPinned) els.folderStructurePanel.classList.add('hovering');
+        });
+        els.folderStructurePanel.addEventListener('mouseleave', () => {
+            if (!state.folderPinned) els.folderStructurePanel.classList.remove('hovering');
+        });
+
+        document.querySelectorAll('[data-theme-option]').forEach((button) => {
+            button.addEventListener('click', () => {
+                applyTheme(button.dataset.themeOption);
+            });
+        });
+
+        els.weeklyReportBtn.addEventListener('click', () => {
+            setDefaultWeeklyDates();
+            setWeeklyStatus('');
+            els.weeklyModal.classList.add('open');
+        });
+
+        els.closeWeeklyBtn.addEventListener('click', () => {
+            els.weeklyModal.classList.remove('open');
+        });
+
+        els.weeklyModal.addEventListener('click', (event) => {
+            if (event.target === els.weeklyModal) {
+                els.weeklyModal.classList.remove('open');
+            }
+        });
+
+        els.loadWeeklyPreviewBtn.addEventListener('click', loadWeeklyPreview);
+        els.addWeeklyImagesBtn.addEventListener('click', addWeeklyImages);
+        els.chooseWeeklyOutputBtn.addEventListener('click', chooseWeeklyOutputFolder);
+        els.confirmWeeklyExportBtn.addEventListener('click', exportWeeklyReport);
+        els.weeklyPreviewBody.addEventListener('contextmenu', handleProjectContextMenu);
+        els.projectDetailMenuBtn.addEventListener('click', () => {
+            hideProjectContextMenu();
+            openProjectDetail(state.detailMenuProject);
+        });
+        els.closeProjectDetailBtn.addEventListener('click', closeProjectDetail);
+        els.detailWeekPicker.addEventListener('change', handleDetailWeekChange);
+        els.detailDateFrom.addEventListener('change', loadProjectDetail);
+        els.detailDateTo.addEventListener('change', loadProjectDetail);
+        els.detailResizeHandle.addEventListener('mousedown', startDetailResize);
+        els.closeImageViewerBtn.addEventListener('click', closeImageViewer);
+        els.prevImageBtn.addEventListener('click', () => moveDetailImage(-1));
+        els.nextImageBtn.addEventListener('click', () => moveDetailImage(1));
+        els.imageViewer.addEventListener('click', (event) => {
+            if (event.target === els.imageViewer) closeImageViewer();
+        });
+        document.addEventListener('click', hideProjectContextMenu);
+        document.addEventListener('mousemove', handleGlobalMouseMove);
+        document.addEventListener('mouseup', stopGlobalResize);
+        document.addEventListener('keydown', (event) => {
+            if (!els.imageViewer.classList.contains('open')) return;
+            if (event.key === 'Escape') closeImageViewer();
+            if (event.key === 'ArrowLeft') moveDetailImage(-1);
+            if (event.key === 'ArrowRight') moveDetailImage(1);
+        });
+
+        els.infoBtn.addEventListener('click', openInfoModal);
+        els.closeInfoBtn.addEventListener('click', () => {
+            els.infoModal.classList.remove('open');
+        });
+        els.infoModal.addEventListener('click', (event) => {
+            if (event.target === els.infoModal) {
+                els.infoModal.classList.remove('open');
+            }
+        });
+        els.updateAppBtn.addEventListener('click', updateAppFromGithub);
+
+        els.settingsBtn.addEventListener('click', () => {
+            renderMemberList();
+            renderWeeklyProjectSettings();
+            renderWeeklyColumnSettings();
+            showSettingsSection('members');
+            els.settingsModal.classList.add('open');
+            els.memberNameInput.focus();
+        });
+
+        els.closeSettingsBtn.addEventListener('click', () => {
+            els.settingsModal.classList.remove('open');
+        });
+
+        els.settingsModal.addEventListener('click', (event) => {
+            if (event.target === els.settingsModal) {
+                els.settingsModal.classList.remove('open');
+            }
+        });
+
+        els.addMemberBtn.addEventListener('click', addMemberFromInput);
+        els.memberNameInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                addMemberFromInput();
+            }
+        });
+        els.addWeeklyProjectBtn.addEventListener('click', addWeeklyProjectFromInput);
+        els.weeklyProjectInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') addWeeklyProjectFromInput();
+        });
+        els.addWeeklyColumnBtn.addEventListener('click', addWeeklyColumnFromInput);
+        els.weeklyColumnInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') addWeeklyColumnFromInput();
+        });
+        document.querySelectorAll('[data-settings-section]').forEach((button) => {
+            button.addEventListener('click', () => showSettingsSection(button.dataset.settingsSection));
+        });
+        els.weeklyPreviewWrap.addEventListener('wheel', handleWeeklyZoomWheel, { passive: false });
+        applyWeeklyZoom();
+
+        function setStatus(message, isError = false) {
+            els.inputStatus.textContent = message;
+            els.inputStatus.classList.toggle('error', isError);
+        }
+
+        function activateTab(tabId) {
+            document.querySelectorAll('.tab').forEach((item) => {
+                item.classList.toggle('active', item.dataset.tab === tabId);
+            });
+            document.querySelectorAll('.page').forEach((item) => item.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            if (tabId === 'searchPage') {
+                renderSearch();
+            }
+        }
+
+        async function openInfoModal() {
+            els.updateLog.style.display = 'none';
+            els.updateLog.textContent = '';
+            els.infoModal.classList.add('open');
+            try {
+                const info = await ipcRenderer.invoke('get-app-info');
+                els.aboutAppName.textContent = info.name || 'Daily Work Report';
+                els.aboutVersion.textContent = `Phiên bản ${info.version || '1.0.0'}${info.commit ? ` | Commit ${info.commit}` : ''}${info.branch ? ` | Branch ${info.branch}` : ''}`;
+                els.aboutDescription.textContent = info.description || '';
+                els.aboutUpdates.innerHTML = (info.latestUpdate || [])
+                    .map((item) => `<li>${escapeHtml(item)}</li>`)
+                    .join('');
+                els.aboutGithub.innerHTML = info.githubUrl
+                    ? `<a href="#" data-open-github="${escapeHtml(info.githubUrl)}">${escapeHtml(info.githubUrl)}</a>`
+                    : 'Chưa cấu hình GitHub remote origin cho thư mục phần mềm này.';
+                const link = els.aboutGithub.querySelector('[data-open-github]');
+                if (link) {
+                    link.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        ipcRenderer.invoke('open-external-link', link.dataset.openGithub);
+                    });
+                }
+            } catch (error) {
+                els.updateLog.style.display = 'block';
+                els.updateLog.textContent = error.message || 'Không đọc được thông tin phần mềm.';
+            }
+        }
+
+        async function updateAppFromGithub() {
+            els.updateAppBtn.disabled = true;
+            els.updateLog.style.display = 'block';
+            els.updateLog.textContent = 'Đang cập nhật từ GitHub...';
+            try {
+                const result = await ipcRenderer.invoke('update-app-from-github');
+                els.updateLog.textContent = [
+                    'Cập nhật hoàn tất.',
+                    result.message || '',
+                    result.installOutput ? `\nNPM install:\n${result.installOutput}` : '',
+                    result.after && result.after.commit ? `\nCommit hiện tại: ${result.after.commit}` : ''
+                ].filter(Boolean).join('\n');
+            } catch (error) {
+                els.updateLog.textContent = error.message || 'Không thể cập nhật từ GitHub.';
+            } finally {
+                els.updateAppBtn.disabled = false;
+            }
+        }
+
+        function showSettingsSection(sectionName) {
+            document.querySelectorAll('[data-settings-section]').forEach((button) => {
+                button.classList.toggle('active', button.dataset.settingsSection === sectionName);
+            });
+            document.querySelectorAll('.settings-section').forEach((section) => section.classList.remove('active'));
+            const target = document.getElementById(`settingsSection${sectionName.charAt(0).toUpperCase()}${sectionName.slice(1)}`);
+            if (target) target.classList.add('active');
+        }
+
+        function applyFolderPinState() {
+            els.folderStructurePanel.classList.toggle('pinned', state.folderPinned);
+            els.folderStructurePanel.classList.toggle('collapsed', !state.folderPinned);
+            if (state.folderPinned) {
+                els.folderStructurePanel.classList.remove('hovering');
+            }
+            els.folderPinBtn.title = state.folderPinned ? 'Bỏ ghim bảng cấu trúc' : 'Ghim bảng cấu trúc';
+        }
+
+        function applyTheme(theme) {
+            const themeNames = ['light', 'dark', 'garden', 'blossom', 'sunrise', 'ocean', 'lime'];
+            const safeTheme = themeNames.includes(theme) ? theme : 'light';
+            document.body.dataset.theme = safeTheme;
+            localStorage.setItem('dailyWorkReportTheme', safeTheme);
+            document.querySelectorAll('[data-theme-option]').forEach((button) => {
+                button.classList.toggle('active', button.dataset.themeOption === safeTheme);
+            });
+        }
+
+        function parseReport(raw) {
+            const normalizedRaw = raw.replace(/\r/g, '').trim();
+            const sections = extractSections(normalizedRaw);
+            const dateInfo = parseDate(normalizedRaw);
+            const fallback = inferLooseFields(normalizedRaw, sections);
+            const projects = extractProjects(sections.project || fallback.project || normalizedRaw);
+            const inlineProgress = splitContentAndInlineStatus(splitItems(sections.content || fallback.content || ''));
+            const contentItems = inlineProgress.contentItems;
+            const rawStatusItems = splitItems(sections.status || fallback.status || '')
+                .map((item) => parseInlineProgressItem(item).status || item)
+                .filter((item) => !looksLikeTimeLine(item));
+            const statusItems = mergeUniqueItems(rawStatusItems, inlineProgress.statusItems);
+            const people = extractPeople(sections.people || '');
+            const safeProjects = projects.length ? projects : ['CHUA_XAC_DINH_DU_AN'];
+            const safePeople = people.length ? people : [{ displayName: 'Chưa xác định', folderName: 'ChuaXacDinh' }];
+
+            const allProjectAliases = safeProjects.flatMap((project) => projectAliases(project));
+
+            return safeProjects.map((project, index) => {
+                const aliases = projectAliases(project);
+                const hasProjectSpecificStatus = statusItems.some((item) => containsAnyAlias(item, allProjectAliases));
+                const relatedStatuses = safeProjects.length === 1
+                    ? statusItems
+                    : statusItems.flatMap((item) => extractStatusForProject(item, aliases));
+                const contentFromStatus = relatedStatuses.flatMap((item) => deriveWorkItemsFromStatus(item, aliases));
+                const normalizedContentItems = mergeUniqueItems(contentItems, contentFromStatus);
+                const warning = [];
+                if (!projects.length) warning.push('Chưa nhận diện được mã dự án.');
+                if (!normalizedContentItems.length) warning.push('Chưa nhận diện được nội dung công việc.');
+                if (!people.length) warning.push('Chưa nhận diện được người thực hiện.');
+                if (!dateInfo.iso) warning.push('Chưa nhận diện được ngày thực hiện.');
+
+                return {
+                    id: `${dateInfo.iso || 'unknown'}_${project}_${String(index + 1).padStart(3, '0')}`,
+                    ma_du_an: project,
+                    noi_dung_cong_viec: normalizedContentItems.length ? normalizedContentItems : ['Chưa xác định'],
+                    nguoi_thuc_hien: safePeople,
+                    trang_thai: relatedStatuses.length ? relatedStatuses : (hasProjectSpecificStatus ? ['Chưa có trạng thái riêng cho dự án này.'] : (statusItems.length ? statusItems : ['Chưa xác định'])),
+                    ngay_thuc_hien: dateInfo.iso || '',
+                    folder_ngay_name: dateInfo.folderName || 'UnknownDate',
+                    folder_ngay: '',
+                    folder_nguoi: [],
+                    raw_text: normalizedRaw,
+                    excel_exported: false,
+                    excel_file: null,
+                    excel_sheet: null,
+                    selectedForExcel: false,
+                    warning
+                };
+            });
+        }
+
+        function extractSections(raw) {
+            const lines = raw.split('\n').map((line) => line.trim()).filter(Boolean);
+            const sections = {};
+            let current = '';
+
+            const aliases = [
+                { key: 'content', regex: /nội\s*dung|noi\s*dung|công\s*việc|cong\s*viec|cv/i },
+                { key: 'status', regex: /trạng\s*thái|trang\s*thai|tình\s*trạng|tinh\s*trang|thực\s*trạng|thuc\s*trang/i },
+                { key: 'date', regex: /ngày\s*thực\s*hiện|ngay\s*thuc\s*hien|ngày|ngay|thứ|thu|\d{1,2}\/\d{1,2}\/\d{4}/i },
+                { key: 'people', regex: /người\s*thực\s*hiện|nguoi\s*thuc\s*hien|(?<!ngày\s)(?<!ngay\s)thực\s*hiện|(?<!ngay\s)thuc\s*hien/i },
+                { key: 'project', regex: /(?:mã|ma|tên|ten)?\s*(?:dự\s*án|du\s*an|project)|\b(?:AUT[A-Z]?|MEC)\s*[:\-]?\s*\d/i }
+            ];
+
+            for (const line of lines) {
+                const cleaned = line.replace(/^\d+\s*[\.\)]\s*/g, '').trim();
+                const hit = aliases.find((item) => item.regex.test(cleaned));
+
+                if (hit && hasFieldSeparator(cleaned)) {
+                    if (hit.key === 'project') {
+                        const parts = cleaned.split(/[:：]/);
+                        const beforeColon = parts[0].trim();
+                        const afterColon = parts.slice(1).join(':').trim();
+
+                        if (looksLikeProjectLine(beforeColon) && afterColon && !looksLikeProjectLine(afterColon)) {
+                            sections.project = sections.project ? `${sections.project}\n${beforeColon}` : beforeColon;
+                            sections.content = sections.content ? `${sections.content}\n${afterColon}` : afterColon;
+                            current = 'content';
+                            continue;
+                        }
+                    }
+
+                    current = hit.key;
+                    const value = cleaned.split(/[:：]/).slice(1).join(':').trim();
+                    sections[current] = sections[current] ? `${sections[current]}\n${value}` : value;
+                    continue;
+                }
+
+                if (hit && !current) {
+                    current = hit.key;
+                    sections[current] = sections[current] || '';
+                    const withoutLabel = hit.key === 'project' && looksLikeProjectLine(cleaned)
+                        ? cleaned
+                        : cleaned.replace(hit.regex, '').replace(/^[:：\-\s]+/, '').trim();
+                    if (withoutLabel) {
+                        sections[current] += `${sections[current] ? '\n' : ''}${withoutLabel}`;
+                    }
+                    continue;
+                }
+
+                if (/^\d+\s*[\.\)]\s*/.test(line)) {
+                    const numbered = line.replace(/^\d+\s*[\.\)]\s*/, '');
+                    const numberedHit = aliases.find((item) => item.regex.test(numbered));
+                    if (numberedHit) {
+                        current = numberedHit.key;
+                    }
+                }
+
+                if (current) {
+                    sections[current] = sections[current] ? `${sections[current]}\n${cleaned}` : cleaned;
+                }
+            }
+
+            const dateSection = sections.date || '';
+            if (dateSection) {
+                sections.date = dateSection;
+            }
+
+            return sections;
+        }
+
+        function hasFieldSeparator(text) {
+            return /(^|[^\d])[:：]|[:：](?!\d)/.test(text);
+        }
+
+        function extractProjects(text) {
+            const normalized = removeVietnameseMarks(text).toUpperCase();
+            const projects = new Set();
+
+            normalized.split(/\n+/).forEach((line) => {
+                const projectLine = line.replace(/\b(MA|TEN)\s+DU\s+AN\b/gi, '').trim();
+                extractProjectsFromLine(projectLine).forEach((project) => projects.add(project));
+            });
+
+            return [...projects].filter(isValidProjectCode);
+        }
+
+        function extractProjectsFromLine(line) {
+            const projects = [];
+            const explicitProject = /\b(AUT[A-Z]?|MEC)\s*:?\s*([0-9]+(?:E[0-9]+)?)(?=[\s,.;:]|$)/gi;
+            let match;
+
+            while ((match = explicitProject.exec(line)) !== null) {
+                const prefix = match[1].toUpperCase();
+                const firstCode = match[2].toUpperCase();
+                projects.push(`${prefix}${firstCode}`);
+
+                const rest = line.slice(explicitProject.lastIndex);
+                readCommaProjectContinuations(rest, firstCode).forEach((code) => {
+                    projects.push(`${prefix}${code}`);
+                });
+            }
+
+            return projects;
+        }
+
+        function readCommaProjectContinuations(text, baseCode) {
+            const codes = [];
+            let remaining = text;
+
+            while (true) {
+                const match = remaining.match(/^\s*,\s*([0-9]+(?:E[0-9]+)?)(?=[\s,.;:]|$)/i);
+                if (!match) break;
+
+                const expanded = expandProjectContinuation(baseCode, match[1].toUpperCase());
+                if (!expanded) break;
+
+                codes.push(expanded);
+                remaining = remaining.slice(match[0].length);
+            }
+
+            return codes;
+        }
+
+        function expandProjectContinuation(baseCode, token) {
+            if (/[A-Z]/.test(token)) {
+                return token.length >= baseCode.length - 1 ? token : '';
+            }
+
+            const baseNumberParts = baseCode.match(/^(\d+)(E\d+)?$/i);
+            if (!baseNumberParts || token.length === 0 || token.length > 3) {
+                return '';
+            }
+
+            const baseDigits = baseNumberParts[1];
+            if (token.length >= baseDigits.length - 1) {
+                return token;
+            }
+
+            return `${baseDigits.slice(0, baseDigits.length - token.length)}${token}`;
+        }
+
+        function isValidProjectCode(project) {
+            return /^(?:AUT[A-Z]?\d+(?:E\d+)?|MEC\d{6,})$/.test(project);
+        }
+
+        function inferLooseFields(raw, sections) {
+            const fallback = { project: '', content: '', status: '' };
+            const rawLines = raw
+                .split('\n')
+                .map((line) => line.trim())
+                .filter(Boolean);
+            let currentLooseSection = '';
+            let lastContentCandidate = '';
+
+            rawLines.forEach((rawLine) => {
+                const numberMatch = rawLine.match(/^(\d+)\s*[\.\)]\s*(.*)$/);
+                const itemNumber = numberMatch ? Number(numberMatch[1]) : null;
+                const line = (numberMatch ? numberMatch[2] : rawLine).replace(/^[-+*]\s*/, '').trim();
+                const plain = removeVietnameseMarks(line).toLowerCase();
+                const withoutLabel = line.includes(':') ? line.split(/[:：]/).slice(1).join(':').trim() : line;
+
+                if (isPeopleLine(line)) {
+                    currentLooseSection = 'people';
+                    return;
+                }
+
+                if (isDateLine(line)) {
+                    currentLooseSection = 'date';
+                    return;
+                }
+
+                if (currentLooseSection === 'people') {
+                    return;
+                }
+
+                if (itemNumber === 2 && !looksLikeStatusLine(withoutLabel) && !looksLikeProjectLine(withoutLabel)) {
+                    currentLooseSection = 'content';
+                }
+
+                if (!sections.project && looksLikeProjectLine(withoutLabel)) {
+                    fallback.project = appendLine(fallback.project, withoutLabel);
+                    currentLooseSection = 'project';
+                    return;
+                }
+
+                if (isShortStatusOnly(line) && lastContentCandidate) {
+                    fallback.status = appendLine(fallback.status, `${lastContentCandidate} - ${line}`);
+                    return;
+                }
+
+                if (!sections.status && looksLikeStatusLine(line)) {
+                    fallback.status = appendLine(fallback.status, withoutLabel || line);
+                    lastContentCandidate = cleanStatusToWorkCandidate(withoutLabel || line) || lastContentCandidate;
+                    return;
+                }
+
+                if (!sections.content && !looksLikeProjectLine(line) && !looksLikeStatusLine(line) && plain.length > 4) {
+                    fallback.content = appendLine(fallback.content, stripTrailingDash(withoutLabel || line));
+                    lastContentCandidate = stripTrailingDash(withoutLabel || line);
+                }
+            });
+
+            return fallback;
+        }
+
+        function appendLine(current, line) {
+            return current ? `${current}\n${line}` : line;
+        }
+
+        function looksLikeProjectLine(text) {
+            const plain = removeVietnameseMarks(text).toUpperCase();
+            return /\b(?:AUT[A-Z]?|MEC)\s*[:\-]?\s*\d+(?:E\d+)?\b/.test(plain);
+        }
+
+        function looksLikeStatusLine(text) {
+            const plain = removeVietnameseMarks(text).toLowerCase();
+            return /\b(dang|da|xong|hoan thanh|hoan thien|cho|chua|xu ly|test xong|can chinh xong)\b|\d+\s*%|-\s*\d+\s*%/.test(plain);
+        }
+
+        function isShortStatusOnly(text) {
+            const plain = removeVietnameseMarks(text).toLowerCase().replace(/[.;:\-\s]+/g, ' ').trim();
+            return /^(hoan thanh|hoan thien|da xong|xong|dang lam|dang xu ly|cho xu ly|chua xong)$/.test(plain);
+        }
+
+        function stripTrailingDash(text) {
+            return String(text || '').replace(/[,\-–—\s]+$/g, '').trim();
+        }
+
+        function cleanStatusToWorkCandidate(text) {
+            return stripTrailingDash(
+                String(text || '')
+                    .replace(/\b(đã|da|đang|dang|sẽ|se|chưa|chua|hoàn\s*thành|hoan\s*thanh|hoàn\s*thiện|hoan\s*thien|xong)\b/gi, '')
+                    .replace(/\d+\s*%/g, '')
+                    .replace(/\s+/g, ' ')
+            );
+        }
+
+        function isDateLine(text) {
+            const plain = removeVietnameseMarks(text).toLowerCase();
+            return /\d{1,2}\s*\/\s*\d{1,2}\s*\/\s*\d{4}/.test(plain) || /\bngay\b.*\d{1,2}/.test(plain);
+        }
+
+        function isPeopleLine(text) {
+            const plain = removeVietnameseMarks(text).toLowerCase();
+            return /nguoi\s*thuc\s*hien|thuc\s*hien/.test(plain);
+        }
+
+        function projectAliases(project) {
+            const compact = removeVietnameseMarks(project).toUpperCase().replace(/[^A-Z0-9]/g, '');
+            const aliases = new Set([compact]);
+
+            const autCode = compact.match(/(AUT[A-Z]?)(\d+(?:E\d+)?)/);
+            if (autCode) {
+                aliases.add(autCode[2]);
+                aliases.add(`${autCode[1]}${autCode[2]}`);
+            }
+
+            const mecCode = compact.match(/MEC(\d{7,})/);
+            if (mecCode) {
+                aliases.add(`MEC${mecCode[1]}`);
+                aliases.add(mecCode[1]);
+            }
+
+            return [...aliases];
+        }
+
+        function containsAnyAlias(text, aliases) {
+            const compact = removeVietnameseMarks(text).toUpperCase().replace(/[^A-Z0-9]/g, '');
+            return aliases.some((alias) => compact.includes(alias));
+        }
+
+        function extractStatusForProject(statusText, aliases) {
+            const segments = statusText
+                .split(/,(?=\s*(?:máy|may|AUTM|MEC|\d{4}E|\d{5,}))/gi)
+                .map((segment) => segment.trim())
+                .filter(Boolean);
+            const candidates = segments.length > 1 ? segments : [statusText];
+            return candidates.filter((segment) => containsAnyAlias(segment, aliases));
+        }
+
+        function deriveWorkItemsFromStatus(statusText, aliases = []) {
+            return statusText
+                .split(/,(?=\s*(?:đang|dang|đã|da|sẽ|se|chưa|chua|hoàn|hoan|máy|may|AUT|MEC|\d))/gi)
+                .flatMap((segment) => segment.split(/\s+và\s+(?=(?:đang|đã|sẽ|chưa|hoàn|lắp|căn|test|bọc|hàn|thay|siết|chỉnh|xử|xu))/gi))
+                .map((segment) => cleanWorkItemFromStatus(segment, aliases))
+                .filter((item) => item.length >= 4 && !looksLikeStatusOnly(item));
+        }
+
+        function cleanWorkItemFromStatus(text, aliases = []) {
+            let cleaned = text.trim();
+            const aliasPattern = aliases
+                .filter(Boolean)
+                .sort((a, b) => b.length - a.length)
+                .map((alias) => alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+                .join('|');
+
+            cleaned = cleaned
+                .replace(/^[-+*]\s*/, '')
+                .replace(/\b(máy|may)\s+/gi, '')
+                .replace(new RegExp(`\\b(?:${aliasPattern})\\b`, 'gi'), '')
+                .replace(/\b(đã|da|đang|dang|sẽ|se|chưa|chua)\b/gi, '')
+                .replace(/\b(hoàn\s*thành|hoan\s*thanh|hoàn\s*thiện|hoan\s*thien|xong|chưa\s*hoàn\s*thành|chua\s*hoan\s*thanh)\b/gi, '')
+                .replace(/\b(được|duoc|máy|may)\b/gi, '')
+                .replace(/\d+\s*%/g, '')
+                .replace(/\([^)]*\)/g, '')
+                .replace(/\s+/g, ' ')
+                .replace(/^[,.;:\-\s]+|[,.;:\-\s]+$/g, '')
+                .trim();
+
+            cleaned = normalizeWorkVerb(cleaned);
+            return cleaned;
+        }
+
+        function normalizeWorkVerb(text) {
+            return text
+                .replace(/^(chỉnh|can chinh|cân chỉnh)\b/i, 'căn chỉnh')
+                .replace(/^can chỉnh\b/i, 'căn chỉnh')
+                .replace(/^xu ly\b/i, 'xử lý')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function looksLikeStatusOnly(text) {
+            const plain = removeVietnameseMarks(text).toLowerCase().trim();
+            return !plain || /^(xong|hoan thanh|hoan thien|dang|da|chua|cho|xu ly)$/.test(plain);
+        }
+
+        function mergeUniqueItems(primaryItems, extraItems) {
+            const result = [];
+            const seen = new Set();
+
+            [...primaryItems, ...extraItems].forEach((item) => {
+                const cleaned = String(item || '').trim();
+                const key = removeVietnameseMarks(cleaned).toLowerCase().replace(/\s+/g, ' ');
+                if (!cleaned || seen.has(key)) return;
+                seen.add(key);
+                result.push(cleaned);
+            });
+
+            return result;
+        }
+
+        function splitItems(text) {
+            if (!text.trim()) return [];
+
+            const lines = text
+                .split('\n')
+                .map((line) => stripTrailingDash(line.replace(/^[-+*]\s*/, '').replace(/^\d+\s*[\.\)]\s*/, '').trim()))
+                .filter(Boolean);
+
+            if (lines.length > 1) {
+                return dedupe(lines);
+            }
+
+            return dedupe(text
+                .split(/(?:\n|;)/)
+                .map((item) => stripTrailingDash(item.replace(/^[-+*]\s*/, '').trim()))
+                .filter(Boolean));
+        }
+
+        function splitContentAndInlineStatus(items) {
+            const contentItems = [];
+            const statusItems = [];
+
+            items.forEach((item) => {
+                const parsed = parseInlineProgressItem(item);
+                if (parsed.content) {
+                    contentItems.push(parsed.content);
+                }
+                if (parsed.status) {
+                    statusItems.push(parsed.status);
+                }
+            });
+
+            return {
+                contentItems: mergeUniqueItems(contentItems, []),
+                statusItems: mergeUniqueItems(statusItems, [])
+            };
+        }
+
+        function parseInlineProgressItem(item) {
+            const original = String(item || '').trim();
+            let content = original;
+            let status = '';
+
+            const timeLine = original.match(/^(?:thoi\s*gian|thời\s*gian)?\s*:?\s*\(?\s*(\d{1,2}\s*(?::|h)\s*\d{0,2}\s*[-–—]\s*\d{1,2}\s*(?::|h)\s*\d{0,2})\s*\)?$/i);
+            if (timeLine) {
+                return { content: normalizeTimeText(timeLine[1]), status: '' };
+            }
+
+            const parenProgress = original.match(/^(.*?)\s*\(\s*(?:tien\s*do|tiến\s*độ)\s*:?\s*([^)]+)\)\s*$/i);
+            if (parenProgress) {
+                content = stripTrailingDash(parenProgress[1]);
+                status = `${content} ${normalizeProgressText(parenProgress[2])}`.trim();
+                return { content, status };
+            }
+
+            const dashProgress = original.match(/^(.*?)\s*[-–—]\s*(\d+\s*%|hoan\s*thanh|hoàn\s*thành|hoan\s*thien|hoàn\s*thiện|chua\s*xong|chưa\s*xong|chua\s*hoan\s*thanh|chưa\s*hoàn\s*thành)\s*$/i);
+            if (dashProgress) {
+                content = stripTrailingDash(dashProgress[1]);
+                status = `${content} ${normalizeProgressText(dashProgress[2])}`.trim();
+                return { content, status };
+            }
+
+            return { content: stripTrailingDash(content), status };
+        }
+
+        function normalizeProgressText(text) {
+            return String(text || '')
+                .replace(/^\s*:\s*/, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function looksLikeTimeLine(text) {
+            return /^(?:thoi\s*gian|thời\s*gian)?\s*:?\s*\(?\s*\d{1,2}\s*(?::|h)\s*\d{0,2}\s*[-–—]\s*\d{1,2}\s*(?::|h)\s*\d{0,2}\s*\)?$/i.test(String(text || '').trim());
+        }
+
+        function normalizeTimeText(text) {
+            return String(text || '')
+                .replace(/\s+/g, '')
+                .replace(/h(?=\d)/gi, ':')
+                .replace(/[-–—]/g, '-')
+                .trim();
+        }
+
+        function extractPeople(text) {
+            if (!text.trim()) return [];
+
+            let cleaned = text
+                .replace(/người\s*thực\s*hiện|nguoi\s*thuc\s*hien|thực\s*hiện|thuc\s*hien/gi, '')
+                .replace(/ngày\s*thực\s*hiện|ngay\s*thuc\s*hien|ngày|ngay/gi, '')
+                .replace(/\d{1,2}\s*\/\s*\d{1,2}\s*\/\s*\d{4}/g, '')
+                .replace(/[:：]/g, ' ')
+                .replace(/\./g, ' ')
+                .trim();
+
+            cleaned = cleaned.replace(/\s+hỗ trợ.+?(?=\svà\s|,@|$)/i, '');
+            const parts = cleaned
+                .split(/\s+và\s+|,|;|\n|(?=\s*@)/gi)
+                .map((part) => cleanPersonName(part))
+                .filter((part) => !/^\d{1,2}\s*\/\s*\d{1,2}\s*\/\s*\d{4}$/.test(part))
+                .filter(Boolean)
+                .map((name) => {
+                    const displayName = titleCaseVietnamese(name);
+                    return {
+                        displayName,
+                        folderName: toFolderName(displayName)
+                    };
+                });
+
+            return dedupeObjects(parts, 'folderName');
+        }
+
+        function cleanPersonName(name) {
+            return String(name || '')
+                .replace(/^[\s@#*+\-–—•·.]+/g, '')
+                .replace(/[\s@#*+\-–—•·.]+$/g, '')
+                .replace(/[@#*+•·]/g, '')
+                .replace(/[()[\]{}<>|\\/]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function parseDate(text) {
+            const numeric = text.match(/(\d{1,2})\s*\/\s*(\d{1,2})\s*\/\s*(\d{4})/);
+            if (numeric) {
+                return buildDate(Number(numeric[1]), Number(numeric[2]), Number(numeric[3]));
+            }
+
+            const vietnamese = removeVietnameseMarks(text).match(/ngay\s+(\d{1,2})\s+thang\s+(\d{1,2})\s+nam\s+(\d{4})/i);
+            if (vietnamese) {
+                return buildDate(Number(vietnamese[1]), Number(vietnamese[2]), Number(vietnamese[3]));
+            }
+
+            return { iso: '', folderName: '' };
+        }
+
+        function buildDate(day, month, year) {
+            const monthNames = [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+            ];
+            const dd = String(day).padStart(2, '0');
+            const mm = String(month).padStart(2, '0');
+            return {
+                iso: `${year}-${mm}-${dd}`,
+                folderName: `${year}${monthNames[month - 1] || 'Unknown'}${dd}`
+            };
+        }
+
+        function renderPreview() {
+            els.totalPill.textContent = `Tổng: ${state.previewReports.length}`;
+
+            if (!state.previewReports.length) {
+                els.previewList.innerHTML = '<div class="empty">Chưa có dữ liệu preview.</div>';
+                updateExcelButton();
+                return;
+            }
+
+            els.previewList.innerHTML = state.previewReports.map((report, index) => {
+                const groupFolderName = report.nguoi_thuc_hien.map((person) => person.folderName).join('_');
+                const folderPath = report.folder_nguoi && report.folder_nguoi.length
+                    ? report.folder_nguoi.join('; ')
+                    : `${report.folder_ngay_name}/${groupFolderName}`;
+
+                return `
+                    <article class="report-card ${report.warning.length ? 'warning' : ''}">
+                        <div class="card-top">
+                            <div class="index-badge">${String(index + 1).padStart(2, '0')}</div>
+                            <h3>${escapeHtml(report.ma_du_an)}</h3>
+                            <label class="checkline">
+                                <input type="checkbox" data-excel-index="${index}" ${report.selectedForExcel ? 'checked' : ''}>
+                                Chọn Excel
+                            </label>
+                        </div>
+                        <div class="report-grid">
+                            ${fieldHtml('Mã dự án', report.ma_du_an)}
+                            ${fieldHtml('Nội dung công việc', listHtml(report.noi_dung_cong_viec), true)}
+                            ${fieldHtml('Người thực hiện', peopleEditorHtml(report, index))}
+                            ${fieldHtml('Trạng thái', listHtml(report.trang_thai), true)}
+                            ${fieldHtml('Ngày thực hiện', report.ngay_thuc_hien || 'Chưa xác định')}
+                            <div>
+                                <label>Thư mục ảnh</label>
+                                <div class="folder-row">
+                                    <div class="value-box">${escapeHtml(folderPath)}</div>
+                                    <button data-open-folder="${escapeHtml(report.folder_ngay || '')}" ${report.folder_ngay ? '' : 'disabled'}>Mở</button>
+                                </div>
+                            </div>
+                        </div>
+                        ${report.warning.length ? `<div class="warning-text">${report.warning.map(escapeHtml).join(' ')}</div>` : ''}
+                    </article>
+                `;
+            }).join('');
+
+            document.querySelectorAll('[data-excel-index]').forEach((checkbox) => {
+                checkbox.addEventListener('change', () => {
+                    state.previewReports[Number(checkbox.dataset.excelIndex)].selectedForExcel = checkbox.checked;
+                    updateExcelButton();
+                });
+            });
+
+            document.querySelectorAll('[data-open-folder]').forEach((button) => {
+                button.addEventListener('click', () => {
+                    const folder = button.dataset.openFolder;
+                    if (folder) ipcRenderer.invoke('open-folder', folder);
+                });
+            });
+
+            document.querySelectorAll('[data-person-report]').forEach((select) => {
+                select.addEventListener('change', () => {
+                    const reportIndex = Number(select.dataset.personReport);
+                    const personIndex = Number(select.dataset.personIndex);
+                    const selectedName = select.value;
+
+                    if (!selectedName) return;
+
+                    state.previewReports[reportIndex].nguoi_thuc_hien[personIndex] = {
+                        displayName: selectedName,
+                        folderName: toFolderName(selectedName)
+                    };
+                    state.previewReports[reportIndex].folder_nguoi = [];
+                    state.previewReports[reportIndex].folder_nhom_nguoi = '';
+                    renderPreview();
+                });
+            });
+
+            updateExcelButton();
+        }
+
+        function fieldHtml(label, value) {
+            return `
+                <div>
+                    <label>${label}</label>
+                    <div class="value-box">${value}</div>
+                </div>
+            `;
+        }
+
+        function listHtml(items) {
+            return `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`;
+        }
+
+        function peopleEditorHtml(report, reportIndex) {
+            const people = report.nguoi_thuc_hien || [];
+            if (!people.length) {
+                return '<span class="muted">Chưa xác định</span>';
+            }
+
+            return `
+                <div class="people-editor">
+                    ${people.map((person, personIndex) => {
+                        const currentName = person.displayName || String(person || '');
+                        const options = memberOptionsFor(currentName);
+
+                        return `
+                            <div class="person-row">
+                                <div class="person-source">${escapeHtml(currentName)}</div>
+                                <select data-person-report="${reportIndex}" data-person-index="${personIndex}">
+                                    ${options.map((name) => `<option value="${escapeHtml(name)}" ${name === currentName ? 'selected' : ''}>${escapeHtml(name)}</option>`).join('')}
+                                </select>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        function updateExcelButton() {
+            const selectedCount = state.previewReports.filter((report) => report.selectedForExcel).length;
+            els.excelBtn.classList.toggle('visible', selectedCount > 0);
+            els.excelBtn.textContent = `Thêm vào Excel (${selectedCount})`;
+        }
+
+        function loadMembers() {
+            try {
+                const parsed = JSON.parse(localStorage.getItem('dailyWorkReportMembers') || '[]');
+                return Array.isArray(parsed) ? parsed.map(cleanPersonName).filter(Boolean) : [];
+            } catch (_error) {
+                return [];
+            }
+        }
+
+        function saveMembers() {
+            localStorage.setItem('dailyWorkReportMembers', JSON.stringify(state.members));
+        }
+
+        function addMemberFromInput() {
+            const name = titleCaseVietnamese(cleanPersonName(els.memberNameInput.value));
+            if (!name) return;
+
+            const exists = state.members.some((member) => normalizePersonKey(member) === normalizePersonKey(name));
+            if (!exists) {
+                state.members.push(name);
+                state.members.sort((a, b) => a.localeCompare(b, 'vi'));
+                saveMembers();
+                renderMemberList();
+                renderPreview();
+            }
+
+            els.memberNameInput.value = '';
+            els.memberNameInput.focus();
+        }
+
+        function removeMember(index) {
+            state.members.splice(index, 1);
+            saveMembers();
+            renderMemberList();
+            renderPreview();
+        }
+
+        function renderMemberList() {
+            if (!state.members.length) {
+                els.memberList.innerHTML = '<div class="empty">Chưa có thành viên nào.</div>';
+                return;
+            }
+
+            els.memberList.innerHTML = state.members.map((member, index) => `
+                <div class="member-item">
+                    <strong>${escapeHtml(member)}</strong>
+                    <button data-remove-member="${index}">Xóa</button>
+                </div>
+            `).join('');
+
+            document.querySelectorAll('[data-remove-member]').forEach((button) => {
+                button.addEventListener('click', () => removeMember(Number(button.dataset.removeMember)));
+            });
+        }
+
+        function loadWeeklyProjects() {
+            try {
+                const parsed = JSON.parse(localStorage.getItem('dailyWorkReportWeeklyProjects') || '[]');
+                return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+            } catch {
+                return [];
+            }
+        }
+
+        function saveWeeklyProjects() {
+            localStorage.setItem('dailyWorkReportWeeklyProjects', JSON.stringify(state.weeklyProjects));
+        }
+
+        function loadWeeklyProjectExclusions() {
+            try {
+                const parsed = JSON.parse(localStorage.getItem('dailyWorkReportWeeklyProjectExclusions') || '[]');
+                return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+            } catch {
+                return [];
+            }
+        }
+
+        function saveWeeklyProjectExclusions() {
+            localStorage.setItem('dailyWorkReportWeeklyProjectExclusions', JSON.stringify(state.weeklyProjectExclusions));
+        }
+
+        function addWeeklyProjectFromInput() {
+            const project = normalizeProjectCode(els.weeklyProjectInput.value);
+            if (!project) return;
+            state.weeklyProjectExclusions = state.weeklyProjectExclusions.filter((item) => normalizeProjectKey(item) !== normalizeProjectKey(project));
+            saveWeeklyProjectExclusions();
+            if (!state.weeklyProjects.some((item) => normalizeProjectKey(item) === normalizeProjectKey(project))) {
+                state.weeklyProjects.push(project);
+                saveWeeklyProjects();
+            }
+            renderWeeklyProjectSettings();
+            refreshWeeklyRowsFromSettings();
+            els.weeklyProjectInput.value = '';
+            els.weeklyProjectInput.focus();
+        }
+
+        function removeWeeklyProject(index) {
+            const project = getWeeklyProjectSettingsList()[index];
+            if (!project) return;
+            const projectKey = normalizeProjectKey(project);
+            state.weeklyProjects = state.weeklyProjects.filter((item) => normalizeProjectKey(item) !== projectKey);
+            if (!state.weeklyProjectExclusions.some((item) => normalizeProjectKey(item) === projectKey)) {
+                state.weeklyProjectExclusions.push(project);
+            }
+            saveWeeklyProjects();
+            saveWeeklyProjectExclusions();
+            renderWeeklyProjectSettings();
+            refreshWeeklyRowsFromSettings();
+        }
+
+        function renderWeeklyProjectSettings() {
+            const projects = getWeeklyProjectSettingsList();
+            if (!projects.length) {
+                els.weeklyProjectList.innerHTML = '<div class="empty">Chưa có mã dự án trong bảng.</div>';
+                return;
+            }
+            els.weeklyProjectList.innerHTML = projects.map((project, index) => `
+                <div class="member-item">
+                    <strong>${escapeHtml(project)}</strong>
+                    <button data-remove-weekly-project="${index}">-</button>
+                </div>
+            `).join('');
+            document.querySelectorAll('[data-remove-weekly-project]').forEach((button) => {
+                button.addEventListener('click', () => removeWeeklyProject(Number(button.dataset.removeWeeklyProject)));
+            });
+        }
+
+        function getWeeklyProjectSettingsList() {
+            const map = new Map();
+            [...state.weeklyRows.map((row) => row.du_an || row.project_full), ...state.weeklyProjects].forEach((project) => {
+                const key = normalizeProjectKey(project);
+                if (!key) return;
+                if (state.weeklyProjectExclusions.some((item) => normalizeProjectKey(item) === key)) return;
+                if (!map.has(key)) map.set(key, project);
+            });
+            return [...map.values()];
+        }
+
+        function normalizeProjectCode(value) {
+            return String(value || '').trim().toUpperCase().replace(/\s+/g, '');
+        }
+
+        function loadWeeklyColumns() {
+            const defaults = DEFAULT_WEEKLY_COLUMNS.map((column) => ({ ...column }));
+            const mergeWithDefaults = (columns) => {
+                const cleaned = (Array.isArray(columns) ? columns : [])
+                    .filter((column) => column && column.id && column.label)
+                    .map((column) => ({
+                        ...column,
+                        width: Math.min(Math.max(Number(column.width) || 160, 52), 520)
+                    }));
+                if (!cleaned.length) return defaults.map((column) => ({ ...column }));
+
+                const defaultMap = new Map(defaults.map((column) => [column.id, column]));
+                const merged = cleaned.map((column) => {
+                    const defaultColumn = defaultMap.get(column.id);
+                    if (!defaultColumn) return column;
+                    return {
+                        ...defaultColumn,
+                        ...column,
+                        locked: Boolean(defaultColumn.locked || column.locked)
+                    };
+                });
+
+                defaults.forEach((defaultColumn, defaultIndex) => {
+                    if (merged.some((column) => column.id === defaultColumn.id)) return;
+                    const nextDefaultIds = defaults.slice(defaultIndex + 1).map((column) => column.id);
+                    const previousDefaultIds = defaults.slice(0, defaultIndex).map((column) => column.id);
+                    const nextIndex = merged.findIndex((column) => nextDefaultIds.includes(column.id));
+                    if (nextIndex >= 0) {
+                        merged.splice(nextIndex, 0, { ...defaultColumn });
+                        return;
+                    }
+                    for (let index = merged.length - 1; index >= 0; index -= 1) {
+                        if (previousDefaultIds.includes(merged[index].id)) {
+                            merged.splice(index + 1, 0, { ...defaultColumn });
+                            return;
+                        }
+                    }
+                    merged.push({ ...defaultColumn });
+                });
+
+                return merged;
+            };
+            try {
+                const parsed = JSON.parse(localStorage.getItem('dailyWorkReportWeeklyColumns') || '[]');
+                return mergeWithDefaults(parsed);
+            } catch {
+                return defaults.map((column) => ({ ...column }));
+            }
+        }
+
+        function saveWeeklyColumns() {
+            localStorage.setItem('dailyWorkReportWeeklyColumns', JSON.stringify(state.weeklyColumns));
+        }
+
+        function addWeeklyColumnFromInput() {
+            const label = String(els.weeklyColumnInput.value || '').trim();
+            if (!label) return;
+            const id = `custom_${Date.now().toString(36)}`;
+            state.weeklyColumns.push({ id, label: label.toUpperCase(), width: 180, custom: true });
+            state.weeklyRows.forEach((row) => {
+                row[id] = '';
+            });
+            saveWeeklyColumns();
+            renderWeeklyColumnSettings();
+            renderWeeklyPreview();
+            els.weeklyColumnInput.value = '';
+            els.weeklyColumnInput.focus();
+        }
+
+        function removeWeeklyColumn(index) {
+            const column = state.weeklyColumns[index];
+            if (!column || column.locked) return;
+            state.weeklyColumns.splice(index, 1);
+            saveWeeklyColumns();
+            renderWeeklyColumnSettings();
+            renderWeeklyPreview();
+        }
+
+        function updateWeeklyColumnWidth(index, value) {
+            const column = state.weeklyColumns[index];
+            if (!column) return;
+            column.width = Math.min(Math.max(Number(value) || column.width || 160, 52), 520);
+            saveWeeklyColumns();
+            renderWeeklyPreview();
+        }
+
+        function handleWeeklyColumnDragStart(event) {
+            const item = event.currentTarget;
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', item.dataset.weeklyColumnItem);
+            item.classList.add('dragging');
+        }
+
+        function handleWeeklyColumnDragOver(event) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+        }
+
+        function handleWeeklyColumnDrop(event) {
+            event.preventDefault();
+            const fromIndex = Number(event.dataTransfer.getData('text/plain'));
+            const toIndex = Number(event.currentTarget.dataset.weeklyColumnItem);
+            reorderWeeklyColumn(fromIndex, toIndex);
+        }
+
+        function handleWeeklyColumnDragEnd() {
+            document.querySelectorAll('[data-weekly-column-item]').forEach((item) => item.classList.remove('dragging'));
+        }
+
+        function reorderWeeklyColumn(fromIndex, toIndex) {
+            if (fromIndex === toIndex) return;
+            if (!state.weeklyColumns[fromIndex] || !state.weeklyColumns[toIndex]) return;
+            const [column] = state.weeklyColumns.splice(fromIndex, 1);
+            state.weeklyColumns.splice(toIndex, 0, column);
+            saveWeeklyColumns();
+            renderWeeklyColumnSettings();
+            renderWeeklyPreview();
+        }
+
+        function renderWeeklyColumnSettings() {
+            els.weeklyColumnList.innerHTML = state.weeklyColumns.map((column, index) => `
+                <div class="member-item column-item" draggable="true" data-weekly-column-item="${index}">
+                    <span class="drag-handle" title="Kéo để đổi thứ tự">☰</span>
+                    <strong>${escapeHtml(column.label.replace(/\n/g, ' / '))}</strong>
+                    <input type="number" min="52" max="520" value="${Number(column.width) || 160}" data-weekly-column-width="${index}" title="Độ rộng px">
+                    <button data-remove-weekly-column="${index}" ${column.locked ? 'disabled' : ''}>-</button>
+                </div>
+            `).join('');
+            document.querySelectorAll('[data-weekly-column-item]').forEach((item) => {
+                item.addEventListener('dragstart', handleWeeklyColumnDragStart);
+                item.addEventListener('dragover', handleWeeklyColumnDragOver);
+                item.addEventListener('drop', handleWeeklyColumnDrop);
+                item.addEventListener('dragend', handleWeeklyColumnDragEnd);
+            });
+            document.querySelectorAll('[data-remove-weekly-column]').forEach((button) => {
+                button.addEventListener('click', () => removeWeeklyColumn(Number(button.dataset.removeWeeklyColumn)));
+            });
+            document.querySelectorAll('[data-weekly-column-width]').forEach((input) => {
+                input.addEventListener('change', () => updateWeeklyColumnWidth(Number(input.dataset.weeklyColumnWidth), input.value));
+                input.addEventListener('dragstart', (event) => event.preventDefault());
+            });
+        }
+
+        function refreshWeeklyRowsFromSettings() {
+            if (!state.weeklyRows.length && !state.weeklyProjects.length) return;
+            const existingRows = new Map();
+            state.weeklyRows.forEach((row) => {
+                const key = normalizeProjectKey(row.du_an || row.project_full);
+                if (key && !existingRows.has(key)) existingRows.set(key, row);
+            });
+
+            state.weeklyRows = getWeeklyProjectSettingsList().map((project, index) => {
+                const key = normalizeProjectKey(project);
+                const row = existingRows.get(key) || createWeeklyRow(project);
+                row.stt = index + 1;
+                row.du_an = row.du_an || project;
+                row.project_full = row.project_full || project;
+                ensureWeeklyRowFields(row);
+                return row;
+            });
+            renderWeeklyPreview();
+        }
+
+        function createWeeklyRow(project, source = {}) {
+            const row = {
+                stt: 0,
+                hang_muc: source.hang_muc || 'Lắp mới',
+                ten_may: source.ten_may || '',
+                du_an: project,
+                project_full: project,
+                noi_dung: source.noi_dung || '',
+                tien_do: source.tien_do || '',
+                kho_khan: source.kho_khan || '',
+                huong_giai_quyet: source.huong_giai_quyet || '',
+                ghi_chu: source.ghi_chu || '',
+                thong_tin_khac: source.thong_tin_khac || ''
+            };
+            ensureWeeklyRowFields(row);
+            return row;
+        }
+
+        function ensureWeeklyRowFields(row) {
+            state.weeklyColumns.forEach((column) => {
+                if (!(column.id in row)) row[column.id] = '';
+            });
+        }
+
+        function memberOptionsFor(currentName) {
+            const cleanedCurrent = titleCaseVietnamese(cleanPersonName(currentName));
+            const options = new Set([cleanedCurrent]);
+            scoreMembers(cleanedCurrent).forEach((member) => options.add(member));
+            return [...options].filter(Boolean);
+        }
+
+        function scoreMembers(name) {
+            const currentKey = normalizePersonKey(name);
+            const currentTokens = new Set(significantPersonTokens(name));
+            return [...state.members]
+                .map((member) => {
+                    const memberKey = normalizePersonKey(member);
+                    const memberTokens = significantPersonTokens(member);
+                    const overlap = memberTokens.filter((token) => currentTokens.has(token)).length;
+                    const contains = memberKey.includes(currentKey) || currentKey.includes(memberKey);
+                    const fuzzy = memberTokens.some((token) => [...currentTokens].some((current) => current.length >= 2 && token.includes(current)));
+                    return { member, score: overlap * 3 + (contains ? 4 : 0) + (fuzzy ? 1 : 0) };
+                })
+                .filter((item) => item.score >= 3)
+                .sort((a, b) => b.score - a.score || a.member.localeCompare(b.member, 'vi'))
+                .map((item) => item.member);
+        }
+
+        function normalizePersonKey(name) {
+            return removeVietnameseMarks(cleanPersonName(name)).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+        }
+
+        function significantPersonTokens(name) {
+            const commonTokens = new Set([
+                'nguyen', 'tran', 'le', 'pham', 'phan', 'hoang', 'huynh', 'vo', 'vu', 'dang', 'do',
+                'bui', 'van', 'thi', 'huu', 'duc', 'quang', 'minh'
+            ]);
+
+            return normalizePersonKey(name)
+                .split(' ')
+                .filter((token) => token.length >= 2 && !commonTokens.has(token) && !/^\d+$/.test(token));
+        }
+
+        function setDefaultWeeklyDates() {
+            if (els.weeklyDateFrom.value && els.weeklyDateTo.value) return;
+
+            const today = new Date();
+            const day = today.getDay() || 7;
+            const monday = new Date(today);
+            monday.setDate(today.getDate() - day + 1);
+            const friday = new Date(monday);
+            friday.setDate(monday.getDate() + 4);
+            els.weeklyDateFrom.value = toInputDate(monday);
+            els.weeklyDateTo.value = toInputDate(friday);
+        }
+
+        function toInputDate(date) {
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        }
+
+        async function loadWeeklyPreview() {
+            if (!els.weeklyDateFrom.value || !els.weeklyDateTo.value) {
+                setWeeklyStatus('Vui lòng chọn đủ từ ngày và đến ngày.', true);
+                return;
+            }
+
+            const result = await ipcRenderer.invoke('get-weekly-preview', {
+                dateFrom: els.weeklyDateFrom.value,
+                dateTo: els.weeklyDateTo.value
+            });
+
+            state.weeklyRows = buildWeeklyRows(result.reports || []);
+            syncWeeklyImageGroupsWithProjects();
+            renderWeeklyPreview();
+            renderWeeklyImages();
+            els.weeklyWorkspace.classList.add('visible');
+            els.weeklyEmptyState.style.display = 'none';
+            els.weeklyModal.classList.remove('open');
+            activateTab('weeklyPage');
+            setWeeklyStatus(`Đã tải ${state.weeklyRows.length} dòng dữ liệu.`);
+        }
+
+        function buildWeeklyRows(reports) {
+            const seenProjects = new Set();
+            const rows = [];
+            const reportSources = new Map();
+            (reports || []).forEach((report) => {
+                const project = report.ma_du_an || '';
+                const projectKey = normalizeProjectKey(project);
+                if (!projectKey) return;
+                if (!reportSources.has(projectKey)) {
+                    reportSources.set(projectKey, {
+                        project,
+                        ten_may: report.ten_may || '',
+                        ghi_chu: report.ghi_chu || ''
+                    });
+                }
+                const source = reportSources.get(projectKey);
+                if (!source.ten_may && report.ten_may) source.ten_may = report.ten_may;
+                if (!source.ghi_chu && report.ghi_chu) source.ghi_chu = report.ghi_chu;
+            });
+            const sources = [
+                ...[...reportSources.values()],
+                ...state.weeklyProjects.map((project) => ({ project }))
+            ];
+            sources.forEach((source) => {
+                const project = source.project || '';
+                const projectKey = normalizeProjectKey(project);
+                if (!projectKey || seenProjects.has(projectKey)) return;
+                if (state.weeklyProjectExclusions.some((item) => normalizeProjectKey(item) === projectKey)) return;
+                if (projectKey) seenProjects.add(projectKey);
+
+                const row = createWeeklyRow(project, {
+                    ten_may: source.ten_may || '',
+                    ghi_chu: source.ghi_chu || ''
+                });
+                row.stt = rows.length + 1;
+                rows.push(row);
+            });
+            return rows;
+        }
+
+        function formatListForTextarea(items) {
+            return (items || []).map((item, index) => `${index + 1}. ${normalizeSentenceForReport(item)}`).join('\n');
+        }
+
+        function normalizeSentenceForReport(text) {
+            const cleaned = String(text || '').replace(/\s+/g, ' ').trim();
+            if (!cleaned) return '';
+            return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+        }
+
+        function renderWeeklyPreview() {
+            scheduleWeeklyFrameUpdate();
+            renderWeeklyColumnFrame();
+            applyWeeklyZoom();
+            if (!state.weeklyRows.length) {
+                els.weeklyPreviewBody.innerHTML = `<tr><td colspan="${state.weeklyColumns.length}" class="muted">Chọn khoảng ngày rồi bấm Tải dữ liệu.</td></tr>`;
+                return;
+            }
+
+            els.weeklyPreviewBody.innerHTML = state.weeklyRows.map((row, index) => `
+                <tr style="height:${getWeeklyRowHeight(row)}px">
+                    ${state.weeklyColumns.map((column) => renderWeeklyCell(column, row, index)).join('')}
+                </tr>
+            `).join('');
+
+            document.querySelectorAll('[data-weekly-field]').forEach((input) => {
+                input.addEventListener('input', syncWeeklyField);
+                input.addEventListener('change', syncWeeklyField);
+                if (input.tagName === 'TEXTAREA') autoResizeWeeklyTextarea(input);
+            });
+            autoResizeAllWeeklyRows();
+            document.querySelectorAll('[data-weekly-resize-row]').forEach((handle) => {
+                handle.addEventListener('mousedown', startWeeklyRowResize);
+            });
+            scheduleWeeklyFrameUpdate();
+        }
+
+        function renderWeeklyColumnFrame() {
+            const widths = state.weeklyColumns.map((column) => `${Number(column.width) || 160}px`).join(' ');
+            document.querySelectorAll('.excel-cols').forEach((container) => {
+                container.style.gridTemplateColumns = widths;
+                container.innerHTML = state.weeklyColumns.map((_, index) => `<span>${excelColumnName(index)}</span>`).join('');
+            });
+            document.querySelectorAll('.weekly-preview-table colgroup').forEach((colgroup) => {
+                colgroup.innerHTML = state.weeklyColumns.map((column) => `<col style="width:${Number(column.width) || 160}px">`).join('');
+            });
+            document.querySelectorAll('.weekly-preview-table thead tr').forEach((row) => {
+                row.innerHTML = state.weeklyColumns.map((column, index) => `
+                    <th>
+                        ${escapeHtml(column.label).replace(/\n/g, '<br>')}
+                        <span class="weekly-col-resizer" data-weekly-resize-column="${index}"></span>
+                    </th>
+                `).join('');
+            });
+            document.querySelectorAll('.excel-shell').forEach((shell) => {
+                const totalWidth = state.weeklyColumns.reduce((sum, column) => sum + (Number(column.width) || 160), 0) + 28;
+                shell.style.minWidth = `${Math.max(totalWidth, 900)}px`;
+            });
+            document.querySelectorAll('[data-weekly-resize-column]').forEach((handle) => {
+                handle.addEventListener('mousedown', startWeeklyColumnResize);
+            });
+        }
+
+        function renderWeeklyCell(column, row, index) {
+            if (column.id === 'stt') {
+                return `<td class="weekly-stt-cell">${row.stt}<span class="weekly-row-resizer" data-weekly-resize-row="${index}"></span></td>`;
+            }
+            if (column.id === 'hang_muc') {
+                return `
+                    <td class="weekly-category-cell" style="${categoryPreviewStyle(row.hang_muc)}">
+                        <select data-weekly-field="hang_muc" data-weekly-index="${index}">
+                            ${['Lắp mới', 'Sửa', 'Chỉnh máy', 'Hỗ trợ', 'Setup'].map((item) => `<option value="${item}" ${row.hang_muc === item ? 'selected' : ''}>${item}</option>`).join('')}
+                        </select>
+                    </td>
+                `;
+            }
+            if (column.id === 'du_an') {
+                return `<td><span class="${row.du_an ? 'weekly-project-input ' : ''}weekly-project-label" data-project="${escapeHtml(row.du_an)}">${escapeHtml(row.du_an)}</span></td>`;
+            }
+            if (column.id === 'ten_may' || column.id === 'ghi_chu') {
+                const value = row[column.id] || '';
+                return `<td><span class="weekly-project-label">${escapeHtml(value)}</span></td>`;
+            }
+            const value = row[column.id] || '';
+            return `<td><textarea data-weekly-field="${escapeHtml(column.id)}" data-weekly-index="${index}">${escapeHtml(value)}</textarea></td>`;
+        }
+
+        function getWeeklyRowHeight(row) {
+            return Math.max(Number(row.row_height) || 0, 64, String(row.noi_dung || '').split('\n').length * 22);
+        }
+
+        function excelColumnName(index) {
+            let name = '';
+            let value = index + 1;
+            while (value > 0) {
+                const mod = (value - 1) % 26;
+                name = String.fromCharCode(65 + mod) + name;
+                value = Math.floor((value - mod) / 26);
+            }
+            return name;
+        }
+
+        function scheduleWeeklyFrameUpdate() {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(updateWeeklyPreviewFrame);
+            });
+        }
+
+        function updateWeeklyPreviewFrame() {
+            const titleFrom = formatPreviewDate(els.weeklyDateFrom.value);
+            const titleTo = formatPreviewDate(els.weeklyDateTo.value);
+            els.weeklyPreviewTitle.textContent = titleFrom && titleTo
+                ? `BÁO CÁO SẢN XUẤT TUẦN (${titleFrom} ~ ${titleTo})`
+                : 'BÁO CÁO SẢN XUẤT TUẦN';
+
+            const paper = document.querySelector('#weeklyPage .excel-paper');
+            const head = paper ? paper.querySelector('.weekly-report-head') : null;
+            const headerRow = paper ? paper.querySelector('.weekly-preview-table thead tr') : null;
+            const bodyRows = paper ? Array.from(paper.querySelectorAll('.weekly-preview-table tbody tr')) : [];
+            const headHeight = head ? head.getBoundingClientRect().height : 128;
+            const headerHeight = headerRow ? headerRow.getBoundingClientRect().height : 42;
+            const rowHeights = [
+                { label: 1, height: headHeight },
+                { label: 4, height: headerHeight },
+                ...bodyRows.map((row, index) => ({
+                    label: index + 5,
+                    height: row.getBoundingClientRect().height || 64
+                }))
+            ];
+            while (rowHeights.length < 10) {
+                const lastLabel = rowHeights[rowHeights.length - 1] ? rowHeights[rowHeights.length - 1].label : 0;
+                rowHeights.push({
+                    label: lastLabel + 1,
+                    height: 42
+                });
+            }
+            els.weeklyExcelRows.innerHTML = rowHeights
+                .map((row) => `<div style="--row-height:${Math.round(row.height)}px">${row.label}</div>`)
+                .join('');
+        }
+
+        function categoryPreviewStyle(category) {
+            const key = removeVietnameseMarks(String(category || '')).toLowerCase().trim();
+            const colors = {
+                'chinh may': ['#ffff00', '#000000'],
+                'sua': ['#ff0000', '#ffffff'],
+                'setup': ['#ffa500', '#000000'],
+                'ho tro': ['#d9d9d9', '#000000'],
+                'lap moi': ['#5b9bd5', '#ffffff']
+            };
+            const [bg, fg] = colors[key] || ['#ffffff', '#000000'];
+            return `background:${bg}!important;color:${fg}!important;`;
+        }
+
+        function formatPreviewDate(isoDate) {
+            if (!isoDate) return '';
+            const date = new Date(`${isoDate}T00:00:00`);
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return `${String(date.getDate()).padStart(2, '0')}-${months[date.getMonth()]}`;
+        }
+
+        function syncWeeklyField(event) {
+            const index = Number(event.target.dataset.weeklyIndex);
+            const field = event.target.dataset.weeklyField;
+            if (!state.weeklyRows[index] || !field) return;
+            state.weeklyRows[index][field] = event.target.value;
+            if (field === 'hang_muc') {
+                renderWeeklyPreview();
+            } else if (event.target.tagName === 'TEXTAREA') {
+                autoResizeWeeklyTextarea(event.target);
+                autoResizeWeeklyRow(index);
+            }
+        }
+
+        function autoResizeWeeklyTextarea(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = `${Math.max(64, textarea.scrollHeight)}px`;
+        }
+
+        function autoResizeAllWeeklyRows() {
+            state.weeklyRows.forEach((_, index) => autoResizeWeeklyRow(index));
+        }
+
+        function autoResizeWeeklyRow(index) {
+            const row = state.weeklyRows[index];
+            const tableRow = els.weeklyPreviewBody.children[index];
+            if (!row || !tableRow) return;
+            const textareas = Array.from(tableRow.querySelectorAll('textarea'));
+            textareas.forEach(autoResizeWeeklyTextarea);
+            const contentHeight = textareas.reduce((height, textarea) => Math.max(height, textarea.scrollHeight + 26), 64);
+            row.row_height = Math.min(Math.max(contentHeight, 64), 720);
+            tableRow.style.height = `${row.row_height}px`;
+            scheduleWeeklyFrameUpdate();
+        }
+
+        function handleProjectContextMenu(event) {
+            const projectInput = event.target.closest('.weekly-project-input');
+            if (!projectInput) return;
+
+            const project = (projectInput.dataset.project || projectInput.value || '').trim();
+            if (!project) return;
+
+            event.preventDefault();
+            state.detailMenuProject = project;
+            const menuWidth = 128;
+            const left = Math.min(event.clientX, window.innerWidth - menuWidth - 10);
+            const top = Math.min(event.clientY, window.innerHeight - 48);
+            els.projectContextMenu.style.left = `${Math.max(8, left)}px`;
+            els.projectContextMenu.style.top = `${Math.max(8, top)}px`;
+            els.projectContextMenu.classList.add('open');
+        }
+
+        function hideProjectContextMenu() {
+            els.projectContextMenu.classList.remove('open');
+        }
+
+        async function openProjectDetail(project) {
+            if (!project) return;
+            state.detailProject = project;
+            els.detailProjectTitle.textContent = project;
+            setDefaultDetailDates();
+            document.body.classList.add('detail-open');
+            els.projectDetailDrawer.classList.add('open');
+            await loadProjectDetail();
+        }
+
+        function closeProjectDetail() {
+            els.projectDetailDrawer.classList.remove('open');
+            document.body.classList.remove('detail-open');
+            state.detailProject = '';
+        }
+
+        function setDefaultDetailDates() {
+            const from = els.weeklyDateFrom.value || toInputDate(startOfCurrentWeek());
+            const to = els.weeklyDateTo.value || toInputDate(addDays(startOfCurrentWeek(), 6));
+            els.detailDateFrom.value = from;
+            els.detailDateTo.value = to;
+            els.detailWeekPicker.value = getWeekInputValue(new Date(`${from}T00:00:00`));
+        }
+
+        function startOfCurrentWeek() {
+            const today = new Date();
+            const day = today.getDay() || 7;
+            const monday = new Date(today);
+            monday.setDate(today.getDate() - day + 1);
+            return monday;
+        }
+
+        function addDays(date, days) {
+            const next = new Date(date);
+            next.setDate(date.getDate() + days);
+            return next;
+        }
+
+        function getWeekInputValue(date) {
+            const target = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            const day = target.getUTCDay() || 7;
+            target.setUTCDate(target.getUTCDate() + 4 - day);
+            const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
+            const week = Math.ceil((((target - yearStart) / 86400000) + 1) / 7);
+            return `${target.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
+        }
+
+        function handleDetailWeekChange() {
+            const range = weekInputToRange(els.detailWeekPicker.value);
+            if (!range) return;
+            els.detailDateFrom.value = range.from;
+            els.detailDateTo.value = range.to;
+            loadProjectDetail();
+        }
+
+        function weekInputToRange(value) {
+            const match = String(value || '').match(/^(\d{4})-W(\d{2})$/);
+            if (!match) return null;
+            const year = Number(match[1]);
+            const week = Number(match[2]);
+            const jan4 = new Date(Date.UTC(year, 0, 4));
+            const jan4Day = jan4.getUTCDay() || 7;
+            const monday = new Date(jan4);
+            monday.setUTCDate(jan4.getUTCDate() - jan4Day + 1 + (week - 1) * 7);
+            const sunday = new Date(monday);
+            sunday.setUTCDate(monday.getUTCDate() + 6);
+            return {
+                from: monday.toISOString().slice(0, 10),
+                to: sunday.toISOString().slice(0, 10)
+            };
+        }
+
+        async function loadProjectDetail() {
+            if (!state.detailProject) return;
+            els.projectDetailList.innerHTML = '<div class="empty">Đang tải dữ liệu...</div>';
+            const result = await ipcRenderer.invoke('query-reports', { ma_du_an: state.detailProject });
+            const from = els.detailDateFrom.value || '0000-00-00';
+            const to = els.detailDateTo.value || '9999-99-99';
+            const projectKey = normalizeProjectKey(state.detailProject);
+            const reports = (result.reports || [])
+                .filter((report) => normalizeProjectKey(report.ma_du_an) === projectKey)
+                .filter((report) => !report.ngay_thuc_hien || (report.ngay_thuc_hien >= from && report.ngay_thuc_hien <= to))
+                .sort((a, b) => String(a.ngay_thuc_hien || '').localeCompare(String(b.ngay_thuc_hien || '')));
+            const reportsWithImages = await Promise.all(reports.map(async (report) => ({
+                ...report,
+                detail_images: await ipcRenderer.invoke('list-report-images', getReportFolders(report))
+            })));
+            renderProjectDetail(reportsWithImages);
+        }
+
+        function normalizeProjectKey(value) {
+            return removeVietnameseMarks(String(value || '')).toUpperCase().replace(/[^A-Z0-9]/g, '');
+        }
+
+        function renderProjectDetail(reports) {
+            state.detailImages = [];
+            state.detailImageIndex = 0;
+            if (!reports.length) {
+                els.projectDetailList.innerHTML = '<div class="empty">Không có nội dung công việc trong khoảng thời gian đã chọn.</div>';
+                return;
+            }
+
+            els.projectDetailList.innerHTML = reports.map((report) => `
+                <article class="detail-item">
+                    <div class="detail-item-head">
+                        <span>${escapeHtml(report.ngay_thuc_hien || 'Chưa có ngày')}</span>
+                        <span>Người thực hiện: ${escapeHtml(formatPeopleForDetail(report.nguoi_thuc_hien) || 'Chưa xác định')}</span>
+                    </div>
+                    <h4>${escapeHtml(report.ma_du_an || state.detailProject)}</h4>
+                    ${renderDetailList('Nội dung công việc', report.noi_dung_cong_viec)}
+                    ${renderDetailList('Trạng thái', report.trang_thai)}
+                    ${renderDetailImages(report.detail_images)}
+                </article>
+            `).join('');
+
+            document.querySelectorAll('[data-detail-image]').forEach((button) => {
+                button.addEventListener('click', () => {
+                    openImageViewer(Number(button.dataset.detailImage));
+                });
+            });
+        }
+
+        function renderDetailList(title, items) {
+            const list = Array.isArray(items) ? items.filter(Boolean) : [items].filter(Boolean);
+            if (!list.length) return '';
+            return `
+                <div>
+                    <strong>${title}</strong>
+                    <ul>${list.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+                </div>
+            `;
+        }
+
+        function formatPeopleForDetail(people) {
+            const list = Array.isArray(people) ? people : [people].filter(Boolean);
+            return list
+                .map((person) => {
+                    if (typeof person === 'string') return person;
+                    if (person && typeof person === 'object') return person.name || person.label || person.folderName || '';
+                    return '';
+                })
+                .filter(Boolean)
+                .join(', ');
+        }
+
+        function renderDetailImages(images) {
+            if (!Array.isArray(images) || !images.length) return '';
+            const startIndex = state.detailImages.length;
+            state.detailImages.push(...images);
+            return `
+                <div class="detail-thumbs">
+                    ${images.map((imagePath, index) => `
+                        <button type="button" class="detail-thumb" data-detail-image="${startIndex + index}">
+                            <img src="${pathToFileUrl(imagePath)}" alt="Ảnh ${index + 1}">
+                        </button>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function getReportFolder(report) {
+            if (Array.isArray(report.folder_nguoi) && report.folder_nguoi.length) {
+                return report.folder_nguoi[0];
+            }
+            return report.folder_ngay || '';
+        }
+
+        function getReportFolders(report) {
+            if (Array.isArray(report.folder_nguoi) && report.folder_nguoi.length) {
+                return report.folder_nguoi;
+            }
+            return report.folder_ngay ? [report.folder_ngay] : [];
+        }
+
+        function openImageViewer(index) {
+            if (!state.detailImages.length) return;
+            state.detailImageIndex = Math.min(Math.max(index, 0), state.detailImages.length - 1);
+            els.imageViewerImg.src = pathToFileUrl(state.detailImages[state.detailImageIndex]);
+            els.imageViewer.classList.add('open');
+        }
+
+        function closeImageViewer() {
+            els.imageViewer.classList.remove('open');
+            els.imageViewerImg.removeAttribute('src');
+        }
+
+        function moveDetailImage(direction) {
+            if (!state.detailImages.length) return;
+            state.detailImageIndex = (state.detailImageIndex + direction + state.detailImages.length) % state.detailImages.length;
+            els.imageViewerImg.src = pathToFileUrl(state.detailImages[state.detailImageIndex]);
+        }
+
+        function startDetailResize(event) {
+            state.detailResizeActive = true;
+            event.preventDefault();
+        }
+
+        function resizeProjectDetail(event) {
+            if (!state.detailResizeActive) return;
+            const width = Math.min(Math.max(window.innerWidth - event.clientX, 360), Math.min(window.innerWidth * 0.76, 980));
+            document.body.style.setProperty('--detail-width', `${Math.round(width)}px`);
+        }
+
+        function stopDetailResize() {
+            state.detailResizeActive = false;
+        }
+
+        function startWeeklyColumnResize(event) {
+            const index = Number(event.target.dataset.weeklyResizeColumn);
+            const column = state.weeklyColumns[index];
+            if (!column) return;
+            state.weeklyColumnResize = {
+                index,
+                startX: event.clientX,
+                startWidth: Number(column.width) || 160
+            };
+            event.preventDefault();
+            event.stopPropagation();
+        }
+
+        function resizeWeeklyColumn(event) {
+            if (!state.weeklyColumnResize) return;
+            const { index, startX, startWidth } = state.weeklyColumnResize;
+            const column = state.weeklyColumns[index];
+            if (!column) return;
+            column.width = Math.min(Math.max(startWidth + event.clientX - startX, 52), 520);
+            applyWeeklyColumnWidths();
+            scheduleWeeklyFrameUpdate();
+        }
+
+        function startWeeklyRowResize(event) {
+            const index = Number(event.target.dataset.weeklyResizeRow);
+            const row = state.weeklyRows[index];
+            if (!row) return;
+            state.weeklyRowResize = {
+                index,
+                startY: event.clientY,
+                startHeight: getWeeklyRowHeight(row)
+            };
+            event.preventDefault();
+            event.stopPropagation();
+        }
+
+        function resizeWeeklyRow(event) {
+            if (!state.weeklyRowResize) return;
+            const { index, startY, startHeight } = state.weeklyRowResize;
+            const row = state.weeklyRows[index];
+            if (!row) return;
+            row.row_height = Math.min(Math.max(startHeight + event.clientY - startY, 42), 720);
+            const tableRow = els.weeklyPreviewBody.children[index];
+            if (tableRow) {
+                tableRow.style.height = `${row.row_height}px`;
+            }
+            scheduleWeeklyFrameUpdate();
+        }
+
+        function applyWeeklyColumnWidths() {
+            const widths = state.weeklyColumns.map((column) => `${Number(column.width) || 160}px`).join(' ');
+            document.querySelectorAll('.excel-cols').forEach((container) => {
+                container.style.gridTemplateColumns = widths;
+            });
+            document.querySelectorAll('.weekly-preview-table colgroup').forEach((colgroup) => {
+                Array.from(colgroup.children).forEach((col, index) => {
+                    const column = state.weeklyColumns[index];
+                    if (column) col.style.width = `${Number(column.width) || 160}px`;
+                });
+            });
+            document.querySelectorAll('.excel-shell').forEach((shell) => {
+                const totalWidth = state.weeklyColumns.reduce((sum, column) => sum + (Number(column.width) || 160), 0) + 28;
+                shell.style.minWidth = `${Math.max(totalWidth, 900)}px`;
+            });
+        }
+
+        function handleWeeklyZoomWheel(event) {
+            if (!event.ctrlKey) return;
+            event.preventDefault();
+            const direction = event.deltaY > 0 ? -1 : 1;
+            state.weeklyZoom = Math.min(Math.max((state.weeklyZoom || 1) + direction * 0.08, 0.55), 1.8);
+            localStorage.setItem('dailyWorkReportWeeklyZoom', String(state.weeklyZoom));
+            applyWeeklyZoom();
+            scheduleWeeklyFrameUpdate();
+        }
+
+        function applyWeeklyZoom() {
+            const shell = document.querySelector('#weeklyPage .excel-shell');
+            if (!shell) return;
+            shell.style.zoom = state.weeklyZoom || 1;
+        }
+
+        function handleGlobalMouseMove(event) {
+            resizeProjectDetail(event);
+            resizeWeeklyColumn(event);
+            resizeWeeklyRow(event);
+        }
+
+        function stopGlobalResize() {
+            stopDetailResize();
+            if (state.weeklyColumnResize) {
+                state.weeklyColumnResize = null;
+                saveWeeklyColumns();
+                renderWeeklyColumnSettings();
+            }
+            state.weeklyRowResize = null;
+        }
+
+        async function addWeeklyImages() {
+            const paths = await ipcRenderer.invoke('choose-weekly-images');
+            ensureUngroupedImageGroup();
+            paths.forEach((imagePath) => {
+                state.weeklyImages.push({ path: imagePath, groupId: 'ungrouped' });
+            });
+            els.weeklyWorkspace.classList.add('visible');
+            els.weeklyEmptyState.style.display = 'none';
+            activateTab('weeklyPage');
+            renderWeeklyImages();
+        }
+
+        function renderWeeklyImages() {
+            if (!state.weeklyImages.length) {
+                els.weeklyImageList.innerHTML = '<div class="empty">Chưa có hình ảnh đính kèm. Bấm Load hình ảnh để bắt đầu tạo nhóm ảnh.</div>';
+                return;
+            }
+            syncWeeklyImageGroupsWithProjects();
+            const groups = groupWeeklyImages();
+            els.weeklyImageList.innerHTML = `
+                <div class="image-toolbar">
+                    <button type="button" data-add-image-group>Thêm nhóm</button>
+                </div>
+                ${groups.length ? groups.map((group, groupIndex) => `
+                <div class="image-group" data-image-group="${escapeHtml(group.id)}">
+                    <div class="image-group-head">
+                        <span>${escapeHtml(group.title || `Nhóm ${groupIndex + 1}`)} (${group.images.length} ảnh)</span>
+                        <input data-image-group-description="${escapeHtml(group.id)}" placeholder="Mô tả chi tiết chung cho nhóm ảnh" value="${escapeHtml(group.description)}">
+                        <button type="button" data-remove-image-group="${escapeHtml(group.id)}" ${group.locked ? 'disabled' : ''}>Xóa nhóm</button>
+                    </div>
+                    <div class="image-group-grid">
+                        ${group.images.length ? group.images.map(({ image, index }) => `
+                            <div class="image-item" draggable="true" data-image-index="${index}">
+                                <img class="image-thumb" src="${pathToFileUrl(image.path)}" alt="Ảnh ${index + 1}" data-weekly-preview-image="${index}">
+                                <button data-remove-image="${index}">Xóa</button>
+                            </div>
+                        `).join('') : '<div class="empty">Kéo ảnh vào nhóm này.</div>'}
+                    </div>
+                </div>
+                `).join('') : '<div class="empty">Chưa có nhóm ảnh. Bấm Thêm nhóm hoặc tải dữ liệu tuần để tạo nhóm theo dự án.</div>'}
+            `;
+
+            const addGroupBtn = els.weeklyImageList.querySelector('[data-add-image-group]');
+            if (addGroupBtn) addGroupBtn.addEventListener('click', addCustomWeeklyImageGroup);
+            document.querySelectorAll('[data-image-group-description]').forEach((input) => {
+                input.addEventListener('input', () => {
+                    updateWeeklyImageGroupDescription(input.dataset.imageGroupDescription, input.value);
+                });
+            });
+            document.querySelectorAll('[data-remove-image-group]').forEach((button) => {
+                button.addEventListener('click', () => removeWeeklyImageGroup(button.dataset.removeImageGroup));
+            });
+            document.querySelectorAll('[data-remove-image]').forEach((button) => {
+                button.addEventListener('click', () => {
+                    state.weeklyImages.splice(Number(button.dataset.removeImage), 1);
+                    renderWeeklyImages();
+                });
+            });
+            document.querySelectorAll('[data-weekly-preview-image]').forEach((image) => {
+                image.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    openWeeklyImagePreview(Number(image.dataset.weeklyPreviewImage));
+                });
+            });
+            document.querySelectorAll('[data-image-index]').forEach((item) => {
+                item.addEventListener('dragstart', handleWeeklyImageDragStart);
+            });
+            document.querySelectorAll('[data-image-group]').forEach((group) => {
+                group.addEventListener('dragover', handleWeeklyImageGroupDragOver);
+                group.addEventListener('dragleave', handleWeeklyImageGroupDragLeave);
+                group.addEventListener('drop', handleWeeklyImageGroupDrop);
+            });
+        }
+
+        function openWeeklyImagePreview(index) {
+            const paths = state.weeklyImages.map((image) => image.path).filter(Boolean);
+            if (!paths.length) return;
+            state.detailImages = paths;
+            openImageViewer(Math.min(Math.max(index, 0), paths.length - 1));
+        }
+
+        function groupWeeklyImages() {
+            const map = new Map(state.weeklyImageGroups.map((group) => [group.id, { ...group, images: [] }]));
+            state.weeklyImages.forEach((image, index) => {
+                if (!image.groupId) image.groupId = 'ungrouped';
+                if (!map.has(image.groupId)) {
+                    map.set(image.groupId, {
+                        id: image.groupId,
+                        title: image.groupId === 'ungrouped' ? 'Chưa phân nhóm' : 'Nhóm ảnh',
+                        description: image.description || '',
+                        locked: false,
+                        images: []
+                    });
+                }
+                const group = map.get(image.groupId);
+                if (!group.description && image.description) group.description = image.description;
+                group.images.push({ image, index });
+            });
+            return [...map.values()]
+                .filter((group) => group.id !== 'ungrouped' || group.images.length)
+                .sort((a, b) => {
+                    if (a.id === 'ungrouped') return -1;
+                    if (b.id === 'ungrouped') return 1;
+                    return 0;
+                });
+        }
+
+        function updateWeeklyImageGroupDescription(groupId, description) {
+            const group = state.weeklyImageGroups.find((item) => item.id === groupId);
+            if (group) group.description = description;
+            state.weeklyImages.forEach((image) => {
+                if (image.groupId === groupId) image.description = description;
+            });
+        }
+
+        function syncWeeklyImageGroupsWithProjects() {
+            const existing = new Map(state.weeklyImageGroups.map((group) => [group.id, group]));
+            state.weeklyRows.forEach((row) => {
+                const project = row.du_an || row.project_full;
+                const key = normalizeProjectKey(project);
+                if (!key) return;
+                const id = `project_${key}`;
+                if (!existing.has(id)) {
+                    state.weeklyImageGroups.push({
+                        id,
+                        title: project,
+                        description: project,
+                        locked: true
+                    });
+                    existing.set(id, state.weeklyImageGroups[state.weeklyImageGroups.length - 1]);
+                }
+            });
+            if (state.weeklyImages.some((image) => !image.groupId || image.groupId === 'ungrouped')) {
+                ensureUngroupedImageGroup();
+            }
+        }
+
+        function ensureUngroupedImageGroup() {
+            if (state.weeklyImageGroups.some((group) => group.id === 'ungrouped')) return;
+            state.weeklyImageGroups.push({
+                id: 'ungrouped',
+                title: 'Chưa phân nhóm',
+                description: '',
+                locked: true
+            });
+        }
+
+        function addCustomWeeklyImageGroup() {
+            const id = `custom_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+            state.weeklyImageGroups.push({
+                id,
+                title: `Nhóm ${state.weeklyImageGroups.filter((group) => !group.locked).length + 1}`,
+                description: '',
+                locked: false
+            });
+            renderWeeklyImages();
+        }
+
+        function removeWeeklyImageGroup(groupId) {
+            const group = state.weeklyImageGroups.find((item) => item.id === groupId);
+            if (!group || group.locked) return;
+            ensureUngroupedImageGroup();
+            state.weeklyImages.forEach((image) => {
+                if (image.groupId === groupId) image.groupId = 'ungrouped';
+            });
+            state.weeklyImageGroups = state.weeklyImageGroups.filter((item) => item.id !== groupId);
+            renderWeeklyImages();
+        }
+
+        function handleWeeklyImageDragStart(event) {
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', event.currentTarget.dataset.imageIndex);
+        }
+
+        function handleWeeklyImageGroupDragOver(event) {
+            event.preventDefault();
+            event.currentTarget.classList.add('drag-over');
+        }
+
+        function handleWeeklyImageGroupDragLeave(event) {
+            event.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleWeeklyImageGroupDrop(event) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('drag-over');
+            const imageIndex = Number(event.dataTransfer.getData('text/plain'));
+            const image = state.weeklyImages[imageIndex];
+            const groupId = event.currentTarget.dataset.imageGroup;
+            if (!image || !groupId) return;
+            image.groupId = groupId;
+            const group = state.weeklyImageGroups.find((item) => item.id === groupId);
+            image.description = group ? group.description || '' : '';
+            renderWeeklyImages();
+        }
+
+        async function chooseWeeklyOutputFolder() {
+            const folder = await ipcRenderer.invoke('choose-report-output-folder');
+            if (!folder) return;
+            state.weeklyOutputFolder = folder;
+            els.weeklyOutputFolder.value = folder;
+            localStorage.setItem('dailyWorkReportWeeklyOutputFolder', folder);
+        }
+
+        async function exportWeeklyReport() {
+            if (!state.weeklyRows.length) {
+                setWeeklyStatus('Chưa có dữ liệu để xuất.', true);
+                return;
+            }
+
+            if (!state.weeklyOutputFolder) {
+                await chooseWeeklyOutputFolder();
+                if (!state.weeklyOutputFolder) return;
+            }
+
+            const rows = state.weeklyRows.map((row) => ({
+                ...row,
+                noi_dung_cong_viec: textareaToList(row.noi_dung),
+                trang_thai: textareaToList(row.tien_do)
+            }));
+
+            try {
+                const result = await ipcRenderer.invoke('export-weekly-report', {
+                    dateFrom: els.weeklyDateFrom.value,
+                    dateTo: els.weeklyDateTo.value,
+                    outputDir: state.weeklyOutputFolder,
+                    rows,
+                    columns: state.weeklyColumns,
+                    images: state.weeklyImages,
+                    imageGroups: state.weeklyImageGroups
+                });
+                setWeeklyStatus(`Đã xuất: ${result.outputPath}`);
+            } catch (error) {
+                setWeeklyStatus(error.message || 'Không xuất được báo cáo tuần.', true);
+            }
+        }
+
+        function textareaToList(text) {
+            return String(text || '')
+                .split('\n')
+                .map((line) => line.replace(/^\d+\.\s*/, '').trim())
+                .filter(Boolean);
+        }
+
+        function setWeeklyStatus(message, isError = false) {
+            els.weeklyStatus.textContent = message;
+            els.weeklyStatus.classList.toggle('error', isError);
+        }
+
+        function pathToFileUrl(filePath) {
+            return `file:///${String(filePath || '').replace(/\\/g, '/')}`;
+        }
+
+        async function loadReports() {
+            const result = await ipcRenderer.invoke('load-reports');
+            state.savedReports = result.reports;
+            state.allReports = result.reports;
+            state.dataFile = result.dataFile;
+            state.sqliteFile = result.sqliteFile || '';
+            renderSearch();
+            renderFolderStructure();
+            updateCurrentDateTime();
+        }
+
+        async function renderFolderStructure() {
+            if (!state.rootFolder) {
+                els.folderStructureBody.innerHTML = `
+                    <tr>
+                        <td class="empty">Chưa chọn thư mục gốc để hiển thị cấu trúc.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            els.folderStructureBody.innerHTML = `
+                <tr>
+                    <td class="empty">Đang tải cấu trúc thư mục...</td>
+                </tr>
+            `;
+
+            const entries = await ipcRenderer.invoke('list-folder-structure', state.rootFolder);
+            if (!entries.length) {
+                els.folderStructureBody.innerHTML = `
+                    <tr>
+                        <td class="empty">Không đọc được cấu trúc thư mục từ đường dẫn đã chọn.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            const tree = buildFolderTree(entries);
+
+            els.folderStructureBody.innerHTML = `
+                <tr>
+                    <td>
+                        <div class="folder-tree">${renderFolderTreeNodes(tree.children, 0)}</div>
+                    </td>
+                </tr>
+            `;
+
+            document.querySelectorAll('[data-folder-toggle]').forEach((button) => {
+                button.addEventListener('click', () => {
+                    const key = button.dataset.folderToggle;
+                    if (state.collapsedFolderNodes.has(key)) {
+                        state.collapsedFolderNodes.delete(key);
+                    } else {
+                        state.collapsedFolderNodes.add(key);
+                    }
+                    renderFolderStructure();
+                });
+            });
+        }
+
+        function renderFolderTreeSummary(rootFolder, folders) {
+            const rootParts = splitFolderPath(rootFolder || folders[0] || '');
+            const rootHtml = rootParts.length
+                ? rootParts.map((part, index) => `
+                    <div style="--level:${index}">
+                        <span class="folder-icon">${index === rootParts.length - 1 ? '📁' : '▾'}</span>${escapeHtml(part)}
+                    </div>
+                `).join('')
+                : '<div style="--level:0"><span class="folder-icon">▸</span>Chưa có thư mục</div>';
+
+            const childHtml = folders.map((folder) => {
+                const relativeParts = relativeFolderParts(rootFolder, folder);
+                return relativeParts.map((part, index) => `
+                    <div style="--level:${rootParts.length + index}">
+                        <span class="folder-icon">${index === relativeParts.length - 1 ? '📁' : '▾'}</span>${escapeHtml(part)}
+                    </div>
+                `).join('');
+            }).join('');
+
+            return rootHtml + childHtml;
+        }
+
+        function buildFolderTree(entries) {
+            const root = { name: '', children: new Map(), files: [] };
+            const normalizedEntries = (entries || []).map((entry) => (
+                typeof entry === 'string' ? { path: entry, type: 'folder' } : entry
+            ));
+            normalizedEntries
+                .filter((entry) => entry && entry.type === 'folder')
+                .forEach((folderEntry) => {
+                let current = root;
+                splitFolderPath(folderEntry.path).forEach((part) => {
+                    const key = part.toLowerCase();
+                    if (!current.children.has(key)) {
+                        current.children.set(key, { name: part, children: new Map(), files: [] });
+                    }
+                    current = current.children.get(key);
+                });
+            });
+            normalizedEntries
+                .filter((entry) => entry && entry.type === 'file')
+                .forEach((fileEntry) => {
+                    const parts = splitFolderPath(fileEntry.path);
+                    const fileName = parts.pop();
+                    let current = root;
+                    parts.forEach((part) => {
+                        const key = part.toLowerCase();
+                        if (!current.children.has(key)) {
+                            current.children.set(key, { name: part, children: new Map(), files: [] });
+                        }
+                        current = current.children.get(key);
+                    });
+                    if (fileName) current.files.push({ name: fileName, path: fileEntry.path });
+                });
+            return root;
+        }
+
+        function renderFolderTreeNodes(children, level, parentPath = '') {
+            return [...children.values()]
+                .sort((a, b) => a.name.localeCompare(b.name, 'vi'))
+                .map((node) => {
+                    const files = node.files || [];
+                    const hasChildren = node.children.size > 0 || files.length > 0;
+                    const nodePath = parentPath ? `${parentPath}/${node.name}` : node.name;
+                    const isCollapsed = state.collapsedFolderNodes.has(nodePath);
+                    const fileHtml = files
+                        .sort((a, b) => a.name.localeCompare(b.name, 'vi'))
+                        .map((file) => `
+                            <div class="tree-node" style="--level:${level + 1}">
+                                <span class="tree-toggle"></span>
+                                ${treeIconHtml(fileIconForName(file.name), 'File')}${escapeHtml(file.name)}
+                            </div>
+                        `).join('');
+                    return `
+                        <div class="tree-node" style="--level:${level}">
+                            ${hasChildren
+                                ? `<button class="tree-toggle" data-folder-toggle="${escapeHtml(nodePath)}">${isCollapsed ? '▸' : '▾'}</button>`
+                                : '<span class="tree-toggle">›</span>'}
+                            ${treeIconHtml('folder.svg', 'Folder')}${escapeHtml(node.name)}
+                        </div>
+                        ${hasChildren && !isCollapsed ? `${renderFolderTreeNodes(node.children, level + 1, nodePath)}${fileHtml}` : ''}
+                    `;
+                })
+                .join('');
+        }
+
+        function treeIconHtml(fileName, alt) {
+            return `<img class="tree-icon" src="assets/icons/${fileName}" alt="${escapeHtml(alt)}">`;
+        }
+
+        function fileIconForName(fileName) {
+            const ext = String(fileName || '').split('.').pop().toLowerCase();
+            if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(ext)) return 'image.svg';
+            if (['xls', 'xlsx', 'xlsm', 'xlsb', 'csv'].includes(ext)) return 'excel.svg';
+            if (ext === 'pdf') return 'pdf.svg';
+            if (['doc', 'docx'].includes(ext)) return 'word.svg';
+            return 'file.svg';
+        }
+
+        function renderFolderTree(folderPath) {
+            const parts = splitFolderPath(folderPath);
+            if (!parts.length) return '<div style="--level:0"><span class="folder-icon">▸</span>Chưa có thư mục</div>';
+            return parts.slice(-5).map((part, index) => `
+                <div style="--level:${index}">
+                    <span class="folder-icon">${index === parts.slice(-5).length - 1 ? '📁' : '▾'}</span>${escapeHtml(part)}
+                </div>
+            `).join('');
+        }
+
+        function splitFolderPath(folderPath) {
+            return String(folderPath || '')
+                .replace(/\\/g, '/')
+                .split('/')
+                .filter(Boolean);
+        }
+
+        function uniqueFolderPaths(folders) {
+            const seen = new Set();
+            return folders.filter((folder) => {
+                const key = String(folder || '').replace(/\\/g, '/').toLowerCase();
+                if (!key || seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+        }
+
+        function commonRootFolder(folders) {
+            if (!folders.length) return '';
+            const splitFolders = folders.map(splitFolderPath);
+            const rootParts = [];
+            const minLength = Math.min(...splitFolders.map((parts) => parts.length));
+            for (let index = 0; index < minLength; index += 1) {
+                const value = splitFolders[0][index];
+                if (splitFolders.every((parts) => parts[index].toLowerCase() === value.toLowerCase())) {
+                    rootParts.push(value);
+                } else {
+                    break;
+                }
+            }
+            if (rootParts.length <= 1 && splitFolders[0].length > 1) {
+                rootParts.push(splitFolders[0][1]);
+            }
+            return rootParts.join('\\');
+        }
+
+        function relativeFolderParts(rootFolder, folder) {
+            const rootParts = splitFolderPath(rootFolder);
+            const folderParts = splitFolderPath(folder);
+            let index = 0;
+            while (
+                index < rootParts.length
+                && index < folderParts.length
+                && rootParts[index].toLowerCase() === folderParts[index].toLowerCase()
+            ) {
+                index += 1;
+            }
+            return folderParts.slice(index);
+        }
+
+        function folderStatusForReport(report) {
+            const text = removeVietnameseMarks((report.trang_thai || []).join(' ')).toLowerCase();
+            if (/cho|wait|doi/.test(text)) return { label: 'Chờ xử lý', className: 'status-wait' };
+            if (/hoan thanh|da xong|xong|100%/.test(text)) return { label: 'Hoàn thành', className: 'status-done' };
+            return { label: 'Đang thực hiện', className: 'status-progress' };
+        }
+
+        function folderStatusForReports(reports) {
+            const statuses = reports.map(folderStatusForReport);
+            if (statuses.some((status) => status.className === 'status-wait')) return { label: 'Có mục chờ xử lý', className: 'status-wait' };
+            if (statuses.every((status) => status.className === 'status-done')) return { label: 'Hoàn thành', className: 'status-done' };
+            return { label: 'Đang thực hiện', className: 'status-progress' };
+        }
+
+        function folderNoteForReport(report) {
+            const statuses = Array.isArray(report.trang_thai) ? report.trang_thai : [];
+            return statuses[0] || 'Đã tạo thư mục theo báo cáo';
+        }
+
+        function updateCurrentDateTime() {
+            const total = (state.savedReports || []).length;
+            els.currentDateTime.textContent = `Tổng ${total} công việc  |  ${formatDateTime(new Date())}`;
+        }
+
+        function formatDateTime(date) {
+            const pad = (value) => String(value).padStart(2, '0');
+            return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+        }
+
+        async function renderSearch() {
+            const rawQuery = (els.searchInput.value || '').trim();
+            const dateQuery = parseSearchDate(rawQuery);
+            const displayQuery = dateQuery || rawQuery;
+            const query = removeVietnameseMarks(displayQuery).toLowerCase();
+            const filter = els.excelFilter.value;
+
+            if (rawQuery) {
+                const queryPayload = dateQuery
+                    ? { ngay: dateQuery }
+                    : { ma_du_an: rawQuery };
+                const result = await ipcRenderer.invoke('query-reports', queryPayload);
+                state.savedReports = result.reports;
+            } else {
+                state.savedReports = state.allReports;
+            }
+
+            let rows = state.savedReports.filter((report) => {
+                const blob = removeVietnameseMarks(JSON.stringify(report)).toLowerCase();
+                const matchQuery = !query || blob.includes(query);
+                const matchExcel = filter === 'all'
+                    || (filter === 'exported' && report.excel_exported)
+                    || (filter === 'not_exported' && !report.excel_exported);
+                return matchQuery && matchExcel;
+            });
+
+            if (!rows.length) {
+                els.searchResults.innerHTML = '<tr><td colspan="6" class="muted">Không có kết quả.</td></tr>';
+                return;
+            }
+
+            els.searchResults.innerHTML = rows.map((report, index) => {
+                const people = (report.nguoi_thuc_hien || []).map((person) => person.displayName || person).join(', ');
+                const content = Array.isArray(report.noi_dung_cong_viec) ? report.noi_dung_cong_viec.join('; ') : '';
+                const status = Array.isArray(report.trang_thai) ? report.trang_thai.join('; ') : '';
+                const folder = report.folder_ngay || '';
+                return `
+                    <tr>
+                        <td>${escapeHtml(report.ma_du_an || '')}</td>
+                        <td>${escapeHtml(report.ngay_thuc_hien || '')}</td>
+                        <td>${escapeHtml(people)}</td>
+                        <td>${escapeHtml(content)}</td>
+                        <td>${escapeHtml(status)}</td>
+                        <td><button data-search-folder="${escapeHtml(folder)}" ${folder ? '' : 'disabled'}>Mở thư mục</button></td>
+                    </tr>
+                `;
+            }).join('');
+
+            document.querySelectorAll('[data-search-folder]').forEach((button) => {
+                button.addEventListener('click', () => {
+                    const folder = button.dataset.searchFolder;
+                    if (folder) ipcRenderer.invoke('open-folder', folder);
+                });
+            });
+        }
+
+        function debounce(fn, delay) {
+            let timer = null;
+            return (...args) => {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn(...args), delay);
+            };
+        }
+
+        function parseSearchDate(value) {
+            const text = String(value || '').trim();
+            const iso = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+            if (iso) {
+                return `${iso[1]}-${String(Number(iso[2])).padStart(2, '0')}-${String(Number(iso[3])).padStart(2, '0')}`;
+            }
+
+            const vn = text.match(/^(\d{1,2})\s*\/\s*(\d{1,2})\s*\/\s*(\d{4})$/);
+            if (vn) {
+                return `${vn[3]}-${String(Number(vn[2])).padStart(2, '0')}-${String(Number(vn[1])).padStart(2, '0')}`;
+            }
+
+            return '';
+        }
+
+        function removeVietnameseMarks(text) {
+            return String(text || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/đ/g, 'd')
+                .replace(/Đ/g, 'D');
+        }
+
+        function toFolderName(name) {
+            const ascii = removeVietnameseMarks(name)
+                .replace(/@/g, '')
+                .replace(/[^a-zA-Z0-9\s]/g, ' ')
+                .trim();
+            const words = ascii.split(/\s+/).filter(Boolean);
+            return words.map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join('') || 'ChuaXacDinh';
+        }
+
+        function titleCaseVietnamese(name) {
+            return name
+                .replace(/\s+/g, ' ')
+                .trim()
+                .split(' ')
+                .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+        }
+
+        function dedupe(items) {
+            return [...new Set(items.map((item) => item.trim()).filter(Boolean))];
+        }
+
+        function dedupeObjects(items, key) {
+            const seen = new Set();
+            return items.filter((item) => {
+                if (seen.has(item[key])) return false;
+                seen.add(item[key]);
+                return true;
+            });
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        loadReports();
+    </script>
+</body>
+</html>
