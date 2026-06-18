@@ -33,8 +33,9 @@
     ],
     "win": {
       "target": [
-        "nsis"
-      ]
+        "portable"
+      ],
+      "artifactName": "${productName}-v${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
