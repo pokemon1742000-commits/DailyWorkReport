@@ -1,8 +1,8 @@
 # Daily Work Report
 
-Phần mềm Electron hỗ trợ chuẩn hóa báo cáo công việc hằng ngày, lưu dữ liệu SQLite, quản lý thư mục ảnh/tài liệu và xuất báo cáo tuần Excel.
+Phan mem Electron ho tro chuan hoa bao cao cong viec hang ngay, luu du lieu SQLite, quan ly thu muc anh/tai lieu va xuat bao cao tuan Excel.
 
-## Chạy thử
+## Chay thu
 
 ```bash
 npm install
@@ -15,8 +15,8 @@ npm start
 npm run build
 ```
 
-Bản build unpacked nằm trong `dist/win-unpacked`.
+Ban build unpacked nam trong `dist/win-unpacked`.
 
-## Cập nhật từ GitHub
+## Cap nhat tu GitHub
 
-Nút **Thông tin** trong app có chức năng **Update từ GitHub**. Chức năng này yêu cầu thư mục phần mềm là một Git repository và đã cấu hình remote `origin`.
+Nut **Thong tin** trong app co chuc nang **Update tu GitHub**. Chuc nang nay yeu cau thu muc phan mem la mot Git repository va da cau hinh remote `origin`.
