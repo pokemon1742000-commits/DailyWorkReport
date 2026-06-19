@@ -2340,6 +2340,11 @@
 
         function parseReport(raw) {
             const normalizedRaw = raw.replace(/\r/g, '').trim();
+            const numberedReports = parseNumberedProjectBlocks(normalizedRaw);
+            if (numberedReports.length) {
+                return numberedReports;
+            }
+
             const sections = extractSections(normalizedRaw);
             const dateInfo = parseDate(normalizedRaw);
             const fallback = inferLooseFields(normalizedRaw, sections);
@@ -2388,6 +2393,142 @@
                     warning
                 };
             });
+        }
+
+        function parseNumberedProjectBlocks(raw) {
+            const lines = raw.split('\n').map((line) => line.trim()).filter(Boolean);
+            const projectStarts = lines.filter((line) => {
+                const item = parseNumberedLine(line);
+                return item && item.number === 1 && looksLikeProjectLine(item.value);
+            });
+            if (projectStarts.length < 2) return [];
+
+            const blocks = [];
+            let current = null;
+            let currentKey = '';
+            const shared = { people: '', date: '' };
+
+            lines.forEach((line) => {
+                if (isSeparatorOnlyLine(line)) return;
+                const numbered = parseNumberedLine(line);
+                if (numbered && numbered.number === 1 && looksLikeProjectLine(numbered.value)) {
+                    current = { project: cleanNumberedFieldValue(numbered.value, 'project'), content: '', people: '', status: '', date: '' };
+                    blocks.push(current);
+                    currentKey = 'project';
+                    return;
+                }
+
+                if (!current) {
+                    if (numbered && numbered.number === 5) shared.date = appendLine(shared.date, cleanNumberedFieldValue(numbered.value, 'date'));
+                    return;
+                }
+
+                if (numbered) {
+                    currentKey = numberedFieldKey(numbered.number, numbered.value);
+                    const value = cleanNumberedFieldValue(numbered.value, currentKey);
+                    if (currentKey === 'date') {
+                        current.date = appendLine(current.date, value);
+                        shared.date = appendLine(shared.date, value);
+                    } else if (currentKey && value) {
+                        current[currentKey] = appendLine(current[currentKey], value);
+                    }
+                    return;
+                }
+
+                if (currentKey && current[currentKey] !== undefined) {
+                    current[currentKey] = appendLine(current[currentKey], line);
+                }
+            });
+
+            const sharedPeople = inferSharedNumberedPeople(blocks);
+            const sharedDateInfo = parseDate(shared.date || raw);
+            const reports = [];
+
+            blocks.forEach((block, index) => {
+                const projects = extractProjects(block.project);
+                const project = projects[0] || 'CHUA_XAC_DINH_DU_AN';
+                const inlineProgress = splitContentAndInlineStatus(splitItems(block.content));
+                const contentItems = inlineProgress.contentItems;
+                const rawStatusItems = splitItems(block.status)
+                    .map((item) => parseInlineProgressItem(item).status || item)
+                    .filter((item) => !looksLikeTimeLine(item));
+                const statusItems = mergeUniqueItems(rawStatusItems, inlineProgress.statusItems);
+                const people = extractPeople(block.people || sharedPeople || shared.people || '');
+                const safePeople = people.length ? people : [{ displayName: 'Chưa xác định', folderName: 'ChuaXacDinh' }];
+                const dateInfo = parseDate(block.date || shared.date) || sharedDateInfo;
+                const warning = [];
+                if (!projects.length) warning.push('Chưa nhận diện được mã dự án.');
+                if (!contentItems.length) warning.push('Chưa nhận diện được nội dung công việc.');
+                if (!people.length) warning.push('Chưa nhận diện được người thực hiện.');
+                if (!dateInfo.iso) warning.push('Chưa nhận diện được ngày thực hiện.');
+
+                reports.push({
+                    id: `${dateInfo.iso || 'unknown'}_${project}_${String(index + 1).padStart(3, '0')}`,
+                    ma_du_an: project,
+                    noi_dung_cong_viec: contentItems.length ? contentItems : ['Chưa xác định'],
+                    nguoi_thuc_hien: safePeople,
+                    trang_thai: statusItems.length ? statusItems : ['Chưa xác định'],
+                    ngay_thuc_hien: dateInfo.iso || '',
+                    folder_ngay_name: dateInfo.folderName || 'UnknownDate',
+                    folder_ngay: '',
+                    folder_nguoi: [],
+                    raw_text: raw,
+                    excel_exported: false,
+                    excel_file: null,
+                    excel_sheet: null,
+                    selectedForExcel: false,
+                    warning
+                });
+            });
+
+            return reports;
+        }
+
+        function parseNumberedLine(line) {
+            const match = String(line || '').match(/^(\d+)\s*[\.\)]\s*(.*)$/);
+            if (!match) return null;
+            return {
+                number: Number(match[1]),
+                value: match[2].trim()
+            };
+        }
+
+        function numberedFieldKey(number, value = '') {
+            if (number === 1 && looksLikeProjectLine(value)) return 'project';
+            if (isPeopleLine(value)) return 'people';
+            if (isDateLine(value)) return 'date';
+            if (looksLikeStatusLine(value) || /^\s*(trạng\s*thái|trang\s*thai|tình\s*trạng|tinh\s*trang|thực\s*trạng|thuc\s*trang)\b/i.test(value)) return 'status';
+            return {
+                1: 'project',
+                2: 'content',
+                3: 'people',
+                4: 'status',
+                5: 'date'
+            }[number] || '';
+        }
+
+        function cleanNumberedFieldValue(text, key) {
+            let value = String(text || '').trim();
+            const patterns = {
+                project: /^(?:mã|ma|tên|ten)?\s*(?:dự\s*án|du\s*an|project)\s*[:：-]?\s*/i,
+                content: /^(?:nội\s*dung|noi\s*dung|công\s*việc|cong\s*viec|cv)\s*[:：-]?\s*/i,
+                people: /^(?:người\s*thực\s*hiện|nguoi\s*thuc\s*hien|thực\s*hiện|thuc\s*hien)\s*[:：-]?\s*/i,
+                status: /^(?:trạng\s*thái|trang\s*thai|tình\s*trạng|tinh\s*trang|thực\s*trạng|thuc\s*trang)\s*[:：-]?\s*/i,
+                date: /^(?:ngày\s*thực\s*hiện|ngay\s*thuc\s*hien|ngày|ngay)\s*[:：-]?\s*/i
+            };
+            if (patterns[key]) value = value.replace(patterns[key], '').trim();
+            return value;
+        }
+
+        function isSeparatorOnlyLine(line) {
+            return /^[.\-_=~\s]{4,}$/.test(String(line || '').trim());
+        }
+
+        function inferSharedNumberedPeople(blocks) {
+            const peopleBlocks = blocks
+                .map((block) => String(block.people || '').trim())
+                .filter(Boolean);
+            return peopleBlocks.length === 1 ? peopleBlocks[0] : '';
         }
 
         function extractSections(raw) {
