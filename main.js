@@ -156,12 +156,13 @@ async function updateFromGithubRelease() {
     const currentVersion = normalizeVersion(pkg.version || app.getVersion() || '0.0.0');
     const release = await requestGithubJson(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`);
     const latestVersion = normalizeVersion(release.tag_name || release.name || '');
-    const asset = Array.isArray(release.assets)
-        ? release.assets.find((item) => /\.exe$/i.test(item.name || '') && item.browser_download_url)
-        : null;
+    const assets = Array.isArray(release.assets) ? release.assets : [];
+    const asset = assets.find((item) => /\.exe$/i.test(item.name || '') && item.browser_download_url)
+        || assets.find((item) => /win-unpacked\.zip$/i.test(item.name || '') && item.browser_download_url)
+        || assets.find((item) => /\.zip$/i.test(item.name || '') && item.browser_download_url);
 
     if (!asset) {
-        throw new Error('Khong tim thay file .exe trong GitHub Releases.');
+        throw new Error('Khong tim thay file .exe hoac .zip trong GitHub Releases.');
     }
 
     if (latestVersion && compareVersions(latestVersion, currentVersion) <= 0) {
@@ -179,15 +180,19 @@ async function updateFromGithubRelease() {
     const destinationFile = path.join(updatesDir, safeAssetName);
     await downloadFile(asset.browser_download_url, destinationFile);
     shell.showItemInFolder(destinationFile);
+    const assetType = /\.zip$/i.test(asset.name || '') ? 'zip' : 'exe';
 
     return {
         mode: 'release',
+        assetType,
         currentVersion,
         latestVersion,
         releaseUrl: release.html_url || GITHUB_REPO_URL,
         downloadedFile: destinationFile,
         assetName: asset.name,
-        message: `Da tai ban cap nhat ${latestVersion || ''} ve: ${destinationFile}`
+        message: assetType === 'zip'
+            ? `Da tai goi win-unpacked ${latestVersion || ''} ve: ${destinationFile}. Hay giai nen va chay Daily Work Report.exe.`
+            : `Da tai ban cap nhat ${latestVersion || ''} ve: ${destinationFile}`
     };
 }
 
@@ -1034,6 +1039,7 @@ ipcMain.handle('get-app-info', async () => {
         version: pkg.version || '1.0.0',
         description: pkg.description || 'Phần mềm chuẩn hóa báo cáo công việc hằng ngày, quản lý dữ liệu SQLite, thư mục ảnh/tài liệu và xuất báo cáo tuần Excel.',
         latestUpdate: [
+            'Bản 1.2.1: thêm gói win-unpacked.zip và updater có thể tải cả file .exe hoặc .zip từ GitHub Releases.',
             'Bản 1.2.0: đổi nút tạo dữ liệu thành Tạo Folder, giữ bảng chuẩn hóa sau khi tạo folder và thêm nút Clear.',
             'Bản 1.1.0: thêm chọn và xóa bản ghi trong trang tìm kiếm, xóa đồng thời SQLite và JSON.',
             'Thêm popup thông tin phần mềm và nút update từ GitHub.',
