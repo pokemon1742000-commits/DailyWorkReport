@@ -1596,7 +1596,7 @@
         <div class="brand">
             <div class="brand-icon">D</div>
             <div>Daily Work Report</div>
-            <span class="version-badge">v1.1.0</span>
+            <span class="version-badge">v1.2.0</span>
         </div>
         <div class="header-actions">
             <button id="weeklyReportBtn" title="Xuất báo cáo tuần">Báo cáo tuần</button>
@@ -1647,7 +1647,8 @@
                         <h2>Bảng chuẩn hóa</h2>
                         <div class="summary">
                             <span class="pill" id="totalPill">Tổng: 0</span>
-                            <button id="saveBtn">Lưu JSON + tạo folder</button>
+                            <button id="saveBtn">Tạo Folder</button>
+                            <button id="clearPreviewBtn">Clear</button>
                             <button id="excelBtn" class="excel-action">Thêm vào Excel</button>
                         </div>
                     </div>
@@ -2052,6 +2053,7 @@
             chooseFolderBtn: document.getElementById('chooseFolderBtn'),
             acceptBtn: document.getElementById('acceptBtn'),
             saveBtn: document.getElementById('saveBtn'),
+            clearPreviewBtn: document.getElementById('clearPreviewBtn'),
             excelBtn: document.getElementById('excelBtn'),
             inputStatus: document.getElementById('inputStatus'),
             previewList: document.getElementById('previewList'),
@@ -2193,13 +2195,18 @@
                 state.previewReports = result.reports;
                 setStatus(`Đã lưu ${result.count} bản ghi và tạo folder thành công.`);
                 els.rawInput.value = '';
-                state.previewReports = [];
                 renderPreview();
                 await loadReports();
                 renderFolderStructure();
             } catch (error) {
                 setStatus(error.message || 'Không lưu được dữ liệu.', true);
             }
+        });
+
+        els.clearPreviewBtn.addEventListener('click', () => {
+            state.previewReports = [];
+            renderPreview();
+            setStatus('Đã clear bảng chuẩn hóa.');
         });
 
         els.excelBtn.addEventListener('click', () => {
