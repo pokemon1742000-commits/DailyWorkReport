@@ -2478,7 +2478,7 @@
 
         function extractProjectsFromLine(line) {
             const projects = [];
-            const explicitProject = /\b(AUT[A-Z]?|MEC)\s*:?\s*([0-9]+(?:E[0-9]+)?)(?=[\s,.;:]|$)/gi;
+            const explicitProject = /\b(AUT[A-Z]?|MEC)\s*:?\s*([0-9]+(?:E[0-9]+)?)(?=[\s,.;:(]|$)/gi;
             let match;
 
             while ((match = explicitProject.exec(line)) !== null) {
