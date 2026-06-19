@@ -6,9 +6,9 @@ const { execFile } = require('child_process');
 const initSqlJs = require('sql.js');
 const ExcelJS = require('exceljs');
 
-const DEFAULT_WEEKLY_TEMPLATE = 'C:\\Users\\anhng\\OneDrive\\Desktop\\Báo cáo tuần 08-Jun ~ 12-Jun.xlsb.xlsx';
-const DEFAULT_WEEKLY_LOGO = 'C:\\Users\\anhng\\OneDrive\\Desktop\\Picture1.png';
+const DEFAULT_WEEKLY_LOGO = path.join(__dirname, 'assets', 'meiko-automation-logo.png');
 const MACHINE_REFERENCE_FILE = path.join(__dirname, 'reference_files', 'Thamkhao.xlsm');
+const MACHINE_REFERENCE_SHEET_KEY = 'danhsachmay';
 const GITHUB_OWNER = 'pokemon1742000-commits';
 const GITHUB_REPO = 'DailyWorkReport';
 const GITHUB_REPO_URL = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}`;
@@ -573,6 +573,16 @@ function cellDisplayText(cell) {
     return value === undefined || value === null ? '' : String(value);
 }
 
+function normalizeReferenceSheetName(value) {
+    return String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\u0111/g, 'd')
+        .replace(/\u0110/g, 'D')
+        .replace(/[^a-z0-9]/gi, '')
+        .toLowerCase();
+}
+
 async function loadMachineReference() {
     if (machineReferenceCache) return machineReferenceCache;
     const reference = {};
@@ -583,7 +593,9 @@ async function loadMachineReference() {
 
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(MACHINE_REFERENCE_FILE);
-    const sheet = workbook.worksheets[0];
+    const sheet = workbook.worksheets.find((worksheet) => (
+        normalizeReferenceSheetName(worksheet.name) === MACHINE_REFERENCE_SHEET_KEY
+    )) || workbook.worksheets[0];
     if (!sheet) {
         machineReferenceCache = reference;
         return reference;

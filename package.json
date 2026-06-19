@@ -6,6 +6,7 @@
   "scripts": {
     "start": "set ELECTRON_RUN_AS_NODE=& electron .",
     "build": "electron-builder --win --x64",
+    "build:installer": "electron-builder --win nsis --x64",
     "package:unpacked": "node scripts/package-unpacked.js",
     "build:release": "npm run build && npm run package:unpacked"
   },
@@ -26,6 +27,7 @@
     "directories": {
       "output": "dist"
     },
+    "compression": "maximum",
     "files": [
       "main.js",
       "index.html",
@@ -41,7 +43,12 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "${productName}-Setup-v${version}.${ext}",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "${productName}",
+      "deleteAppDataOnUninstall": false
     }
   }
 }
