@@ -368,6 +368,49 @@ async function queryReportsByDateRange(dateFrom, dateTo) {
     return { sqliteFile, reports: rows.map(rowToReport) };
 }
 
+async function deleteReportsData(options = {}) {
+    const dataFile = getJsonFile();
+    const { db, sqliteFile } = await openReportsDb();
+    const deleteAll = Boolean(options.all);
+    const ids = Array.isArray(options.ids) ? options.ids.map((id) => String(id || '')).filter(Boolean) : [];
+
+    if (deleteAll) {
+        db.run('DELETE FROM reports;');
+    } else if (ids.length) {
+        const stmt = db.prepare('DELETE FROM reports WHERE id = $id;');
+        db.run('BEGIN TRANSACTION;');
+        ids.forEach((id) => stmt.run({ $id: id }));
+        stmt.free();
+        db.run('COMMIT;');
+    }
+
+    saveDb(db, sqliteFile);
+
+    let jsonReports = [];
+    if (fs.existsSync(dataFile)) {
+        try {
+            const parsed = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
+            jsonReports = Array.isArray(parsed) ? parsed : [];
+        } catch {
+            jsonReports = [];
+        }
+    }
+
+    const nextJsonReports = deleteAll
+        ? []
+        : jsonReports.filter((report) => !ids.includes(String(report.id || '')));
+    fs.mkdirSync(path.dirname(dataFile), { recursive: true });
+    fs.writeFileSync(dataFile, JSON.stringify(nextJsonReports, null, 2), 'utf8');
+
+    const result = await loadReportsSqlite();
+    return {
+        dataFile,
+        sqliteFile: result.sqliteFile,
+        reports: result.reports,
+        deleted: deleteAll ? jsonReports.length : ids.length
+    };
+}
+
 function formatReportFileDate(isoDate) {
     const date = new Date(`${isoDate}T00:00:00`);
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -861,6 +904,7 @@ ipcMain.handle('get-app-info', async () => {
         version: pkg.version || '1.0.0',
         description: pkg.description || 'Phần mềm chuẩn hóa báo cáo công việc hằng ngày, quản lý dữ liệu SQLite, thư mục ảnh/tài liệu và xuất báo cáo tuần Excel.',
         latestUpdate: [
+            'Bản 1.1.0: thêm chọn và xóa bản ghi trong trang tìm kiếm, xóa đồng thời SQLite và JSON.',
             'Thêm popup thông tin phần mềm và nút update từ GitHub.',
             'Cây cấu trúc thư mục hiển thị file bằng icon local theo loại file.',
             'Xuất báo cáo tuần có ảnh chi tiết dạng gallery theo nhóm dự án.'
@@ -1078,6 +1122,10 @@ ipcMain.handle('load-reports', async () => {
 ipcMain.handle('query-reports', async (_event, query) => {
     const result = await queryReportsSqlite(query || {});
     return { sqliteFile: result.sqliteFile, reports: result.reports };
+});
+
+ipcMain.handle('delete-reports', async (_event, payload) => {
+    return deleteReportsData(payload || {});
 });
 
 ipcMain.handle('open-folder', async (_event, folderPath) => {

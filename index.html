@@ -563,6 +563,30 @@
             padding-left: 18px;
         }
 
+        .editable-preview-input,
+        .editable-preview-textarea {
+            width: 100%;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--field);
+            color: var(--text);
+            font: inherit;
+            box-shadow: none;
+        }
+
+        .editable-preview-input {
+            min-height: 46px;
+            padding: 10px 12px;
+            font-weight: 600;
+        }
+
+        .editable-preview-textarea {
+            min-height: 50px;
+            padding: 10px 12px;
+            resize: vertical;
+            line-height: 1.45;
+        }
+
         .people-editor {
             display: grid;
             gap: 8px;
@@ -591,6 +615,31 @@
             display: grid;
             grid-template-columns: 1fr auto;
             gap: 8px;
+        }
+
+        .copy-folder-btn {
+            min-width: 28px;
+            height: 28px;
+            padding: 0;
+            border: 0;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--blue);
+            font-size: 18px;
+            line-height: 1;
+            box-shadow: none;
+        }
+
+        .copy-folder-btn:hover {
+            background: color-mix(in srgb, var(--blue) 12%, transparent);
+        }
+
+        .folder-path-box {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            gap: 8px;
+            height: 38px;
         }
 
         .muted {
@@ -1547,7 +1596,7 @@
         <div class="brand">
             <div class="brand-icon">D</div>
             <div>Daily Work Report</div>
-            <span class="version-badge">v1.0.0</span>
+            <span class="version-badge">v1.1.0</span>
         </div>
         <div class="header-actions">
             <button id="weeklyReportBtn" title="Xuất báo cáo tuần">Báo cáo tuần</button>
@@ -1637,7 +1686,11 @@
             <section class="panel search-layout">
                 <div class="panel-header">
                     <h2>Tìm kiếm</h2>
-                    <button id="reloadBtn">Tải lại JSON</button>
+                    <div class="summary">
+                        <button id="deleteSelectedBtn" disabled>Xóa đã chọn</button>
+                        <button id="deleteAllBtn">Xóa tất cả</button>
+                        <button id="reloadBtn">Tải lại JSON</button>
+                    </div>
                 </div>
                 <div class="panel-body">
                     <div class="search-bar">
@@ -1653,6 +1706,7 @@
                         <table>
                             <thead>
                                 <tr>
+                                    <th style="width:44px;"><input id="selectAllSearch" type="checkbox" title="Chọn tất cả kết quả"></th>
                                     <th>Mã dự án</th>
                                     <th>Ngày</th>
                                     <th>Người thực hiện</th>
@@ -1817,6 +1871,23 @@
         </section>
     </div>
 
+    <div id="deleteConfirmModal" class="modal-backdrop">
+        <section class="modal" role="dialog" aria-modal="true" aria-labelledby="deleteConfirmTitle">
+            <div class="modal-header">
+                <h2 id="deleteConfirmTitle">Xác nhận xóa</h2>
+                <button id="cancelDeleteTopBtn" class="icon-btn" title="Đóng" aria-label="Đóng">×</button>
+            </div>
+            <div class="modal-body">
+                <p id="deleteConfirmMessage" style="margin-top:0;"></p>
+                <p class="muted">Thao tác này sẽ xóa dữ liệu trong cả SQLite và JSON.</p>
+                <div class="about-actions">
+                    <button id="confirmDeleteBtn" class="primary">Xác nhận xóa</button>
+                    <button id="cancelDeleteBtn">Hủy</button>
+                </div>
+            </div>
+        </section>
+    </div>
+
     <div id="weeklyModal" class="modal-backdrop">
         <section class="modal weekly-modal" role="dialog" aria-modal="true" aria-labelledby="weeklyTitle">
             <div class="modal-header">
@@ -1931,7 +2002,7 @@
     </div>
 
     <script>
-        const { ipcRenderer } = require('electron');
+        const { clipboard, ipcRenderer } = require('electron');
         const DEFAULT_WEEKLY_COLUMNS = [
             { id: 'stt', label: 'STT', width: 44, locked: true },
             { id: 'hang_muc', label: 'HẠNG\nMỤC', width: 132, locked: true },
@@ -1950,6 +2021,9 @@
             previewReports: [],
             allReports: [],
             savedReports: [],
+            searchRows: [],
+            selectedSearchIds: new Set(),
+            pendingDeleteMode: null,
             dataFile: '',
             sqliteFile: '',
             members: loadMembers(),
@@ -2014,6 +2088,14 @@
             excelFilter: document.getElementById('excelFilter'),
             searchBtn: document.getElementById('searchBtn'),
             searchResults: document.getElementById('searchResults'),
+            selectAllSearch: document.getElementById('selectAllSearch'),
+            deleteSelectedBtn: document.getElementById('deleteSelectedBtn'),
+            deleteAllBtn: document.getElementById('deleteAllBtn'),
+            deleteConfirmModal: document.getElementById('deleteConfirmModal'),
+            deleteConfirmMessage: document.getElementById('deleteConfirmMessage'),
+            confirmDeleteBtn: document.getElementById('confirmDeleteBtn'),
+            cancelDeleteBtn: document.getElementById('cancelDeleteBtn'),
+            cancelDeleteTopBtn: document.getElementById('cancelDeleteTopBtn'),
             weeklyModal: document.getElementById('weeklyModal'),
             closeWeeklyBtn: document.getElementById('closeWeeklyBtn'),
             weeklyDateFrom: document.getElementById('weeklyDateFrom'),
@@ -2133,6 +2215,15 @@
         els.searchBtn.addEventListener('click', renderSearch);
         els.searchInput.addEventListener('input', debounce(renderSearch, 180));
         els.excelFilter.addEventListener('change', renderSearch);
+        els.selectAllSearch.addEventListener('change', toggleSelectAllSearch);
+        els.deleteSelectedBtn.addEventListener('click', () => openDeleteConfirm('selected'));
+        els.deleteAllBtn.addEventListener('click', () => openDeleteConfirm('all'));
+        els.cancelDeleteBtn.addEventListener('click', closeDeleteConfirm);
+        els.cancelDeleteTopBtn.addEventListener('click', closeDeleteConfirm);
+        els.deleteConfirmModal.addEventListener('click', (event) => {
+            if (event.target === els.deleteConfirmModal) closeDeleteConfirm();
+        });
+        els.confirmDeleteBtn.addEventListener('click', confirmDeleteReports);
         els.folderPinBtn.addEventListener('click', () => {
             state.folderPinned = !state.folderPinned;
             localStorage.setItem('dailyWorkReportFolderPinned', String(state.folderPinned));
@@ -3036,6 +3127,9 @@
                 const folderPath = report.folder_nguoi && report.folder_nguoi.length
                     ? report.folder_nguoi.join('; ')
                     : `${report.folder_ngay_name}/${groupFolderName}`;
+                const copyFolderPath = report.folder_nguoi && report.folder_nguoi.length
+                    ? report.folder_nguoi.join('; ')
+                    : buildPreviewFolderPath(folderPath);
 
                 return `
                     <article class="report-card ${report.warning.length ? 'warning' : ''}">
@@ -3048,16 +3142,19 @@
                             </label>
                         </div>
                         <div class="report-grid">
-                            ${fieldHtml('Mã dự án', report.ma_du_an)}
-                            ${fieldHtml('Nội dung công việc', listHtml(report.noi_dung_cong_viec), true)}
+                            ${editablePreviewFieldHtml('Mã dự án', report.ma_du_an, index, 'ma_du_an', 'input')}
+                            ${editablePreviewFieldHtml('Nội dung công việc', listToTextareaValue(report.noi_dung_cong_viec), index, 'noi_dung_cong_viec', 'textarea')}
                             ${fieldHtml('Người thực hiện', peopleEditorHtml(report, index))}
-                            ${fieldHtml('Trạng thái', listHtml(report.trang_thai), true)}
+                            ${editablePreviewFieldHtml('Trạng thái', listToTextareaValue(report.trang_thai), index, 'trang_thai', 'textarea')}
                             ${fieldHtml('Ngày thực hiện', report.ngay_thuc_hien || 'Chưa xác định')}
                             <div>
                                 <label>Thư mục ảnh</label>
                                 <div class="folder-row">
-                                    <div class="value-box">${escapeHtml(folderPath)}</div>
-                                    <button data-open-folder="${escapeHtml(report.folder_ngay || '')}" ${report.folder_ngay ? '' : 'disabled'}>Mở</button>
+                                    <div class="value-box folder-path-box">
+                                        <span>${escapeHtml(folderPath)}</span>
+                                        <button class="copy-folder-btn" data-copy-folder="${escapeHtml(copyFolderPath)}" title="Copy đường dẫn" aria-label="Copy đường dẫn">⎘</button>
+                                    </div>
+                                    <!-- <button data-open-folder="${escapeHtml(report.folder_ngay || '')}" ${report.folder_ngay ? '' : 'disabled'}>Mở</button> -->
                                 </div>
                             </div>
                         </div>
@@ -3078,6 +3175,23 @@
                     const folder = button.dataset.openFolder;
                     if (folder) ipcRenderer.invoke('open-folder', folder);
                 });
+            });
+
+            document.querySelectorAll('[data-copy-folder]').forEach((button) => {
+                button.addEventListener('click', () => {
+                    const folder = button.dataset.copyFolder || '';
+                    if (!folder) return;
+                    clipboard.writeText(folder);
+                    button.textContent = '✓';
+                    setTimeout(() => {
+                        button.textContent = '⎘';
+                    }, 1200);
+                });
+            });
+
+            document.querySelectorAll('[data-preview-edit-field]').forEach((input) => {
+                input.addEventListener('input', syncPreviewEditableField);
+                input.addEventListener('change', syncPreviewEditableField);
             });
 
             document.querySelectorAll('[data-person-report]').forEach((select) => {
@@ -3108,6 +3222,60 @@
                     <div class="value-box">${value}</div>
                 </div>
             `;
+        }
+
+        function buildPreviewFolderPath(folderPath) {
+            const normalized = String(folderPath || '').replace(/[\\/]+/g, '\\');
+            if (!state.rootFolder) return normalized;
+            return `${state.rootFolder.replace(/[\\/]+$/g, '')}\\${normalized}`;
+        }
+
+        function editablePreviewFieldHtml(label, value, reportIndex, field, type) {
+            const safeValue = escapeHtml(value || '');
+            const commonAttrs = `data-preview-edit-field="${field}" data-preview-edit-index="${reportIndex}"`;
+            const control = type === 'textarea'
+                ? `<textarea class="editable-preview-textarea" ${commonAttrs}>${safeValue}</textarea>`
+                : `<input class="editable-preview-input" type="text" value="${safeValue}" ${commonAttrs}>`;
+            return `
+                <div>
+                    <label>${label}</label>
+                    ${control}
+                </div>
+            `;
+        }
+
+        function listToTextareaValue(items) {
+            return (Array.isArray(items) ? items : [items].filter(Boolean)).join('\n');
+        }
+
+        function syncPreviewEditableField(event) {
+            const reportIndex = Number(event.target.dataset.previewEditIndex);
+            const field = event.target.dataset.previewEditField;
+            const report = state.previewReports[reportIndex];
+            if (!report || !field) return;
+
+            if (field === 'ma_du_an') {
+                const project = normalizeProjectCode(event.target.value) || event.target.value.trim();
+                report.ma_du_an = project;
+                report.id = `${report.ngay_thuc_hien || 'unknown'}_${project}_${String(reportIndex + 1).padStart(3, '0')}`;
+                const title = event.target.closest('.report-card')?.querySelector('h3');
+                if (title) title.textContent = project;
+                return;
+            }
+
+            if (field === 'noi_dung_cong_viec' || field === 'trang_thai') {
+                report[field] = textareaToPreviewList(event.target.value);
+                return;
+            }
+
+            report[field] = event.target.value;
+        }
+
+        function textareaToPreviewList(text) {
+            return String(text || '')
+                .split('\n')
+                .map((line) => line.replace(/^[-+*]\s*/, '').replace(/^\d+\s*[\.\)]\s*/, '').trim())
+                .filter(Boolean);
         }
 
         function listHtml(items) {
@@ -4639,9 +4807,12 @@
                     || (filter === 'not_exported' && !report.excel_exported);
                 return matchQuery && matchExcel;
             });
+            state.searchRows = rows;
+            state.selectedSearchIds = new Set([...state.selectedSearchIds].filter((id) => rows.some((report) => report.id === id)));
 
             if (!rows.length) {
-                els.searchResults.innerHTML = '<tr><td colspan="6" class="muted">Không có kết quả.</td></tr>';
+                els.searchResults.innerHTML = '<tr><td colspan="7" class="muted">Không có kết quả.</td></tr>';
+                updateSearchDeleteControls();
                 return;
             }
 
@@ -4650,8 +4821,10 @@
                 const content = Array.isArray(report.noi_dung_cong_viec) ? report.noi_dung_cong_viec.join('; ') : '';
                 const status = Array.isArray(report.trang_thai) ? report.trang_thai.join('; ') : '';
                 const folder = report.folder_ngay || '';
+                const checked = state.selectedSearchIds.has(report.id) ? 'checked' : '';
                 return `
                     <tr>
+                        <td><input type="checkbox" data-search-select="${escapeHtml(report.id || '')}" ${checked}></td>
                         <td>${escapeHtml(report.ma_du_an || '')}</td>
                         <td>${escapeHtml(report.ngay_thuc_hien || '')}</td>
                         <td>${escapeHtml(people)}</td>
@@ -4668,6 +4841,82 @@
                     if (folder) ipcRenderer.invoke('open-folder', folder);
                 });
             });
+            document.querySelectorAll('[data-search-select]').forEach((checkbox) => {
+                checkbox.addEventListener('change', () => {
+                    const id = checkbox.dataset.searchSelect;
+                    if (!id) return;
+                    if (checkbox.checked) {
+                        state.selectedSearchIds.add(id);
+                    } else {
+                        state.selectedSearchIds.delete(id);
+                    }
+                    updateSearchDeleteControls();
+                });
+            });
+            updateSearchDeleteControls();
+        }
+
+        function updateSearchDeleteControls() {
+            const visibleIds = state.searchRows.map((report) => report.id).filter(Boolean);
+            const selectedVisibleCount = visibleIds.filter((id) => state.selectedSearchIds.has(id)).length;
+            els.deleteSelectedBtn.disabled = selectedVisibleCount === 0;
+            els.deleteSelectedBtn.textContent = selectedVisibleCount ? `Xóa đã chọn (${selectedVisibleCount})` : 'Xóa đã chọn';
+            els.deleteAllBtn.disabled = state.allReports.length === 0;
+            els.selectAllSearch.checked = visibleIds.length > 0 && selectedVisibleCount === visibleIds.length;
+            els.selectAllSearch.indeterminate = selectedVisibleCount > 0 && selectedVisibleCount < visibleIds.length;
+        }
+
+        function toggleSelectAllSearch() {
+            const visibleIds = state.searchRows.map((report) => report.id).filter(Boolean);
+            if (els.selectAllSearch.checked) {
+                visibleIds.forEach((id) => state.selectedSearchIds.add(id));
+            } else {
+                visibleIds.forEach((id) => state.selectedSearchIds.delete(id));
+            }
+            renderSearch();
+        }
+
+        function openDeleteConfirm(mode) {
+            const selectedVisibleIds = state.searchRows
+                .map((report) => report.id)
+                .filter((id) => id && state.selectedSearchIds.has(id));
+            const selectedCount = selectedVisibleIds.length;
+            if (mode === 'selected' && selectedCount === 0) return;
+            if (mode === 'all' && !state.allReports.length) return;
+            state.pendingDeleteMode = mode;
+            els.deleteConfirmMessage.textContent = mode === 'all'
+                ? `Bạn có chắc muốn xóa tất cả ${state.allReports.length} bản ghi không?`
+                : `Bạn có chắc muốn xóa ${selectedCount} bản ghi đã chọn không?`;
+            els.deleteConfirmModal.classList.add('open');
+        }
+
+        function closeDeleteConfirm() {
+            state.pendingDeleteMode = null;
+            els.deleteConfirmModal.classList.remove('open');
+        }
+
+        async function confirmDeleteReports() {
+            const mode = state.pendingDeleteMode;
+            if (!mode) return;
+            const selectedVisibleIds = state.searchRows
+                .map((report) => report.id)
+                .filter((id) => id && state.selectedSearchIds.has(id));
+            const payload = mode === 'all'
+                ? { all: true }
+                : { ids: selectedVisibleIds };
+            els.confirmDeleteBtn.disabled = true;
+            try {
+                const result = await ipcRenderer.invoke('delete-reports', payload);
+                state.allReports = result.reports || [];
+                state.savedReports = state.allReports;
+                state.selectedSearchIds.clear();
+                closeDeleteConfirm();
+                renderSearch();
+                renderFolderStructure();
+                updateCurrentDateTime();
+            } finally {
+                els.confirmDeleteBtn.disabled = false;
+            }
         }
 
         function debounce(fn, delay) {
