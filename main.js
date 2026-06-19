@@ -1,5 +1,6 @@
 const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
 const fs = require('fs');
+const https = require('https');
 const path = require('path');
 const { execFile } = require('child_process');
 const initSqlJs = require('sql.js');
@@ -8,6 +9,9 @@ const ExcelJS = require('exceljs');
 const DEFAULT_WEEKLY_TEMPLATE = 'C:\\Users\\anhng\\OneDrive\\Desktop\\Báo cáo tuần 08-Jun ~ 12-Jun.xlsb.xlsx';
 const DEFAULT_WEEKLY_LOGO = 'C:\\Users\\anhng\\OneDrive\\Desktop\\Picture1.png';
 const MACHINE_REFERENCE_FILE = path.join(__dirname, 'reference_files', 'Thamkhao.xlsm');
+const GITHUB_OWNER = 'pokemon1742000-commits';
+const GITHUB_REPO = 'DailyWorkReport';
+const GITHUB_REPO_URL = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}`;
 
 let sqlPromise = null;
 let machineReferenceCache = null;
@@ -61,10 +65,136 @@ function githubRemoteToUrl(remoteUrl) {
     return value.replace(/\.git$/i, '');
 }
 
+function requestGithubJson(url) {
+    return new Promise((resolve, reject) => {
+        const request = https.get(url, {
+            headers: {
+                Accept: 'application/vnd.github+json',
+                'User-Agent': 'DailyWorkReportUpdater'
+            }
+        }, (response) => {
+            if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+                response.resume();
+                requestGithubJson(response.headers.location).then(resolve, reject);
+                return;
+            }
+
+            let body = '';
+            response.setEncoding('utf8');
+            response.on('data', (chunk) => {
+                body += chunk;
+            });
+            response.on('end', () => {
+                if (response.statusCode < 200 || response.statusCode >= 300) {
+                    reject(new Error(`GitHub tra ve loi ${response.statusCode}: ${body.slice(0, 200)}`));
+                    return;
+                }
+                try {
+                    resolve(JSON.parse(body));
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        });
+        request.on('error', reject);
+    });
+}
+
+function downloadFile(url, destinationFile) {
+    return new Promise((resolve, reject) => {
+        fs.mkdirSync(path.dirname(destinationFile), { recursive: true });
+        const file = fs.createWriteStream(destinationFile);
+        const request = https.get(url, {
+            headers: { 'User-Agent': 'DailyWorkReportUpdater' }
+        }, (response) => {
+            if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+                file.close();
+                fs.rmSync(destinationFile, { force: true });
+                response.resume();
+                downloadFile(response.headers.location, destinationFile).then(resolve, reject);
+                return;
+            }
+
+            if (response.statusCode < 200 || response.statusCode >= 300) {
+                file.close();
+                fs.rmSync(destinationFile, { force: true });
+                response.resume();
+                reject(new Error(`Khong tai duoc file cap nhat. GitHub tra ve loi ${response.statusCode}.`));
+                return;
+            }
+
+            response.pipe(file);
+            file.on('finish', () => {
+                file.close(() => resolve(destinationFile));
+            });
+        });
+        request.on('error', (error) => {
+            file.close();
+            fs.rmSync(destinationFile, { force: true });
+            reject(error);
+        });
+    });
+}
+
+function normalizeVersion(version) {
+    return String(version || '').replace(/^v/i, '').trim();
+}
+
+function compareVersions(left, right) {
+    const leftParts = normalizeVersion(left).split('.').map((part) => Number(part) || 0);
+    const rightParts = normalizeVersion(right).split('.').map((part) => Number(part) || 0);
+    const length = Math.max(leftParts.length, rightParts.length);
+    for (let index = 0; index < length; index += 1) {
+        const diff = (leftParts[index] || 0) - (rightParts[index] || 0);
+        if (diff !== 0) return diff;
+    }
+    return 0;
+}
+
+async function updateFromGithubRelease() {
+    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+    const currentVersion = normalizeVersion(pkg.version || app.getVersion() || '0.0.0');
+    const release = await requestGithubJson(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`);
+    const latestVersion = normalizeVersion(release.tag_name || release.name || '');
+    const asset = Array.isArray(release.assets)
+        ? release.assets.find((item) => /\.exe$/i.test(item.name || '') && item.browser_download_url)
+        : null;
+
+    if (!asset) {
+        throw new Error('Khong tim thay file .exe trong GitHub Releases.');
+    }
+
+    if (latestVersion && compareVersions(latestVersion, currentVersion) <= 0) {
+        return {
+            mode: 'release',
+            currentVersion,
+            latestVersion,
+            releaseUrl: release.html_url || GITHUB_REPO_URL,
+            message: `Ban dang dung phien ban moi nhat (${currentVersion}).`
+        };
+    }
+
+    const updatesDir = path.join(app.getPath('downloads'), 'DailyWorkReportUpdates');
+    const safeAssetName = String(asset.name || `Daily Work Report-v${latestVersion || 'latest'}.exe`).replace(/[<>:"/\\|?*]/g, '_');
+    const destinationFile = path.join(updatesDir, safeAssetName);
+    await downloadFile(asset.browser_download_url, destinationFile);
+    shell.showItemInFolder(destinationFile);
+
+    return {
+        mode: 'release',
+        currentVersion,
+        latestVersion,
+        releaseUrl: release.html_url || GITHUB_REPO_URL,
+        downloadedFile: destinationFile,
+        assetName: asset.name,
+        message: `Da tai ban cap nhat ${latestVersion || ''} ve: ${destinationFile}`
+    };
+}
+
 async function updateFromGithub() {
     const before = await getGitInfo();
     if (!before.isRepo || !before.remoteUrl) {
-        throw new Error('Chưa cấu hình GitHub repository cho phần mềm. Cần có git repo và remote origin trước khi update.');
+        return updateFromGithubRelease();
     }
 
     const packageBefore = fs.existsSync(path.join(__dirname, 'package-lock.json'))
@@ -909,7 +1039,7 @@ ipcMain.handle('get-app-info', async () => {
             'Cây cấu trúc thư mục hiển thị file bằng icon local theo loại file.',
             'Xuất báo cáo tuần có ảnh chi tiết dạng gallery theo nhóm dự án.'
         ],
-        githubUrl: githubRemoteToUrl(git.remoteUrl),
+        githubUrl: githubRemoteToUrl(git.remoteUrl) || GITHUB_REPO_URL,
         branch: git.branch || '',
         commit: git.commit || '',
         isRepo: git.isRepo

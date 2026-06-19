@@ -2391,6 +2391,8 @@
                 els.updateLog.textContent = [
                     'Cập nhật hoàn tất.',
                     result.message || '',
+                    result.downloadedFile ? `\nFile cập nhật: ${result.downloadedFile}` : '',
+                    result.releaseUrl ? `\nRelease: ${result.releaseUrl}` : '',
                     result.installOutput ? `\nNPM install:\n${result.installOutput}` : '',
                     result.after && result.after.commit ? `\nCommit hiện tại: ${result.after.commit}` : ''
                 ].filter(Boolean).join('\n');
