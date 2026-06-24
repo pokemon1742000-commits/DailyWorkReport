@@ -278,6 +278,126 @@
             border-radius: 8px;
         }
 
+        .hand-tracking-btn.active {
+            color: #fff;
+            background: var(--green);
+            border-color: var(--green);
+        }
+
+        .hand-camera-panel {
+            position: fixed;
+            top: 74px;
+            right: 18px;
+            z-index: 80;
+            width: min(360px, calc(100vw - 36px));
+            display: none;
+            overflow: hidden;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--panel);
+            box-shadow: var(--shadow);
+        }
+
+        .hand-camera-panel.open {
+            display: block;
+        }
+
+        .hand-camera-header {
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 8px 10px 8px 14px;
+            border-bottom: 1px solid var(--line);
+            font-weight: 700;
+        }
+
+        .hand-camera-stage {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            overflow: hidden;
+            background: #101820;
+        }
+
+        .hand-camera-stage video,
+        .hand-camera-stage canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+
+        .hand-camera-stage canvas {
+            pointer-events: none;
+        }
+
+        .hand-camera-status {
+            min-height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 8px 12px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .hand-zoom-value {
+            color: var(--blue-strong);
+            font-weight: 800;
+        }
+
+        .hand-camera-runtime {
+            position: fixed;
+            width: 1px;
+            height: 1px;
+            left: -9999px;
+            top: -9999px;
+            overflow: hidden;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .hand-pointer {
+            --dwell-angle: 0deg;
+            position: fixed;
+            z-index: 220;
+            width: 30px;
+            height: 30px;
+            display: none;
+            place-items: center;
+            border-radius: 50%;
+            background: conic-gradient(var(--pointer-color) var(--dwell-angle), rgba(255, 255, 255, 0.4) 0deg);
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .hand-pointer::after {
+            content: '';
+            width: 12px;
+            height: 12px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            background: var(--pointer-color);
+        }
+
+        .hand-pointer.visible {
+            display: grid;
+        }
+
+        .hand-pointer-one {
+            --pointer-color: #18a957;
+        }
+
+        .hand-pointer-two {
+            --pointer-color: #1488c8;
+        }
+
         .tabs {
             display: flex;
             gap: 8px;
@@ -1105,6 +1225,33 @@
             position: relative;
         }
 
+        .weekly-stt-cell.reference-warning {
+            background: #fff36a !important;
+        }
+
+        .project-suggestion-toggle {
+            position: absolute;
+            right: 2px;
+            bottom: 2px;
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-top: 10px solid transparent;
+            border-bottom: 10px solid #d28b00;
+            cursor: pointer;
+        }
+
+        .project-suggestion-select {
+            position: absolute;
+            right: 2px;
+            bottom: 2px;
+            width: 22px;
+            height: 22px;
+            opacity: 0;
+            cursor: pointer;
+            z-index: 4;
+        }
+
         .weekly-row-resizer {
             position: absolute;
             left: 0;
@@ -1596,7 +1743,7 @@
         <div class="brand">
             <div class="brand-icon">D</div>
             <div>Daily Work Report</div>
-            <span class="version-badge">v1.2.2</span>
+            <span class="version-badge">v1.3.0</span>
         </div>
         <div class="header-actions">
             <button id="weeklyReportBtn" title="Xuất báo cáo tuần">Báo cáo tuần</button>
@@ -1609,10 +1756,19 @@
                 <button class="theme-dot" data-theme-option="ocean" style="--swatch: linear-gradient(135deg, #bcefff, #1488c8, #00a889)" title="Theme biển sáng"></button>
                 <button class="theme-dot" data-theme-option="lime" style="--swatch: linear-gradient(135deg, #dcf86f, #6aa80f, #24a148)" title="Theme xanh non"></button>
             </div>
+            <button id="handTrackingBtn" class="icon-btn hand-tracking-btn" title="Hand Tracking" aria-label="Mở Hand Tracking">◉</button>
             <button id="infoBtn" class="icon-btn info-btn" title="Thông tin phần mềm" aria-label="Thông tin phần mềm">i</button>
             <button id="settingsBtn" class="icon-btn" title="Cài đặt" aria-label="Cài đặt">⚙</button>
         </div>
     </header>
+
+    <div id="handCameraRuntime" class="hand-camera-runtime" aria-hidden="true">
+        <video id="handCameraVideo" playsinline muted></video>
+        <canvas id="handCameraCanvas"></canvas>
+        <span id="handTrackingStatus">Camera đang tắt</span>
+    </div>
+    <div id="handPointerOne" class="hand-pointer hand-pointer-one" aria-hidden="true"></div>
+    <div id="handPointerTwo" class="hand-pointer hand-pointer-two" aria-hidden="true"></div>
 
     <nav class="tabs">
         <button class="tab active" data-tab="inputPage">Nhập liệu</button>
@@ -2004,6 +2160,10 @@
 
     <script>
         const { clipboard, ipcRenderer } = require('electron');
+        const { Hands } = require('@mediapipe/hands');
+        const HAND_DWELL_MS = 850;
+        const HAND_SELECTABLE_SELECTOR = 'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [role="button"], [tabindex]:not([tabindex="-1"])';
+        const WEEKLY_CATEGORY_OPTIONS = ['Lắp mới', 'Chỉnh máy', 'Lắp đặt', 'Sửa', 'Hỗ trợ'];
         const DEFAULT_WEEKLY_COLUMNS = [
             { id: 'stt', label: 'STT', width: 44, locked: true },
             { id: 'hang_muc', label: 'HẠNG\nMỤC', width: 132, locked: true },
@@ -2044,7 +2204,17 @@
             collapsedFolderNodes: new Set(),
             folderPinned: localStorage.getItem('dailyWorkReportFolderPinned') !== 'false',
             detailImages: [],
-            detailImageIndex: 0
+            detailImageIndex: 0,
+            handTrackingActive: false,
+            handTrackingBusy: false,
+            handTrackingFrame: 0,
+            handTrackingLastFrameAt: 0,
+            handTrackingStream: null,
+            handDetector: null,
+            handPointers: [
+                { x: null, y: null, target: null, dwellStartedAt: 0, clickedTarget: null },
+                { x: null, y: null, target: null, dwellStartedAt: 0, clickedTarget: null }
+            ]
         };
 
         const els = {
@@ -2063,6 +2233,15 @@
             folderStructureBody: document.getElementById('folderStructureBody'),
             currentDateTime: document.getElementById('currentDateTime'),
             weeklyReportBtn: document.getElementById('weeklyReportBtn'),
+            handTrackingBtn: document.getElementById('handTrackingBtn'),
+            handCameraRuntime: document.getElementById('handCameraRuntime'),
+            handCameraVideo: document.getElementById('handCameraVideo'),
+            handCameraCanvas: document.getElementById('handCameraCanvas'),
+            handTrackingStatus: document.getElementById('handTrackingStatus'),
+            handPointers: [
+                document.getElementById('handPointerOne'),
+                document.getElementById('handPointerTwo')
+            ],
             infoBtn: document.getElementById('infoBtn'),
             infoModal: document.getElementById('infoModal'),
             closeInfoBtn: document.getElementById('closeInfoBtn'),
@@ -2249,6 +2428,9 @@
             });
         });
 
+        els.handTrackingBtn.addEventListener('click', toggleHandTracking);
+        window.addEventListener('beforeunload', stopHandTracking);
+
         els.weeklyReportBtn.addEventListener('click', () => {
             setDefaultWeeklyDates();
             setWeeklyStatus('');
@@ -2348,6 +2530,195 @@
         function setStatus(message, isError = false) {
             els.inputStatus.textContent = message;
             els.inputStatus.classList.toggle('error', isError);
+        }
+
+        function handAssetUrl(fileName) {
+            return `app-resource://mediapipe/${encodeURIComponent(fileName)}`;
+        }
+
+        async function verifyHandTrackingAssets() {
+            const response = await fetch(handAssetUrl('hands.binarypb'));
+            if (!response.ok) {
+                throw new Error(`Không tải được model Hand Tracking (${response.status})`);
+            }
+        }
+
+        async function toggleHandTracking() {
+            if (state.handTrackingActive || state.handTrackingStream) {
+                stopHandTracking();
+                return;
+            }
+            await startHandTracking();
+        }
+
+        async function startHandTracking() {
+            els.handTrackingStatus.textContent = 'Đang mở camera...';
+            els.handTrackingBtn.title = 'Đang mở Hand Tracking';
+            try {
+                await verifyHandTrackingAssets();
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: false,
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: 'user'
+                    }
+                });
+                state.handTrackingStream = stream;
+                els.handCameraVideo.srcObject = stream;
+                await els.handCameraVideo.play();
+
+                if (!state.handDetector) {
+                    state.handDetector = new Hands({ locateFile: handAssetUrl });
+                    state.handDetector.setOptions({
+                        maxNumHands: 2,
+                        modelComplexity: 1,
+                        minDetectionConfidence: 0.45,
+                        minTrackingConfidence: 0.45
+                    });
+                    state.handDetector.onResults(handleHandTrackingResults);
+                }
+
+                state.handTrackingActive = true;
+                state.handTrackingBusy = false;
+                state.handTrackingLastFrameAt = 0;
+                els.handTrackingBtn.classList.add('active');
+                els.handTrackingBtn.title = 'Tắt Hand Tracking';
+                els.handTrackingStatus.textContent = 'Đang nhận diện tay';
+                runHandTrackingFrame(performance.now());
+            } catch (error) {
+                console.error('Hand Tracking camera error:', error);
+                stopHandTracking();
+                els.handTrackingStatus.textContent = error && error.name === 'NotAllowedError'
+                    ? 'Camera chưa được cấp quyền'
+                    : `Camera: ${(error && error.message) || 'Không mở được'}`;
+                els.handTrackingBtn.title = els.handTrackingStatus.textContent;
+            }
+        }
+
+        function stopHandTracking() {
+            state.handTrackingActive = false;
+            state.handTrackingBusy = false;
+            if (state.handTrackingFrame) cancelAnimationFrame(state.handTrackingFrame);
+            state.handTrackingFrame = 0;
+            if (state.handTrackingStream) {
+                state.handTrackingStream.getTracks().forEach((track) => track.stop());
+            }
+            state.handTrackingStream = null;
+            els.handCameraVideo.pause();
+            els.handCameraVideo.srcObject = null;
+            const context = els.handCameraCanvas.getContext('2d');
+            context.clearRect(0, 0, els.handCameraCanvas.width, els.handCameraCanvas.height);
+            hideAllHandPointers();
+            els.handTrackingBtn.classList.remove('active');
+            els.handTrackingBtn.title = 'Hand Tracking';
+            els.handTrackingStatus.textContent = 'Camera đang tắt';
+        }
+
+        async function runHandTrackingFrame(timestamp) {
+            if (!state.handTrackingActive) return;
+            if (!state.handTrackingBusy && timestamp - state.handTrackingLastFrameAt >= 70 && els.handCameraVideo.readyState >= 2) {
+                state.handTrackingBusy = true;
+                state.handTrackingLastFrameAt = timestamp;
+                try {
+                    await state.handDetector.send({ image: els.handCameraVideo });
+                } catch (error) {
+                    console.error('MediaPipe Hands error:', error);
+                    stopHandTracking();
+                    els.handTrackingStatus.textContent = `MediaPipe: ${(error && error.message) || 'Không khởi tạo được'}`;
+                    els.handTrackingBtn.title = els.handTrackingStatus.textContent;
+                } finally {
+                    state.handTrackingBusy = false;
+                }
+            }
+            state.handTrackingFrame = requestAnimationFrame(runHandTrackingFrame);
+        }
+
+        function handleHandTrackingResults(results) {
+            const hands = results.multiHandLandmarks || [];
+            if (!hands.length) {
+                hideAllHandPointers();
+                els.handTrackingStatus.textContent = 'Chưa nhận diện được tay';
+                return;
+            }
+            const now = performance.now();
+            hands.slice(0, 2).forEach((landmarks, index) => {
+                updateHandPointer(index, landmarks[8], now);
+            });
+            for (let index = hands.length; index < 2; index += 1) {
+                hideHandPointer(index);
+            }
+            els.handTrackingStatus.textContent = `Đang nhận diện ${Math.min(hands.length, 2)} tay`;
+        }
+
+        function mapHandPointToScreen(point) {
+            const normalizedX = Math.min(1, Math.max(0, ((1 - point.x) - 0.08) / 0.84));
+            const normalizedY = Math.min(1, Math.max(0, (point.y - 0.08) / 0.84));
+            return {
+                x: normalizedX * window.innerWidth,
+                y: normalizedY * window.innerHeight
+            };
+        }
+
+        function updateHandPointer(index, fingerTip, now) {
+            const pointerState = state.handPointers[index];
+            const pointerElement = els.handPointers[index];
+            const mapped = mapHandPointToScreen(fingerTip);
+            pointerState.x = pointerState.x === null ? mapped.x : pointerState.x * 0.68 + mapped.x * 0.32;
+            pointerState.y = pointerState.y === null ? mapped.y : pointerState.y * 0.68 + mapped.y * 0.32;
+            pointerElement.style.left = `${pointerState.x}px`;
+            pointerElement.style.top = `${pointerState.y}px`;
+            pointerElement.classList.add('visible');
+
+            const target = findHandSelectableTarget(pointerState.x, pointerState.y);
+            if (target !== pointerState.target) {
+                pointerState.target = target;
+                pointerState.dwellStartedAt = now;
+                pointerState.clickedTarget = null;
+            }
+            if (!target) {
+                pointerElement.style.setProperty('--dwell-angle', '0deg');
+                return;
+            }
+
+            const progress = Math.min(1, Math.max(0, (now - pointerState.dwellStartedAt) / HAND_DWELL_MS));
+            pointerElement.style.setProperty('--dwell-angle', `${Math.round(progress * 360)}deg`);
+            if (progress >= 1 && pointerState.clickedTarget !== target) {
+                pointerState.clickedTarget = target;
+                activateHandTarget(target);
+            }
+        }
+
+        function findHandSelectableTarget(x, y) {
+            const element = document.elementFromPoint(x, y);
+            if (!element) return null;
+            const target = element.closest(HAND_SELECTABLE_SELECTOR);
+            if (!target || target.disabled || target.getAttribute('aria-hidden') === 'true') return null;
+            return target;
+        }
+
+        function activateHandTarget(target) {
+            if (target.matches('input:not([type="checkbox"]):not([type="radio"]), textarea, select')) {
+                target.focus({ preventScroll: false });
+                if (target.tagName === 'SELECT') target.click();
+                return;
+            }
+            target.click();
+        }
+
+        function hideHandPointer(index) {
+            const pointerState = state.handPointers[index];
+            const pointerElement = els.handPointers[index];
+            pointerElement.classList.remove('visible');
+            pointerElement.style.setProperty('--dwell-angle', '0deg');
+            pointerState.target = null;
+            pointerState.dwellStartedAt = 0;
+            pointerState.clickedTarget = null;
+        }
+
+        function hideAllHandPointers() {
+            hideHandPointer(0);
+            hideHandPointer(1);
         }
 
         function activateTab(tabId) {
@@ -3403,7 +3774,7 @@
             localStorage.setItem('dailyWorkReportWeeklyProjectExclusions', JSON.stringify(state.weeklyProjectExclusions));
         }
 
-        function addWeeklyProjectFromInput() {
+        async function addWeeklyProjectFromInput() {
             const project = normalizeProjectCode(els.weeklyProjectInput.value);
             if (!project) return;
             state.weeklyProjectExclusions = state.weeklyProjectExclusions.filter((item) => normalizeProjectKey(item) !== normalizeProjectKey(project));
@@ -3413,9 +3784,54 @@
                 saveWeeklyProjects();
             }
             renderWeeklyProjectSettings();
-            refreshWeeklyRowsFromSettings();
+            await refreshWeeklyRowsFromSettings(true);
             els.weeklyProjectInput.value = '';
             els.weeklyProjectInput.focus();
+        }
+
+        async function updateWeeklyProject(index, value) {
+            const oldProject = getWeeklyProjectSettingsList()[index];
+            const newProject = normalizeProjectCode(value);
+            if (!oldProject || !newProject) {
+                renderWeeklyProjectSettings();
+                return;
+            }
+
+            const oldKey = normalizeProjectKey(oldProject);
+            const newKey = normalizeProjectKey(newProject);
+            state.weeklyRows.forEach((row) => {
+                const rowKey = normalizeProjectKey(row.du_an || row.project_full);
+                if (rowKey === oldKey) {
+                    row.du_an = newProject;
+                    row.project_full = newProject;
+                }
+            });
+
+            let replacedProject = false;
+            state.weeklyProjects = state.weeklyProjects.map((project) => {
+                if (normalizeProjectKey(project) === oldKey) {
+                    replacedProject = true;
+                    return newProject;
+                }
+                return project;
+            });
+            if (!replacedProject) state.weeklyProjects.push(newProject);
+
+            const uniqueProjects = new Map();
+            state.weeklyProjects.forEach((project) => {
+                const key = normalizeProjectKey(project);
+                if (key && !uniqueProjects.has(key)) uniqueProjects.set(key, project);
+            });
+            state.weeklyProjects = [...uniqueProjects.values()];
+            state.weeklyProjectExclusions = state.weeklyProjectExclusions.filter((project) => {
+                const key = normalizeProjectKey(project);
+                return key !== oldKey && key !== newKey;
+            });
+
+            saveWeeklyProjects();
+            saveWeeklyProjectExclusions();
+            renderWeeklyProjectSettings();
+            await refreshWeeklyRowsFromSettings(true);
         }
 
         function removeWeeklyProject(index) {
@@ -3440,10 +3856,19 @@
             }
             els.weeklyProjectList.innerHTML = projects.map((project, index) => `
                 <div class="member-item">
-                    <strong>${escapeHtml(project)}</strong>
+                    <input type="text" value="${escapeHtml(project)}" data-edit-weekly-project="${index}" aria-label="Sửa mã dự án">
                     <button data-remove-weekly-project="${index}">-</button>
                 </div>
             `).join('');
+            document.querySelectorAll('[data-edit-weekly-project]').forEach((input) => {
+                input.addEventListener('change', () => updateWeeklyProject(Number(input.dataset.editWeeklyProject), input.value));
+                input.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        input.blur();
+                    }
+                });
+            });
             document.querySelectorAll('[data-remove-weekly-project]').forEach((button) => {
                 button.addEventListener('click', () => removeWeeklyProject(Number(button.dataset.removeWeeklyProject)));
             });
@@ -3607,7 +4032,7 @@
             });
         }
 
-        function refreshWeeklyRowsFromSettings() {
+        async function refreshWeeklyRowsFromSettings(fillReference = false) {
             if (!state.weeklyRows.length && !state.weeklyProjects.length) return;
             const existingRows = new Map();
             state.weeklyRows.forEach((row) => {
@@ -3624,13 +4049,39 @@
                 ensureWeeklyRowFields(row);
                 return row;
             });
+            if (fillReference) {
+                await fillWeeklyMachineReference();
+            }
             renderWeeklyPreview();
+        }
+
+        async function fillWeeklyMachineReference() {
+            const projects = state.weeklyRows.map((row) => row.du_an || row.project_full).filter(Boolean);
+            if (!projects.length) return;
+            try {
+                const references = await ipcRenderer.invoke('lookup-machine-reference', { projects });
+                const referenceMap = new Map((references || []).map((item) => [normalizeProjectKey(item.project), item]));
+                state.weeklyRows.forEach((row) => {
+                    const info = referenceMap.get(normalizeProjectKey(row.du_an || row.project_full));
+                    if (!info) return;
+                    row.ten_may = info.ten_may || '';
+                    row.ghi_chu = info.ghi_chu || '';
+                    row.reference_missing = !info.found;
+                    if (Array.isArray(info.suggestions) && info.suggestions.length) {
+                        row.reference_suggestions = info.suggestions;
+                    } else if (!Array.isArray(row.reference_suggestions)) {
+                        row.reference_suggestions = [];
+                    }
+                });
+            } catch (error) {
+                console.error('Không tra cứu được tên máy/ghi chú:', error);
+            }
         }
 
         function createWeeklyRow(project, source = {}) {
             const row = {
                 stt: 0,
-                hang_muc: source.hang_muc || 'Lắp mới',
+                hang_muc: normalizeWeeklyCategory(source.hang_muc || 'Lắp mới'),
                 ten_may: source.ten_may || '',
                 du_an: project,
                 project_full: project,
@@ -3639,10 +4090,34 @@
                 kho_khan: source.kho_khan || '',
                 huong_giai_quyet: source.huong_giai_quyet || '',
                 ghi_chu: source.ghi_chu || '',
-                thong_tin_khac: source.thong_tin_khac || ''
+                thong_tin_khac: source.thong_tin_khac || '',
+                reference_missing: false,
+                reference_suggestions: []
             };
             ensureWeeklyRowFields(row);
             return row;
+        }
+
+        function normalizeWeeklyCategory(category) {
+            const key = removeVietnameseMarks(String(category || '')).toLowerCase().trim();
+            if (key === 'setup' || key === 'lap dat') return 'Lắp đặt';
+            return WEEKLY_CATEGORY_OPTIONS.find((item) => removeVietnameseMarks(item).toLowerCase() === key) || 'Lắp mới';
+        }
+
+        function sortWeeklyRowsByCategory() {
+            const order = new Map(WEEKLY_CATEGORY_OPTIONS.map((category, index) => [removeVietnameseMarks(category).toLowerCase(), index]));
+            state.weeklyRows = state.weeklyRows
+                .map((row, index) => ({ row, index }))
+                .sort((a, b) => {
+                    const aOrder = order.get(removeVietnameseMarks(normalizeWeeklyCategory(a.row.hang_muc)).toLowerCase()) ?? 999;
+                    const bOrder = order.get(removeVietnameseMarks(normalizeWeeklyCategory(b.row.hang_muc)).toLowerCase()) ?? 999;
+                    return aOrder - bOrder || a.index - b.index;
+                })
+                .map((item, index) => {
+                    item.row.hang_muc = normalizeWeeklyCategory(item.row.hang_muc);
+                    item.row.stt = index + 1;
+                    return item.row;
+                });
         }
 
         function ensureWeeklyRowFields(row) {
@@ -3719,6 +4194,7 @@
             });
 
             state.weeklyRows = buildWeeklyRows(result.reports || []);
+            await fillWeeklyMachineReference();
             syncWeeklyImageGroupsWithProjects();
             renderWeeklyPreview();
             renderWeeklyImages();
@@ -3789,17 +4265,24 @@
             }
 
             els.weeklyPreviewBody.innerHTML = state.weeklyRows.map((row, index) => `
-                <tr style="height:${getWeeklyRowHeight(row)}px">
+                <tr data-weekly-index="${index}" data-weekly-project="${escapeHtml(row.du_an || row.project_full || '')}" style="height:${getWeeklyRowHeight(row)}px">
                     ${state.weeklyColumns.map((column) => renderWeeklyCell(column, row, index)).join('')}
                 </tr>
             `).join('');
 
             document.querySelectorAll('[data-weekly-field]').forEach((input) => {
-                input.addEventListener('input', syncWeeklyField);
-                input.addEventListener('change', syncWeeklyField);
+                if (input.tagName === 'SELECT') {
+                    input.addEventListener('change', syncWeeklyField);
+                } else {
+                    input.addEventListener('input', syncWeeklyField);
+                    input.addEventListener('change', syncWeeklyField);
+                }
                 if (input.tagName === 'TEXTAREA') autoResizeWeeklyTextarea(input);
             });
             autoResizeAllWeeklyRows();
+            document.querySelectorAll('[data-project-suggestion-index]').forEach((select) => {
+                select.addEventListener('change', () => applyProjectSuggestion(Number(select.dataset.projectSuggestionIndex), select.value));
+            });
             document.querySelectorAll('[data-weekly-resize-row]').forEach((handle) => {
                 handle.addEventListener('mousedown', startWeeklyRowResize);
             });
@@ -3834,13 +4317,24 @@
 
         function renderWeeklyCell(column, row, index) {
             if (column.id === 'stt') {
-                return `<td class="weekly-stt-cell">${row.stt}<span class="weekly-row-resizer" data-weekly-resize-row="${index}"></span></td>`;
+                const suggestions = Array.isArray(row.reference_suggestions) ? row.reference_suggestions : [];
+                const suggestionSelect = suggestions.length
+                    ? `
+                        <span class="project-suggestion-toggle" title="${row.reference_missing ? 'Mã không có trong file tham khảo. Bấm để chọn mã gần giống.' : 'Bấm để sửa lại mã dự án nếu chọn nhầm.'}"></span>
+                        <select class="project-suggestion-select" data-project-suggestion-index="${index}" title="Chọn mã dự án gợi ý">
+                            <option value="">${row.reference_missing ? 'Gợi ý mã dự án' : 'Sửa lại mã dự án'}</option>
+                            ${suggestions.map((item) => `<option value="${escapeHtml(item.project)}">${escapeHtml(item.project)}${item.ten_may ? ` - ${escapeHtml(item.ten_may)}` : ''}</option>`).join('')}
+                        </select>
+                    `
+                    : '';
+                return `<td class="weekly-stt-cell ${row.reference_missing ? 'reference-warning' : ''}">${row.stt}${suggestionSelect}<span class="weekly-row-resizer" data-weekly-resize-row="${index}"></span></td>`;
             }
             if (column.id === 'hang_muc') {
+                row.hang_muc = normalizeWeeklyCategory(row.hang_muc);
                 return `
                     <td class="weekly-category-cell" style="${categoryPreviewStyle(row.hang_muc)}">
                         <select data-weekly-field="hang_muc" data-weekly-index="${index}">
-                            ${['Lắp mới', 'Sửa', 'Chỉnh máy', 'Hỗ trợ', 'Setup'].map((item) => `<option value="${item}" ${row.hang_muc === item ? 'selected' : ''}>${item}</option>`).join('')}
+                            ${WEEKLY_CATEGORY_OPTIONS.map((item) => `<option value="${item}" ${row.hang_muc === item ? 'selected' : ''}>${item}</option>`).join('')}
                         </select>
                     </td>
                 `;
@@ -3916,6 +4410,7 @@
                 'chinh may': ['#ffff00', '#000000'],
                 'sua': ['#ff0000', '#ffffff'],
                 'setup': ['#ffa500', '#000000'],
+                'lap dat': ['#ffa500', '#000000'],
                 'ho tro': ['#d9d9d9', '#000000'],
                 'lap moi': ['#5b9bd5', '#ffffff']
             };
@@ -3936,11 +4431,62 @@
             if (!state.weeklyRows[index] || !field) return;
             state.weeklyRows[index][field] = event.target.value;
             if (field === 'hang_muc') {
+                state.weeklyRows[index][field] = normalizeWeeklyCategory(event.target.value);
+                sortWeeklyRowsByCategory();
                 renderWeeklyPreview();
             } else if (event.target.tagName === 'TEXTAREA') {
                 autoResizeWeeklyTextarea(event.target);
                 autoResizeWeeklyRow(index);
             }
+        }
+
+        async function applyProjectSuggestion(index, project) {
+            const row = state.weeklyRows[index];
+            const normalizedProject = normalizeProjectCode(project);
+            if (!row || !normalizedProject) return;
+
+            const oldProject = row.du_an || row.project_full || '';
+            const oldKey = normalizeProjectKey(oldProject);
+            const projectKey = normalizeProjectKey(normalizedProject);
+
+            state.weeklyRows.forEach((weeklyRow, rowIndex) => {
+                if (oldKey && normalizeProjectKey(weeklyRow.du_an || weeklyRow.project_full) !== oldKey) return;
+                if (!oldKey && rowIndex !== index) return;
+                weeklyRow.du_an = normalizedProject;
+                weeklyRow.project_full = normalizedProject;
+                weeklyRow.reference_missing = false;
+            });
+
+            let replacedProject = false;
+            state.weeklyProjects = state.weeklyProjects
+                .map((item) => {
+                    if (normalizeProjectKey(item) === oldKey) {
+                        replacedProject = true;
+                        return normalizedProject;
+                    }
+                    return item;
+                })
+                .filter((item) => normalizeProjectKey(item) !== oldKey || normalizeProjectKey(item) === projectKey);
+            if (!replacedProject && !state.weeklyProjects.some((item) => normalizeProjectKey(item) === projectKey)) {
+                state.weeklyProjects.push(normalizedProject);
+            }
+
+            const uniqueProjects = new Map();
+            state.weeklyProjects.forEach((item) => {
+                const key = normalizeProjectKey(item);
+                if (key && !uniqueProjects.has(key)) uniqueProjects.set(key, item);
+            });
+            state.weeklyProjects = [...uniqueProjects.values()];
+            state.weeklyProjectExclusions = state.weeklyProjectExclusions.filter((item) => {
+                const key = normalizeProjectKey(item);
+                return key !== oldKey && key !== projectKey;
+            });
+            saveWeeklyProjects();
+            saveWeeklyProjectExclusions();
+
+            await fillWeeklyMachineReference();
+            renderWeeklyProjectSettings();
+            renderWeeklyPreview();
         }
 
         function autoResizeWeeklyTextarea(textarea) {
@@ -3965,10 +4511,12 @@
         }
 
         function handleProjectContextMenu(event) {
-            const projectInput = event.target.closest('.weekly-project-input');
-            if (!projectInput) return;
+            const projectRow = event.target.closest('tr[data-weekly-index]');
+            if (!projectRow || !els.weeklyPreviewBody.contains(projectRow)) return;
 
-            const project = (projectInput.dataset.project || projectInput.value || '').trim();
+            const index = Number(projectRow.dataset.weeklyIndex);
+            const row = state.weeklyRows[index];
+            const project = String((row && (row.du_an || row.project_full)) || projectRow.dataset.weeklyProject || '').trim();
             if (!project) return;
 
             event.preventDefault();
@@ -4060,7 +4608,7 @@
         async function loadProjectDetail() {
             if (!state.detailProject) return;
             els.projectDetailList.innerHTML = '<div class="empty">Đang tải dữ liệu...</div>';
-            const result = await ipcRenderer.invoke('query-reports', { ma_du_an: state.detailProject });
+            const result = await ipcRenderer.invoke('query-project-detail', { project: state.detailProject });
             const from = els.detailDateFrom.value || '0000-00-00';
             const to = els.detailDateTo.value || '9999-99-99';
             const projectKey = normalizeProjectKey(state.detailProject);

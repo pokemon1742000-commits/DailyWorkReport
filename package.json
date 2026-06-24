@@ -1,6 +1,6 @@
 {
   "name": "daily_work_report",
-  "version": "1.2.2",
+  "version": "1.3.0",
   "description": "Phần mềm chuẩn hóa báo cáo công việc hằng ngày, quản lý SQLite, thư mục ảnh/tài liệu và xuất báo cáo tuần Excel.",
   "main": "main.js",
   "scripts": {
@@ -18,6 +18,7 @@
     "electron-builder": "^24.13.3"
   },
   "dependencies": {
+    "@mediapipe/hands": "^0.4.1675469240",
     "exceljs": "^4.4.0",
     "sql.js": "^1.14.1"
   },

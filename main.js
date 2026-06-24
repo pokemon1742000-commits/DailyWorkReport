@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, protocol, session, shell } = require('electron');
 const fs = require('fs');
 const https = require('https');
 const path = require('path');
@@ -15,6 +15,59 @@ const GITHUB_REPO_URL = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}`;
 
 let sqlPromise = null;
 let machineReferenceCache = null;
+
+protocol.registerSchemesAsPrivileged([{
+    scheme: 'app-resource',
+    privileges: {
+        standard: true,
+        secure: true,
+        supportFetchAPI: true,
+        corsEnabled: true
+    }
+}]);
+
+function mediaPipeContentType(fileName) {
+    const extension = path.extname(fileName).toLowerCase();
+    if (extension === '.js') return 'application/javascript; charset=utf-8';
+    if (extension === '.wasm') return 'application/wasm';
+    if (extension === '.json') return 'application/json; charset=utf-8';
+    return 'application/octet-stream';
+}
+
+function mediaPipeAssetBody(assetPath, fileName) {
+    const content = fs.readFileSync(assetPath);
+    if (path.extname(fileName).toLowerCase() !== '.js') return content;
+    return content.toString('utf8')
+        .replace(
+            /var ENVIRONMENT_IS_NODE=typeof process=="object"&&typeof process\.versions=="object"&&typeof process\.versions\.node=="string";/g,
+            'var ENVIRONMENT_IS_NODE=false;'
+        )
+        .replace(
+            /if \(typeof process === 'object' && typeof process\.versions === 'object' && typeof process\.versions\.node === 'string'\) \{/g,
+            'if (false) {'
+        );
+}
+
+function registerAppResourceProtocol() {
+    protocol.handle('app-resource', async (request) => {
+        const requestUrl = new URL(request.url);
+        if (requestUrl.hostname !== 'mediapipe') {
+            return new Response('Not found', { status: 404 });
+        }
+        const fileName = path.basename(decodeURIComponent(requestUrl.pathname));
+        const assetPath = path.join(__dirname, 'node_modules', '@mediapipe', 'hands', fileName);
+        if (!fileName || !fs.existsSync(assetPath)) {
+            return new Response('Not found', { status: 404 });
+        }
+        return new Response(mediaPipeAssetBody(assetPath, fileName), {
+            status: 200,
+            headers: {
+                'Content-Type': mediaPipeContentType(fileName),
+                'Access-Control-Allow-Origin': '*'
+            }
+        });
+    });
+}
 
 function execFileText(command, args, options = {}) {
     return new Promise((resolve, reject) => {
@@ -483,6 +536,15 @@ async function queryReportsSqlite(query = {}) {
     return { sqliteFile, reports: rows.map(rowToReport) };
 }
 
+async function queryReportsByExactProject(project) {
+    const result = await queryReportsSqlite({});
+    const projectKey = normalizeProjectCode(project);
+    return {
+        sqliteFile: result.sqliteFile,
+        reports: result.reports.filter((report) => normalizeProjectCode(report.ma_du_an) === projectKey)
+    };
+}
+
 async function queryReportsByDateRange(dateFrom, dateTo) {
     const { db, sqliteFile } = await openReportsDb();
     const stmt = db.prepare(`
@@ -628,6 +690,79 @@ async function enrichReportsWithMachineReference(reports) {
     });
 }
 
+async function lookupMachineReferenceByProjects(projects) {
+    const reference = await loadMachineReference();
+    const referenceCodes = Object.keys(reference);
+    return (projects || []).map((project) => {
+        const code = String(project || '').trim();
+        const key = normalizeProjectCode(code);
+        const info = reference[key] || {};
+        return {
+            project: code,
+            found: Boolean(reference[key]),
+            ten_may: info.machineName || '',
+            ghi_chu: info.projectName || '',
+            suggestions: reference[key] ? [] : buildProjectSuggestions(key, referenceCodes, reference)
+        };
+    });
+}
+
+function buildProjectSuggestions(projectKey, referenceCodes, reference) {
+    if (!projectKey) return [];
+    return referenceCodes
+        .map((code) => ({
+            code,
+            score: projectSimilarityScore(projectKey, code),
+            info: reference[code] || {}
+        }))
+        .filter((item) => item.score > 0)
+        .sort((a, b) => b.score - a.score || a.code.localeCompare(b.code))
+        .slice(0, 8)
+        .map((item) => ({
+            project: item.code,
+            ten_may: item.info.machineName || '',
+            ghi_chu: item.info.projectName || ''
+        }));
+}
+
+function projectSimilarityScore(a, b) {
+    if (!a || !b) return 0;
+    if (a === b) return 1000;
+    const prefixA = (a.match(/^[A-Z]+/) || [''])[0];
+    const prefixB = (b.match(/^[A-Z]+/) || [''])[0];
+    const digitA = a.replace(/^[A-Z]+/, '');
+    const digitB = b.replace(/^[A-Z]+/, '');
+    const commonPrefix = commonPrefixLength(a, b);
+    const commonDigitPrefix = commonPrefixLength(digitA, digitB);
+    const contains = a.includes(b) || b.includes(a) ? 80 : 0;
+    const samePrefix = prefixA && prefixA === prefixB ? 120 : 0;
+    const distance = levenshteinDistance(a, b);
+    const distanceScore = Math.max(0, 80 - distance * 10);
+    return samePrefix + commonPrefix * 12 + commonDigitPrefix * 18 + contains + distanceScore;
+}
+
+function commonPrefixLength(a, b) {
+    let index = 0;
+    while (index < a.length && index < b.length && a[index] === b[index]) index += 1;
+    return index;
+}
+
+function levenshteinDistance(a, b) {
+    const previous = Array.from({ length: b.length + 1 }, (_, index) => index);
+    for (let i = 1; i <= a.length; i += 1) {
+        const current = [i];
+        for (let j = 1; j <= b.length; j += 1) {
+            current[j] = Math.min(
+                previous[j] + 1,
+                current[j - 1] + 1,
+                previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
+            );
+        }
+        for (let j = 0; j < current.length; j += 1) previous[j] = current[j];
+    }
+    return previous[b.length];
+}
+
 function normalizeWeeklyRows(rows) {
     const projectSeen = new Set();
     const normalizedRows = [];
@@ -639,7 +774,7 @@ function normalizeWeeklyRows(rows) {
         normalizedRows.push({
             ...row,
             stt: normalizedRows.length + 1,
-            hang_muc: row.hang_muc || 'Lắp mới',
+            hang_muc: normalizeWeeklyCategory(row.hang_muc || 'Lắp mới'),
             ten_may: row.ten_may || '',
             du_an: project,
             noi_dung: Array.isArray(row.noi_dung_cong_viec) ? row.noi_dung_cong_viec : (Array.isArray(row.noi_dung) ? row.noi_dung : []),
@@ -651,7 +786,31 @@ function normalizeWeeklyRows(rows) {
             row_height: Number(row.row_height) || 0
         });
     });
-    return normalizedRows;
+    return normalizedRows
+        .map((row, index) => ({ row, index }))
+        .sort((a, b) => weeklyCategoryOrder(a.row.hang_muc) - weeklyCategoryOrder(b.row.hang_muc) || a.index - b.index)
+        .map((item, index) => ({
+            ...item.row,
+            stt: index + 1
+        }));
+}
+
+function normalizeWeeklyCategory(category) {
+    const normalized = String(category || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim();
+    if (normalized === 'setup' || normalized === 'lap dat') return 'Lắp đặt';
+    if (normalized === 'chinh may') return 'Chỉnh máy';
+    if (normalized === 'sua') return 'Sửa';
+    if (normalized === 'ho tro') return 'Hỗ trợ';
+    return 'Lắp mới';
+}
+
+function weeklyCategoryOrder(category) {
+    const normalized = normalizeWeeklyCategory(category);
+    return ['Lắp mới', 'Chỉnh máy', 'Lắp đặt', 'Sửa', 'Hỗ trợ'].indexOf(normalized);
 }
 
 function normalizeWeeklyColumns(columns) {
@@ -724,7 +883,7 @@ function categoryFillColor(category) {
     const normalized = String(category || '').trim().toLowerCase();
     if (normalized === 'chỉnh máy' || normalized === 'chinh may') return 'FFFFFF00';
     if (normalized === 'sửa' || normalized === 'sua') return 'FFFF0000';
-    if (normalized === 'setup') return 'FFFFA500';
+    if (normalized === 'setup' || normalized === 'lắp đặt' || normalized === 'lap dat') return 'FFFFA500';
     if (normalized === 'hỗ trợ' || normalized === 'ho tro') return 'FFD9D9D9';
     if (normalized === 'lắp mới' || normalized === 'lap moi') return 'FF5B9BD5';
     return 'FFFFFFFF';
@@ -920,7 +1079,7 @@ async function exportWeeklyReport(payload) {
         sheet.dataValidations.add(categoryRange, {
             type: 'list',
             allowBlank: true,
-            formulae: ['"Lắp mới,Sửa,Chỉnh máy,Hỗ trợ,Setup"']
+            formulae: ['"Lắp mới,Chỉnh máy,Lắp đặt,Sửa,Hỗ trợ"']
         });
     }
 
@@ -1015,6 +1174,11 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+    registerAppResourceProtocol();
+    session.defaultSession.setPermissionCheckHandler((_webContents, permission) => permission === 'media');
+    session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
+        callback(permission === 'media');
+    });
     createWindow();
 });
 
@@ -1051,6 +1215,7 @@ ipcMain.handle('get-app-info', async () => {
         version: pkg.version || '1.0.0',
         description: pkg.description || 'Phần mềm chuẩn hóa báo cáo công việc hằng ngày, quản lý dữ liệu SQLite, thư mục ảnh/tài liệu và xuất báo cáo tuần Excel.',
         latestUpdate: [
+            'Ban 1.3.0: them canh bao ma du an khong co trong file tham khao, goi y sua ma, Detail loc dung ma du an va build installer NSIS.',
             'Bản 1.2.2: phát hành thử nghiệm dạng win-unpacked.zip để kiểm tra updater tải gói unpack.',
             'Bản 1.2.1: thêm gói win-unpacked.zip và updater có thể tải cả file .exe hoặc .zip từ GitHub Releases.',
             'Bản 1.2.0: đổi nút tạo dữ liệu thành Tạo Folder, giữ bảng chuẩn hóa sau khi tạo folder và thêm nút Clear.',
@@ -1178,6 +1343,11 @@ ipcMain.handle('get-weekly-preview', async (_event, payload) => {
     };
 });
 
+ipcMain.handle('lookup-machine-reference', async (_event, payload) => {
+    const projects = Array.isArray(payload && payload.projects) ? payload.projects : [];
+    return lookupMachineReferenceByProjects(projects);
+});
+
 ipcMain.handle('export-weekly-report', async (_event, payload) => {
     const outputPath = await exportWeeklyReport(payload);
     return { outputPath };
@@ -1271,6 +1441,11 @@ ipcMain.handle('load-reports', async () => {
 
 ipcMain.handle('query-reports', async (_event, query) => {
     const result = await queryReportsSqlite(query || {});
+    return { sqliteFile: result.sqliteFile, reports: result.reports };
+});
+
+ipcMain.handle('query-project-detail', async (_event, payload) => {
+    const result = await queryReportsByExactProject(payload && payload.project);
     return { sqliteFile: result.sqliteFile, reports: result.reports };
 });
 
