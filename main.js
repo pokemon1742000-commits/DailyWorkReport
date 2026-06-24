@@ -2,7 +2,7 @@ const { app, BrowserWindow, dialog, ipcMain, protocol, session, shell } = requir
 const fs = require('fs');
 const https = require('https');
 const path = require('path');
-const { execFile } = require('child_process');
+const { execFile, spawn } = require('child_process');
 const initSqlJs = require('sql.js');
 const ExcelJS = require('exceljs');
 
@@ -232,12 +232,23 @@ async function updateFromGithubRelease() {
     const safeAssetName = String(asset.name || `Daily Work Report-v${latestVersion || 'latest'}.exe`).replace(/[<>:"/\\|?*]/g, '_');
     const destinationFile = path.join(updatesDir, safeAssetName);
     await downloadFile(asset.browser_download_url, destinationFile);
-    shell.showItemInFolder(destinationFile);
     const assetType = /\.zip$/i.test(asset.name || '') ? 'zip' : 'exe';
+    let installerStarted = false;
+    if (assetType === 'exe') {
+        spawn(destinationFile, [], {
+            detached: true,
+            stdio: 'ignore'
+        }).unref();
+        installerStarted = true;
+        setTimeout(() => app.quit(), 1200);
+    } else {
+        shell.showItemInFolder(destinationFile);
+    }
 
     return {
         mode: 'release',
         assetType,
+        installerStarted,
         currentVersion,
         latestVersion,
         releaseUrl: release.html_url || GITHUB_REPO_URL,
@@ -245,7 +256,7 @@ async function updateFromGithubRelease() {
         assetName: asset.name,
         message: assetType === 'zip'
             ? `Da tai goi win-unpacked ${latestVersion || ''} ve: ${destinationFile}. Hay giai nen va chay Daily Work Report.exe.`
-            : `Da tai ban cap nhat ${latestVersion || ''} ve: ${destinationFile}`
+            : `Da tai ban cap nhat ${latestVersion || ''} ve: ${destinationFile}. Dang mo trinh cai dat va dong phan mem hien tai.`
     };
 }
 
@@ -1215,6 +1226,7 @@ ipcMain.handle('get-app-info', async () => {
         version: pkg.version || '1.0.0',
         description: pkg.description || 'Phần mềm chuẩn hóa báo cáo công việc hằng ngày, quản lý dữ liệu SQLite, thư mục ảnh/tài liệu và xuất báo cáo tuần Excel.',
         latestUpdate: [
+            'Ban 1.3.1: nut Update tu dong tai installer, mo trinh cai dat va dong phan mem hien tai de cai de ban moi.',
             'Ban 1.3.0: them canh bao ma du an khong co trong file tham khao, goi y sua ma, Detail loc dung ma du an va build installer NSIS.',
             'Bản 1.2.2: phát hành thử nghiệm dạng win-unpacked.zip để kiểm tra updater tải gói unpack.',
             'Bản 1.2.1: thêm gói win-unpacked.zip và updater có thể tải cả file .exe hoặc .zip từ GitHub Releases.',
