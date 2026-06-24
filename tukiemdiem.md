@@ -231,35 +231,52 @@ Sau sửa:
 Đã bọc xong dây
 ```
 
-## 6. Những điểm mình chưa xóa hẳn
+## 6. Những điểm đã sửa lại trong vòng kiểm tra lần nữa
 
-### 6.1. JSON vẫn còn trong code như legacy/backup
+### 6.1. SQLite là nơi lưu chính
 
-Trong `showdata.md` bạn đã chỉnh phần lưu trữ còn SQLite là chính. Tuy nhiên code hiện tại vẫn còn ghi JSON cùng SQLite.
+Code hiện tại không ghi thêm bản ghi mới vào JSON khi bấm tạo folder/lưu báo cáo nữa.
 
-Mình chưa xóa JSON ngay trong lần này vì:
+Khi xóa dữ liệu ở trang tìm kiếm, app xóa trong SQLite. JSON cũ chỉ còn vai trò legacy/migration nếu máy có dữ liệu cũ cần đọc lại.
 
-- Nhiều luồng cũ vẫn dùng JSON để fallback/migrate.
-- Nếu xóa đột ngột có thể ảnh hưởng dữ liệu cũ của bạn.
-- Trước đây app đã có cơ chế đồng bộ từ JSON sang SQLite khi chưa có SQLite.
+### 6.2. Kiểm tra mã dự án với `Thamkhao.xlsm` ngay sau khi chuẩn hóa
 
-Đề xuất bước tiếp theo:
+Sau khi bấm Accept/Xác nhận, app sẽ kiểm tra mã dự án đã bóc tách với dữ liệu tham khảo.
 
-- Nếu bạn xác nhận bỏ JSON hoàn toàn, mình sẽ sửa riêng một lượt:
-  - Không ghi JSON mới nữa.
-  - Không xóa dữ liệu SQLite.
-  - Giữ migration đọc JSON cũ một lần nếu cần.
+Nếu mã không có trong file tham khảo:
 
-### 6.2. Chưa bắt buộc mã dự án phải tồn tại trong `Thamkhao.xlsm` ngay lúc nhập
+- STT của thẻ chuẩn hóa được bôi vàng.
+- Có cảnh báo mã dự án chưa có trong file tham khảo.
+- Nếu có mã gần giống, app hiển thị danh sách gợi ý để chọn.
+- Khi chọn mã gợi ý, mã dự án được thay thế và kiểm tra lại.
 
-Mình đã siết cấu trúc mã dự án theo năm/tháng/hậu tố.
+### 6.3. Bóc tách mã nối tiếp có hậu tố chữ linh hoạt hơn
 
-Tuy nhiên chưa bắt buộc parser loại bỏ mã nếu không có trong `Thamkhao.xlsm`, vì hiện phần tham khảo đang chạy ở luồng báo cáo tuần/cảnh báo mã. Nếu áp dụng bắt buộc ngay lúc nhập, cần thêm luồng IPC async để parser hỏi main process.
+Trước đây parser ưu tiên tốt cho dạng:
 
-Đề xuất:
+```text
+AUTM:2602E8, 2602E9
+```
 
-- Giữ parser nhận mã hợp lệ theo cấu trúc.
-- Sau đó dùng cảnh báo `Thamkhao.xlsm` để bôi vàng/gợi ý sửa mã.
+Vòng này đã nới đúng cho cả dạng hậu tố chữ khác:
+
+```text
+AUTM2602A5, 2602A8
+```
+
+nhưng vẫn giữ kiểm soát năm/tháng để tránh sinh mã ảo kiểu `AUTM262602`.
+
+### 6.4. Không đưa nhãn trường vào nội dung/trạng thái
+
+Những dòng như:
+
+```text
+Trạng thái: 60%
+Thời gian: 08:30-18:30
+Nội dung: Đấu tủ điện
+```
+
+được bóc tách theo đúng trường, không còn giữ chữ `Trạng thái`, `Thời gian`, `Nội dung` trong dữ liệu kết quả.
 
 ## 7. Kết luận sau khi đọc lại file
 
@@ -271,4 +288,3 @@ Mình hiểu lại trọng tâm phần nhập liệu như sau:
 4. Trạng thái gắn theo từng dự án nên sạch, không cần giữ lại mã dự án trong câu nếu mã đó chỉ dùng để nhận diện.
 5. Tìm kiếm phải bao phủ cả `Thời gian`.
 6. SQLite là nơi lưu trữ chính.
-

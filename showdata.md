@@ -14,7 +14,7 @@ Sau khi bấm `Accept / Xác nhận`, phần mềm cần bóc tách nội dung t
 | Nội dung công việc | Công việc đã, đang hoặc sẽ thực hiện | `Bọc lại dây tín hiệu và nguồn kết nối máy lazer` |
 | Thời Gian | Công việc được thực hiện trong thời gian nào (thường là text thời gian dạng xx:xx - xx:xx hoặc xxhxx - xxhxx ) | `8:15 - 18:30`, `8h15 - 18h30`,`...` |
 | Người thực hiện | Danh sách người làm việc | `Tân, Nguyễn Quang Hiếu` |
-| Trạng thái | Tiến độ, kết quả hoặc vấn đề đang xử lý (ưu tiên text có chữ)| `Hoàn thành`, `30%`, `đang chờ`,` xử lý`,`đang hoàn thiện`, `đang`, `đã`,`xong`,`%`,`chưa xong`,.... |
+| Trạng thái | Tiến độ, kết quả hoặc vấn đề đang xử lý (ưu tiên text có chữ)| `Hoàn thành`, `30%`, `đang chờ`,`xử lý`,`đang hoàn thiện`, `đang`, `đã`,`xong`,`%`,`chưa xong`,.... |
 | Ngày thực hiện | Ngày báo cáo | `2026-06-11` |
 | Thư mục ảnh | Đường dẫn folder ảnh/tài liệu tự động tạo | `2026June11/BuiHuuSy_NguyenVanHung` |
 
@@ -173,7 +173,7 @@ Nội dung công việc là các dòng:
 - Không phải ngày tháng
 - Không phải trạng thái thuần túy 
 - Là hành động hoặc công việc cần làm/đã làm
-
+- Không có text `Trạng Thái`
 Ví dụ:
 
 ```text
@@ -198,7 +198,7 @@ Khi lấy nội dung từ trạng thái, cần bỏ bớt các từ chỉ trạn
 - `%`
 
 Nhưng không được bỏ cả câu nếu trong câu có text: `nội dung công việc`,`Nội dung`,`nội dung`, `ND`, ....
-
+- Không chứa text `Trạng Thái`
 ## 8. Quy tắc nhận diện trạng thái
 
 Trạng thái thường có các dấu hiệu:
@@ -228,6 +228,8 @@ Kết quả:
 | --- | --- |
 | `Bắn panel và gá thiết bị tủ chính và tủ phụ` | `Bắn panel và gá thiết bị tủ chính và tủ phụ hoàn thành` |
 | `Đấu tủ chính` | `Đấu tủ chính 30%` |
+
+- Không chứa text `Trạng Thái`
 
 ## 9. Quy tắc nhận diện người thực hiện
 

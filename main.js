@@ -8,6 +8,7 @@ const ExcelJS = require('exceljs');
 
 const DEFAULT_WEEKLY_LOGO = path.join(__dirname, 'assets', 'meiko-automation-logo.png');
 const MACHINE_REFERENCE_FILE = path.join(__dirname, 'reference_files', 'Thamkhao.xlsm');
+const SETUP_TRACKING_TEMPLATE_FILE = path.join(__dirname, 'reference_files', 'Theo_doi_setup_may_cho_khach_hang.xlsx');
 const MACHINE_REFERENCE_SHEET_KEY = 'danhsachmay';
 const GITHUB_OWNER = 'pokemon1742000-commits';
 const GITHUB_REPO = 'DailyWorkReport';
@@ -332,15 +333,21 @@ function ensureReportsSchema(db) {
         createReportsTable(db);
         migrateLegacyReports(db);
         db.run('DROP TABLE reports_legacy;');
+        createReportsIndexes(db);
         return;
     }
 
     createReportsTable(db);
-    if (columns.length && !columns.includes('thoi_gian')) {
+
+    const updatedTableInfo = db.exec("PRAGMA table_info(reports);");
+    const updatedColumns = updatedTableInfo[0] ? updatedTableInfo[0].values.map((row) => row[1]) : [];
+    if (!updatedColumns.includes('thoi_gian')) {
         db.run('ALTER TABLE reports ADD COLUMN thoi_gian TEXT NOT NULL DEFAULT "[]";');
+    }
+    if (!updatedColumns.includes('thoi_gian_text')) {
         db.run('ALTER TABLE reports ADD COLUMN thoi_gian_text TEXT NOT NULL DEFAULT "";');
     }
-    db.run('CREATE INDEX IF NOT EXISTS idx_reports_thoi_gian_text ON reports(thoi_gian_text);');
+    createReportsIndexes(db);
 }
 
 function createReportsTable(db) {
@@ -369,6 +376,9 @@ function createReportsTable(db) {
         );
     `);
 
+}
+
+function createReportsIndexes(db) {
     db.run('CREATE INDEX IF NOT EXISTS idx_reports_ma_du_an ON reports(ma_du_an);');
     db.run('CREATE INDEX IF NOT EXISTS idx_reports_ngay ON reports(ngay_thuc_hien);');
     db.run('CREATE INDEX IF NOT EXISTS idx_reports_nguoi_text ON reports(nguoi_text);');
@@ -425,6 +435,16 @@ function deserializeList(value) {
 function listText(value, mapper = (item) => item) {
     const list = Array.isArray(value) ? value : [];
     return list.map(mapper).filter(Boolean).join('; ');
+}
+
+function sanitizeFolderName(value) {
+    return String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D')
+        .replace(/[^a-zA-Z0-9]+/g, '')
+        .trim();
 }
 
 function reportToDbParams(report) {
@@ -597,6 +617,8 @@ async function deleteReportsData(options = {}) {
     const { db, sqliteFile } = await openReportsDb();
     const deleteAll = Boolean(options.all);
     const ids = Array.isArray(options.ids) ? options.ids.map((id) => String(id || '')).filter(Boolean) : [];
+    const beforeCountResult = db.exec('SELECT COUNT(*) AS count FROM reports;');
+    const beforeCount = beforeCountResult[0] ? Number(beforeCountResult[0].values[0][0]) || 0 : 0;
 
     if (deleteAll) {
         db.run('DELETE FROM reports;');
@@ -610,28 +632,12 @@ async function deleteReportsData(options = {}) {
 
     saveDb(db, sqliteFile);
 
-    let jsonReports = [];
-    if (fs.existsSync(dataFile)) {
-        try {
-            const parsed = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
-            jsonReports = Array.isArray(parsed) ? parsed : [];
-        } catch {
-            jsonReports = [];
-        }
-    }
-
-    const nextJsonReports = deleteAll
-        ? []
-        : jsonReports.filter((report) => !ids.includes(String(report.id || '')));
-    fs.mkdirSync(path.dirname(dataFile), { recursive: true });
-    fs.writeFileSync(dataFile, JSON.stringify(nextJsonReports, null, 2), 'utf8');
-
     const result = await loadReportsSqlite();
     return {
         dataFile,
         sqliteFile: result.sqliteFile,
         reports: result.reports,
-        deleted: deleteAll ? jsonReports.length : ids.length
+        deleted: deleteAll ? beforeCount : ids.length
     };
 }
 
@@ -880,6 +886,15 @@ function listToNumberedText(items) {
         .join('\n');
 }
 
+function excelFallbackValue(value) {
+    if (Array.isArray(value)) {
+        const text = value.filter(Boolean).join('\n').trim();
+        return text || 'N/A';
+    }
+    const text = String(value ?? '').trim();
+    return text || 'N/A';
+}
+
 function normalizeSentence(text) {
     const cleaned = String(text || '').replace(/\s+/g, ' ').trim();
     if (!cleaned) return '';
@@ -1071,9 +1086,9 @@ async function exportWeeklyReport(payload) {
         columns.forEach((column, index) => {
             const cell = row.getCell(index + 1);
             if (column.id === 'stt') cell.value = item.stt;
-            else if (column.id === 'noi_dung') cell.value = listToNumberedText(item.noi_dung);
-            else if (column.id === 'tien_do') cell.value = (item.tien_do || []).join('\n');
-            else cell.value = item[column.id] || '';
+            else if (column.id === 'noi_dung') cell.value = excelFallbackValue(listToNumberedText(item.noi_dung));
+            else if (column.id === 'tien_do') cell.value = excelFallbackValue(item.tien_do || []);
+            else cell.value = excelFallbackValue(item[column.id]);
         });
         row.height = item.row_height ? Math.max(32, Math.round(item.row_height * 0.75)) : Math.max(52, 24 * Math.max(item.noi_dung.length, item.tien_do.length, 2));
         row.eachCell((cell, colNumber) => {
@@ -1185,6 +1200,393 @@ async function exportWeeklyReport(payload) {
     return outputPath;
 }
 
+function formatSetupWorkDate(isoDate) {
+    if (!isoDate) return 'N/A';
+    const parts = String(isoDate).split('-');
+    if (parts.length === 3) {
+        return `${Number(parts[2])}/${Number(parts[1])}/${parts[0]}`;
+    }
+    return isoDate;
+}
+
+function setupTrackingContent(row, detail = null) {
+    const category = String(row.hang_muc || '').trim().toLowerCase();
+    if (category === 'lắp mới' || category === 'lap moi') {
+        return '1. Lắp đặt tại line\n2. Hiệu chỉnh máy';
+    }
+    const content = detail && Array.isArray(detail.noi_dung_cong_viec)
+        ? detail.noi_dung_cong_viec
+        : row.noi_dung;
+    return excelFallbackValue(listToNumberedText(content));
+}
+
+function findSetupAppendRow(sheet, firstDataRow, lastColumn) {
+    let lastDataRow = firstDataRow - 1;
+    const maxRow = Math.max(sheet.rowCount, firstDataRow);
+    for (let rowIndex = firstDataRow; rowIndex <= maxRow; rowIndex += 1) {
+        const row = sheet.getRow(rowIndex);
+        let hasData = false;
+        for (let col = 1; col <= lastColumn; col += 1) {
+            if (cellDisplayText(row.getCell(col)).trim()) {
+                hasData = true;
+                break;
+            }
+        }
+        if (hasData) lastDataRow = rowIndex;
+    }
+    return lastDataRow + 1;
+}
+
+function getSetupNextStt(sheet, firstDataRow) {
+    let maxStt = 0;
+    for (let rowIndex = firstDataRow; rowIndex <= sheet.rowCount; rowIndex += 1) {
+        const value = Number(cellDisplayText(sheet.getRow(rowIndex).getCell(1)).trim());
+        if (Number.isFinite(value)) maxStt = Math.max(maxStt, value);
+    }
+    return maxStt + 1;
+}
+
+function safeUnmergeCells(sheet, range) {
+    try {
+        sheet.unMergeCells(range);
+    } catch (_error) {
+        // Range may not be merged; nothing to do.
+    }
+}
+
+function findExistingSetupProjectGroup(sheet, firstDataRow, project) {
+    const projectKey = normalizeProjectCode(project);
+    if (!projectKey) return null;
+
+    let start = 0;
+    let end = 0;
+    for (let rowIndex = firstDataRow; rowIndex <= sheet.rowCount; rowIndex += 1) {
+        const key = normalizeProjectCode(cellDisplayText(sheet.getRow(rowIndex).getCell(2)));
+        if (key === projectKey) {
+            if (!start) start = rowIndex;
+            end = rowIndex;
+        } else if (start && end) {
+            break;
+        }
+    }
+
+    return start ? { start, end } : null;
+}
+
+function groupSetupEntriesByProject(entries) {
+    const groups = [];
+    const groupMap = new Map();
+    entries.forEach((entry) => {
+        const key = normalizeProjectCode(entry.weeklyRow.du_an);
+        if (!key) return;
+        if (!groupMap.has(key)) {
+            const group = {
+                key,
+                weeklyRow: entry.weeklyRow,
+                entries: []
+            };
+            groupMap.set(key, group);
+            groups.push(group);
+        }
+        groupMap.get(key).entries.push(entry);
+    });
+    return groups;
+}
+
+function copySetupRowStyle(targetRow, templateRow, noteColumn) {
+    targetRow.height = Math.max(templateRow.height || 24, 42);
+    for (let col = 1; col <= noteColumn; col += 1) {
+        targetRow.getCell(col).style = { ...templateRow.getCell(col).style };
+    }
+}
+
+function writeSetupEntryRow(sheet, rowNumber, entry, options) {
+    const {
+        stt,
+        showProjectInfo,
+        noteColumn,
+        reference
+    } = options;
+    const item = entry.weeklyRow;
+    const detail = entry.detail;
+    const row = sheet.getRow(rowNumber);
+    const info = reference[normalizeProjectCode(item.du_an)] || {};
+    const machineName = item.ten_may || info.machineName || '';
+    const machineType = item.ghi_chu || info.projectName || '';
+    const values = [
+        showProjectInfo ? stt : '',
+        showProjectInfo ? (item.du_an || 'N/A') : '',
+        showProjectInfo ? (machineType || 'N/A') : '',
+        'N/A',
+        formatSetupWorkDate(detail && detail.ngay_thuc_hien),
+        'N/A',
+        setupTrackingContent(item, detail),
+        'N/A',
+        'N/A',
+        showProjectInfo ? (machineName || 'N/A') : ''
+    ];
+
+    values.forEach((value, colIndex) => {
+        const cell = row.getCell(colIndex + 1);
+        cell.value = colIndex === 0 && value !== '' ? value : (value === '' ? '' : excelFallbackValue(value));
+        cell.font = { ...(cell.font || {}), name: 'Times New Roman' };
+        cell.alignment = { ...(cell.alignment || {}), wrapText: true, vertical: 'middle', horizontal: colIndex === 0 ? 'center' : 'left' };
+    });
+    row.commit();
+
+    // Keep note column inside the styled area even if template had fewer used columns.
+    if (noteColumn > values.length) {
+        row.getCell(noteColumn).value = showProjectInfo ? excelFallbackValue(machineName) : '';
+    }
+}
+
+function mergeSetupProjectGroup(sheet, startRow, endRow, noteColumn) {
+    if (endRow <= startRow) return;
+    [1, 2, 3, noteColumn].forEach((col) => {
+        const letter = excelColumnLetter(col);
+        safeMergeCells(sheet, `${letter}${startRow}:${letter}${endRow}`);
+    });
+}
+
+function unmergeSetupProjectGroup(sheet, startRow, endRow, noteColumn) {
+    if (endRow < startRow) return;
+    [1, 2, 3, noteColumn].forEach((col) => {
+        const letter = excelColumnLetter(col);
+        safeUnmergeCells(sheet, `${letter}${startRow}:${letter}${endRow}`);
+    });
+}
+
+function rebuildSetupProjectMerges(sheet, firstDataRow, noteColumn) {
+    const lastRow = findSetupAppendRow(sheet, firstDataRow, noteColumn) - 1;
+    if (lastRow < firstDataRow) return;
+
+    [1, 2, 3, noteColumn].forEach((col) => {
+        const letter = excelColumnLetter(col);
+        safeUnmergeCells(sheet, `${letter}${firstDataRow}:${letter}${lastRow}`);
+    });
+
+    let groupStart = firstDataRow;
+    let currentProject = normalizeProjectCode(cellDisplayText(sheet.getRow(firstDataRow).getCell(2)));
+
+    for (let rowIndex = firstDataRow + 1; rowIndex <= lastRow + 1; rowIndex += 1) {
+        const rawProject = rowIndex <= lastRow
+            ? normalizeProjectCode(cellDisplayText(sheet.getRow(rowIndex).getCell(2)))
+            : '__END__';
+        const startsNewGroup = rawProject && rawProject !== currentProject;
+        if (!startsNewGroup) continue;
+
+        const groupEnd = rowIndex - 1;
+        mergeSetupProjectGroup(sheet, groupStart, groupEnd, noteColumn);
+        groupStart = rowIndex;
+        currentProject = rawProject;
+    }
+}
+
+function isSetupNewInstallContent(value) {
+    const normalized = normalizeReferenceSheetName(value);
+    return normalized.includes('lapdattailine') && normalized.includes('hieuchinhmay');
+}
+
+function removeDuplicateSetupNewInstallRows(sheet, firstDataRow, noteColumn) {
+    const lastRow = findSetupAppendRow(sheet, firstDataRow, noteColumn) - 1;
+    if (lastRow < firstDataRow) return;
+
+    [1, 2, 3, noteColumn].forEach((col) => {
+        const letter = excelColumnLetter(col);
+        safeUnmergeCells(sheet, `${letter}${firstDataRow}:${letter}${lastRow}`);
+    });
+
+    const seenByProject = new Set();
+    const rowsToDelete = [];
+    let currentProjectKey = '';
+
+    for (let rowIndex = firstDataRow; rowIndex <= lastRow; rowIndex += 1) {
+        const row = sheet.getRow(rowIndex);
+        const projectInRow = normalizeProjectCode(cellDisplayText(row.getCell(2)));
+        if (projectInRow) currentProjectKey = projectInRow;
+        if (!currentProjectKey) continue;
+
+        const content = cellDisplayText(row.getCell(7));
+        if (!isSetupNewInstallContent(content)) continue;
+
+        if (seenByProject.has(currentProjectKey)) {
+            rowsToDelete.push(rowIndex);
+            continue;
+        }
+        seenByProject.add(currentProjectKey);
+    }
+
+    rowsToDelete.reverse().forEach((rowIndex) => {
+        sheet.spliceRows(rowIndex, 1);
+    });
+}
+
+function setupProjectAlreadyHasNewInstall(sheet, firstDataRow, project) {
+    const projectKey = normalizeProjectCode(project);
+    if (!projectKey) return false;
+    let currentProjectKey = '';
+    for (let rowIndex = firstDataRow; rowIndex <= sheet.rowCount; rowIndex += 1) {
+        const row = sheet.getRow(rowIndex);
+        const projectInRow = normalizeProjectCode(cellDisplayText(row.getCell(2)));
+        if (projectInRow) currentProjectKey = projectInRow;
+        if (currentProjectKey !== projectKey) continue;
+        if (isSetupNewInstallContent(cellDisplayText(row.getCell(7)))) return true;
+    }
+    return false;
+}
+
+function groupProjectDetailsByDate(details) {
+    const grouped = new Map();
+    details.forEach((detail) => {
+        const date = detail.ngay_thuc_hien || 'N/A';
+        if (!grouped.has(date)) {
+            grouped.set(date, {
+                ngay_thuc_hien: detail.ngay_thuc_hien || '',
+                noi_dung_cong_viec: []
+            });
+        }
+        const group = grouped.get(date);
+        if (Array.isArray(detail.noi_dung_cong_viec)) {
+            detail.noi_dung_cong_viec.forEach((item) => {
+                if (item && !group.noi_dung_cong_viec.includes(item)) group.noi_dung_cong_viec.push(item);
+            });
+        }
+    });
+    return [...grouped.values()].sort((a, b) => String(a.ngay_thuc_hien || '').localeCompare(String(b.ngay_thuc_hien || '')));
+}
+
+async function buildSetupTrackingRows(rows, payload) {
+    const detailsResult = await queryReportsByDateRange(payload.dateFrom || '0000-00-00', payload.dateTo || '9999-99-99');
+    const detailMap = new Map();
+    (detailsResult.reports || []).forEach((report) => {
+        const key = normalizeProjectCode(report.ma_du_an);
+        if (!key) return;
+        if (!detailMap.has(key)) detailMap.set(key, []);
+        detailMap.get(key).push(report);
+    });
+
+    const seenNewInstallProjects = new Set();
+    return rows.flatMap((row) => {
+        const key = normalizeProjectCode(row.du_an);
+        const category = String(row.hang_muc || '').trim().toLowerCase();
+        const isNewInstall = category === 'lắp mới' || category === 'lap moi';
+        if (isNewInstall) {
+            if (seenNewInstallProjects.has(key)) return [];
+            seenNewInstallProjects.add(key);
+        }
+
+        const details = groupProjectDetailsByDate(detailMap.get(key) || []);
+        if (!details.length) {
+            return [{ weeklyRow: row, detail: null }];
+        }
+        return details.map((detail) => ({ weeklyRow: row, detail }));
+    });
+}
+
+async function exportSetupTrackingReport(payload) {
+    const outputDir = payload.outputDir;
+    const rows = normalizeWeeklyRows(payload.rows || []).filter((row) => {
+        const category = String(row.hang_muc || '').trim().toLowerCase();
+        return category === 'lắp mới' || category === 'lap moi' || category === 'sửa' || category === 'sua';
+    });
+
+    if (!rows.length) {
+        throw new Error('Không có dòng hạng mục Lắp mới hoặc Sửa để thêm vào Excel setup.');
+    }
+    if (!fs.existsSync(SETUP_TRACKING_TEMPLATE_FILE)) {
+        throw new Error('Không tìm thấy template theo dõi setup nội bộ.');
+    }
+
+    const reference = await loadMachineReference();
+    fs.mkdirSync(outputDir, { recursive: true });
+    const outputName = 'Theo dõi setup máy cho khách hàng.xlsx';
+    const outputPath = path.join(outputDir, outputName);
+    const useExistingFile = fs.existsSync(outputPath);
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(useExistingFile ? outputPath : SETUP_TRACKING_TEMPLATE_FILE);
+    const sheet = workbook.worksheets[0];
+    if (!sheet) throw new Error('Template theo dõi setup không có sheet.');
+
+    const headerRowNumber = 7;
+    const headerRow = sheet.getRow(headerRowNumber);
+    headerRow.eachCell((cell) => {
+        const text = cellDisplayText(cell).trim().toLowerCase();
+        if (text.includes('khó khăn') || text.includes('sự cố') || text.includes('su co')) {
+            cell.value = 'Nội Dung';
+        }
+    });
+
+    const noteColumn = sheet.columnCount >= 10 ? 10 : sheet.columnCount + 1;
+    const noteHeader = sheet.getCell(headerRowNumber, noteColumn);
+    noteHeader.value = 'Ghi chú';
+    noteHeader.style = { ...sheet.getCell(headerRowNumber, Math.max(1, noteColumn - 1)).style };
+
+    const hasSetupLogo = typeof sheet.getImages === 'function' && sheet.getImages().length > 0;
+    if (!hasSetupLogo) {
+        await addImageToSheet(workbook, sheet, DEFAULT_WEEKLY_LOGO, {
+            tl: { col: 0.15, row: 0.25 },
+            ext: { width: 210, height: 46 }
+        });
+    }
+
+    const firstDataRow = headerRowNumber + 1;
+    const dataTemplateRow = sheet.getRow(firstDataRow);
+    const setupEntries = await buildSetupTrackingRows(rows, payload);
+    const setupGroups = groupSetupEntriesByProject(setupEntries).map((group) => {
+        const hasExistingNewInstall = setupProjectAlreadyHasNewInstall(sheet, firstDataRow, group.weeklyRow.du_an);
+        if (!hasExistingNewInstall) return group;
+        return {
+            ...group,
+            entries: group.entries.filter((entry) => {
+                const category = String(entry.weeklyRow.hang_muc || '').trim().toLowerCase();
+                return category !== 'lắp mới' && category !== 'lap moi';
+            })
+        };
+    }).filter((group) => group.entries.length);
+
+    setupGroups.forEach((group) => {
+        const existingGroup = findExistingSetupProjectGroup(sheet, firstDataRow, group.weeklyRow.du_an);
+        if (existingGroup) {
+            const stt = Number(cellDisplayText(sheet.getRow(existingGroup.start).getCell(1)).trim()) || getSetupNextStt(sheet, firstDataRow);
+            unmergeSetupProjectGroup(sheet, existingGroup.start, existingGroup.end, noteColumn);
+            const insertAt = existingGroup.end + 1;
+            sheet.spliceRows(insertAt, 0, ...group.entries.map(() => []));
+            group.entries.forEach((entry, entryIndex) => {
+                const rowNumber = insertAt + entryIndex;
+                copySetupRowStyle(sheet.getRow(rowNumber), dataTemplateRow, noteColumn);
+                writeSetupEntryRow(sheet, rowNumber, entry, {
+                    stt,
+                    showProjectInfo: false,
+                    noteColumn,
+                    reference
+                });
+            });
+            mergeSetupProjectGroup(sheet, existingGroup.start, existingGroup.end + group.entries.length, noteColumn);
+            return;
+        }
+
+        const appendStartRow = findSetupAppendRow(sheet, firstDataRow, noteColumn);
+        const stt = getSetupNextStt(sheet, firstDataRow);
+        group.entries.forEach((entry, entryIndex) => {
+            const rowNumber = appendStartRow + entryIndex;
+            copySetupRowStyle(sheet.getRow(rowNumber), dataTemplateRow, noteColumn);
+            writeSetupEntryRow(sheet, rowNumber, entry, {
+                stt,
+                showProjectInfo: entryIndex === 0,
+                noteColumn,
+                reference
+            });
+        });
+        mergeSetupProjectGroup(sheet, appendStartRow, appendStartRow + group.entries.length - 1, noteColumn);
+    });
+
+    removeDuplicateSetupNewInstallRows(sheet, firstDataRow, noteColumn);
+    rebuildSetupProjectMerges(sheet, firstDataRow, noteColumn);
+
+    await workbook.xlsx.writeFile(outputPath);
+    return outputPath;
+}
+
 function createWindow() {
     const win = new BrowserWindow({
         width: 1440,
@@ -1242,6 +1644,7 @@ ipcMain.handle('get-app-info', async () => {
         version: pkg.version || '1.0.0',
         description: pkg.description || 'Phần mềm chuẩn hóa báo cáo công việc hằng ngày, quản lý dữ liệu SQLite, thư mục ảnh/tài liệu và xuất báo cáo tuần Excel.',
         latestUpdate: [
+            'Ban 1.3.3: bo sung xuat Excel setup theo file noi bo, ghi them vao dung nhom ma thiet bi, loc lap moi trung va cai thien bao cao tuan.',
             'Ban 1.3.2: them truong Thoi gian cho nhap lieu, luu SQLite/tim kiem, chan ma du an ao theo nam-thang va lam sach trang thai theo tung du an.',
             'Ban 1.3.1: nut Update tu dong tai installer, mo trinh cai dat va dong phan mem hien tai de cai de ban moi.',
             'Ban 1.3.0: them canh bao ma du an khong co trong file tham khao, goi y sua ma, Detail loc dung ma du an va build installer NSIS.',
@@ -1382,6 +1785,11 @@ ipcMain.handle('export-weekly-report', async (_event, payload) => {
     return { outputPath };
 });
 
+ipcMain.handle('export-setup-tracking-report', async (_event, payload) => {
+    const outputPath = await exportSetupTrackingReport(payload);
+    return { outputPath };
+});
+
 ipcMain.handle('save-reports', async (_event, payload) => {
     const rootFolder = payload && payload.rootFolder;
     const reports = Array.isArray(payload && payload.reports) ? payload.reports : [];
@@ -1398,10 +1806,14 @@ ipcMain.handle('save-reports', async (_event, payload) => {
         const dayFolder = path.join(rootFolder, folderDate);
         fs.mkdirSync(dayFolder, { recursive: true });
 
-        const peopleFolderName = (report.nguoi_thuc_hien || [])
-            .map((person) => person.folderName || 'UnknownPerson')
+        const peopleList = Array.isArray(report.nguoi_thuc_hien) ? report.nguoi_thuc_hien : [];
+        const peopleFolderName = peopleList
+            .map((person) => {
+                if (typeof person === 'string') return sanitizeFolderName(person) || 'UnknownPerson';
+                return person && (person.folderName || sanitizeFolderName(person.displayName || '')) || 'UnknownPerson';
+            })
             .filter(Boolean)
-            .join('_') || 'UnknownPerson';
+            .join('_') || 'ChuaXacDinh';
         const peopleFolder = path.join(dayFolder, peopleFolderName);
         fs.mkdirSync(peopleFolder, { recursive: true });
 
@@ -1415,24 +1827,7 @@ ipcMain.handle('save-reports', async (_event, payload) => {
         };
     });
 
-    const dataDir = getDataDir();
     const dataFile = getJsonFile();
-    fs.mkdirSync(dataDir, { recursive: true });
-
-    let existing = [];
-    if (fs.existsSync(dataFile)) {
-        try {
-            existing = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
-            if (!Array.isArray(existing)) {
-                existing = [];
-            }
-        } catch (_error) {
-            existing = [];
-        }
-    }
-
-    const merged = [...existing, ...savedReports];
-    fs.writeFileSync(dataFile, JSON.stringify(merged, null, 2), 'utf8');
     const sqliteFile = await insertReportsSqlite(savedReports);
 
     return {
