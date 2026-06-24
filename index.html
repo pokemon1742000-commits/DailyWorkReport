@@ -1743,7 +1743,7 @@
         <div class="brand">
             <div class="brand-icon">D</div>
             <div>Daily Work Report</div>
-            <span class="version-badge">v1.3.1</span>
+            <span class="version-badge">v1.3.2</span>
         </div>
         <div class="header-actions">
             <button id="weeklyReportBtn" title="Xuất báo cáo tuần">Báo cáo tuần</button>
@@ -1866,6 +1866,7 @@
                                     <th style="width:44px;"><input id="selectAllSearch" type="checkbox" title="Chọn tất cả kết quả"></th>
                                     <th>Mã dự án</th>
                                     <th>Ngày</th>
+                                    <th>Thời gian</th>
                                     <th>Người thực hiện</th>
                                     <th>Nội dung</th>
                                     <th>Trạng thái</th>
@@ -2822,6 +2823,7 @@
             const projects = extractProjects(sections.project || fallback.project || normalizedRaw);
             const inlineProgress = splitContentAndInlineStatus(splitItems(sections.content || fallback.content || ''));
             const contentItems = inlineProgress.contentItems;
+            const timeItems = mergeUniqueItems(inlineProgress.timeItems, extractTimeItems(normalizedRaw));
             const rawStatusItems = splitItems(sections.status || fallback.status || '')
                 .map((item) => parseInlineProgressItem(item).status || item)
                 .filter((item) => !looksLikeTimeLine(item));
@@ -2836,7 +2838,7 @@
                 const aliases = projectAliases(project);
                 const hasProjectSpecificStatus = statusItems.some((item) => containsAnyAlias(item, allProjectAliases));
                 const relatedStatuses = safeProjects.length === 1
-                    ? statusItems
+                    ? statusItems.map((item) => cleanStatusForProject(item, aliases))
                     : statusItems.flatMap((item) => extractStatusForProject(item, aliases));
                 const contentFromStatus = relatedStatuses.flatMap((item) => deriveWorkItemsFromStatus(item, aliases));
                 const normalizedContentItems = mergeUniqueItems(contentItems, contentFromStatus);
@@ -2850,6 +2852,7 @@
                     id: `${dateInfo.iso || 'unknown'}_${project}_${String(index + 1).padStart(3, '0')}`,
                     ma_du_an: project,
                     noi_dung_cong_viec: normalizedContentItems.length ? normalizedContentItems : ['Chưa xác định'],
+                    thoi_gian: timeItems,
                     nguoi_thuc_hien: safePeople,
                     trang_thai: relatedStatuses.length ? relatedStatuses : (hasProjectSpecificStatus ? ['Chưa có trạng thái riêng cho dự án này.'] : (statusItems.length ? statusItems : ['Chưa xác định'])),
                     ngay_thuc_hien: dateInfo.iso || '',
@@ -2920,10 +2923,13 @@
                 const project = projects[0] || 'CHUA_XAC_DINH_DU_AN';
                 const inlineProgress = splitContentAndInlineStatus(splitItems(block.content));
                 const contentItems = inlineProgress.contentItems;
+                const aliases = projectAliases(project);
+                const timeItems = mergeUniqueItems(inlineProgress.timeItems, extractTimeItems(`${block.content}\n${block.status}\n${raw}`));
                 const rawStatusItems = splitItems(block.status)
                     .map((item) => parseInlineProgressItem(item).status || item)
                     .filter((item) => !looksLikeTimeLine(item));
-                const statusItems = mergeUniqueItems(rawStatusItems, inlineProgress.statusItems);
+                const statusItems = mergeUniqueItems(rawStatusItems, inlineProgress.statusItems)
+                    .map((item) => cleanStatusForProject(item, aliases));
                 const people = extractPeople(block.people || sharedPeople || shared.people || '');
                 const safePeople = people.length ? people : [{ displayName: 'Chưa xác định', folderName: 'ChuaXacDinh' }];
                 const dateInfo = parseDate(block.date || shared.date) || sharedDateInfo;
@@ -2937,6 +2943,7 @@
                     id: `${dateInfo.iso || 'unknown'}_${project}_${String(index + 1).padStart(3, '0')}`,
                     ma_du_an: project,
                     noi_dung_cong_viec: contentItems.length ? contentItems : ['Chưa xác định'],
+                    thoi_gian: timeItems,
                     nguoi_thuc_hien: safePeople,
                     trang_thai: statusItems.length ? statusItems : ['Chưa xác định'],
                     ngay_thuc_hien: dateInfo.iso || '',
@@ -3090,7 +3097,7 @@
 
         function extractProjectsFromLine(line) {
             const projects = [];
-            const explicitProject = /\b(AUT[A-Z]?|MEC)\s*:?\s*([0-9]+(?:E[0-9]+)?)(?=[\s,.;:(]|$)/gi;
+            const explicitProject = /\b(AUT[A-Z]?|MEC)\s*:?\s*([0-9]+(?:[A-Z][0-9]+)?)(?=[\s,.;:(]|$)/gi;
             let match;
 
             while ((match = explicitProject.exec(line)) !== null) {
@@ -3144,7 +3151,22 @@
         }
 
         function isValidProjectCode(project) {
-            return /^(?:AUT[A-Z]?\d+(?:E\d+)?|MEC\d{6,})$/.test(project);
+            const compact = String(project || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+            const aut = compact.match(/^(AUT[A-Z]?)(\d{2})(\d{2})([A-Z0-9]{2})$/);
+            if (aut) {
+                const year = Number(aut[2]);
+                const month = Number(aut[3]);
+                return year >= 20 && year <= 30 && month >= 1 && month <= 12;
+            }
+
+            const mec = compact.match(/^(MEC)(\d{2})(\d{2})(\d{3})$/);
+            if (mec) {
+                const year = Number(mec[2]);
+                const month = Number(mec[3]);
+                return year >= 20 && year <= 30 && month >= 1 && month <= 12;
+            }
+
+            return false;
         }
 
         function inferLooseFields(raw, sections) {
@@ -3279,7 +3301,31 @@
                 .map((segment) => segment.trim())
                 .filter(Boolean);
             const candidates = segments.length > 1 ? segments : [statusText];
-            return candidates.filter((segment) => containsAnyAlias(segment, aliases));
+            return candidates
+                .filter((segment) => containsAnyAlias(segment, aliases))
+                .map((segment) => cleanStatusForProject(segment, aliases))
+                .filter(Boolean);
+        }
+
+        function cleanStatusForProject(statusText, aliases = []) {
+            let cleaned = String(statusText || '').trim();
+            const aliasPattern = aliases
+                .filter(Boolean)
+                .sort((a, b) => b.length - a.length)
+                .map((alias) => alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+                .join('|');
+
+            if (aliasPattern) {
+                cleaned = cleaned
+                    .replace(new RegExp(`\\b(?:may|máy)\\s*(?:${aliasPattern})\\b`, 'gi'), '')
+                    .replace(new RegExp(`\\b(?:${aliasPattern})\\b`, 'gi'), '');
+            }
+
+            return cleaned
+                .replace(/\s+/g, ' ')
+                .replace(/\s+([,.;:])/g, '$1')
+                .replace(/^[,.;:\-\s]+|[,.;:\-\s]+$/g, '')
+                .trim();
         }
 
         function deriveWorkItemsFromStatus(statusText, aliases = []) {
@@ -3365,6 +3411,7 @@
         function splitContentAndInlineStatus(items) {
             const contentItems = [];
             const statusItems = [];
+            const timeItems = [];
 
             items.forEach((item) => {
                 const parsed = parseInlineProgressItem(item);
@@ -3374,11 +3421,15 @@
                 if (parsed.status) {
                     statusItems.push(parsed.status);
                 }
+                if (parsed.time) {
+                    timeItems.push(parsed.time);
+                }
             });
 
             return {
                 contentItems: mergeUniqueItems(contentItems, []),
-                statusItems: mergeUniqueItems(statusItems, [])
+                statusItems: mergeUniqueItems(statusItems, []),
+                timeItems: mergeUniqueItems(timeItems, [])
             };
         }
 
@@ -3389,24 +3440,33 @@
 
             const timeLine = original.match(/^(?:thoi\s*gian|thời\s*gian)?\s*:?\s*\(?\s*(\d{1,2}\s*(?::|h)\s*\d{0,2}\s*[-–—]\s*\d{1,2}\s*(?::|h)\s*\d{0,2})\s*\)?$/i);
             if (timeLine) {
-                return { content: normalizeTimeText(timeLine[1]), status: '' };
+                return { content: '', status: '', time: normalizeTimeText(timeLine[1]) };
+            }
+
+            const embeddedTime = original.match(/^(.*?)\s*\(?\s*(\d{1,2}\s*(?::|h)\s*\d{0,2}\s*[-–—]\s*\d{1,2}\s*(?::|h)\s*\d{0,2})\s*\)?\s*$/i);
+            if (embeddedTime && embeddedTime[1].trim()) {
+                return {
+                    content: stripTrailingDash(embeddedTime[1]),
+                    status: '',
+                    time: normalizeTimeText(embeddedTime[2])
+                };
             }
 
             const parenProgress = original.match(/^(.*?)\s*\(\s*(?:tien\s*do|tiến\s*độ)\s*:?\s*([^)]+)\)\s*$/i);
             if (parenProgress) {
                 content = stripTrailingDash(parenProgress[1]);
                 status = `${content} ${normalizeProgressText(parenProgress[2])}`.trim();
-                return { content, status };
+                return { content, status, time: '' };
             }
 
             const dashProgress = original.match(/^(.*?)\s*[-–—]\s*(\d+\s*%|hoan\s*thanh|hoàn\s*thành|hoan\s*thien|hoàn\s*thiện|chua\s*xong|chưa\s*xong|chua\s*hoan\s*thanh|chưa\s*hoàn\s*thành)\s*$/i);
             if (dashProgress) {
                 content = stripTrailingDash(dashProgress[1]);
                 status = `${content} ${normalizeProgressText(dashProgress[2])}`.trim();
-                return { content, status };
+                return { content, status, time: '' };
             }
 
-            return { content: stripTrailingDash(content), status };
+            return { content: stripTrailingDash(content), status, time: '' };
         }
 
         function normalizeProgressText(text) {
@@ -3420,12 +3480,17 @@
             return /^(?:thoi\s*gian|thời\s*gian)?\s*:?\s*\(?\s*\d{1,2}\s*(?::|h)\s*\d{0,2}\s*[-–—]\s*\d{1,2}\s*(?::|h)\s*\d{0,2}\s*\)?$/i.test(String(text || '').trim());
         }
 
+        function extractTimeItems(text) {
+            const matches = String(text || '').match(/\b\d{1,2}\s*(?::|h)\s*\d{0,2}\s*[-–—]\s*\d{1,2}\s*(?::|h)\s*\d{0,2}\b/gi) || [];
+            return mergeUniqueItems(matches.map(normalizeTimeText), []);
+        }
+
         function normalizeTimeText(text) {
-            return String(text || '')
-                .replace(/\s+/g, '')
-                .replace(/h(?=\d)/gi, ':')
-                .replace(/[-–—]/g, '-')
-                .trim();
+            const match = String(text || '').match(/(\d{1,2})\s*(?::|h)\s*(\d{0,2})\s*[-–—]\s*(\d{1,2})\s*(?::|h)\s*(\d{0,2})/i);
+            if (!match) return String(text || '').replace(/\s+/g, ' ').trim();
+            const startMinute = match[2] ? match[2].padStart(2, '0') : '00';
+            const endMinute = match[4] ? match[4].padStart(2, '0') : '00';
+            return `${Number(match[1])}:${startMinute} - ${Number(match[3])}:${endMinute}`;
         }
 
         function extractPeople(text) {
@@ -3524,6 +3589,7 @@
                         <div class="report-grid">
                             ${editablePreviewFieldHtml('Mã dự án', report.ma_du_an, index, 'ma_du_an', 'input')}
                             ${editablePreviewFieldHtml('Nội dung công việc', listToTextareaValue(report.noi_dung_cong_viec), index, 'noi_dung_cong_viec', 'textarea')}
+                            ${editablePreviewFieldHtml('Thời gian', listToTextareaValue(report.thoi_gian), index, 'thoi_gian', 'textarea')}
                             ${fieldHtml('Người thực hiện', peopleEditorHtml(report, index))}
                             ${editablePreviewFieldHtml('Trạng thái', listToTextareaValue(report.trang_thai), index, 'trang_thai', 'textarea')}
                             ${fieldHtml('Ngày thực hiện', report.ngay_thuc_hien || 'Chưa xác định')}
@@ -3643,7 +3709,7 @@
                 return;
             }
 
-            if (field === 'noi_dung_cong_viec' || field === 'trang_thai') {
+            if (field === 'noi_dung_cong_viec' || field === 'trang_thai' || field === 'thoi_gian') {
                 report[field] = textareaToPreviewList(event.target.value);
                 return;
             }
@@ -4643,6 +4709,7 @@
                     </div>
                     <h4>${escapeHtml(report.ma_du_an || state.detailProject)}</h4>
                     ${renderDetailList('Nội dung công việc', report.noi_dung_cong_viec)}
+                    ${renderDetailList('Thời gian', report.thoi_gian)}
                     ${renderDetailList('Trạng thái', report.trang_thai)}
                     ${renderDetailImages(report.detail_images)}
                 </article>
@@ -5349,7 +5416,7 @@
             if (rawQuery) {
                 const queryPayload = dateQuery
                     ? { ngay: dateQuery }
-                    : { ma_du_an: rawQuery };
+                    : {};
                 const result = await ipcRenderer.invoke('query-reports', queryPayload);
                 state.savedReports = result.reports;
             } else {
@@ -5368,7 +5435,7 @@
             state.selectedSearchIds = new Set([...state.selectedSearchIds].filter((id) => rows.some((report) => report.id === id)));
 
             if (!rows.length) {
-                els.searchResults.innerHTML = '<tr><td colspan="7" class="muted">Không có kết quả.</td></tr>';
+                els.searchResults.innerHTML = '<tr><td colspan="8" class="muted">Không có kết quả.</td></tr>';
                 updateSearchDeleteControls();
                 return;
             }
@@ -5376,6 +5443,7 @@
             els.searchResults.innerHTML = rows.map((report, index) => {
                 const people = (report.nguoi_thuc_hien || []).map((person) => person.displayName || person).join(', ');
                 const content = Array.isArray(report.noi_dung_cong_viec) ? report.noi_dung_cong_viec.join('; ') : '';
+                const time = Array.isArray(report.thoi_gian) ? report.thoi_gian.join('; ') : '';
                 const status = Array.isArray(report.trang_thai) ? report.trang_thai.join('; ') : '';
                 const folder = report.folder_ngay || '';
                 const checked = state.selectedSearchIds.has(report.id) ? 'checked' : '';
@@ -5384,6 +5452,7 @@
                         <td><input type="checkbox" data-search-select="${escapeHtml(report.id || '')}" ${checked}></td>
                         <td>${escapeHtml(report.ma_du_an || '')}</td>
                         <td>${escapeHtml(report.ngay_thuc_hien || '')}</td>
+                        <td>${escapeHtml(time)}</td>
                         <td>${escapeHtml(people)}</td>
                         <td>${escapeHtml(content)}</td>
                         <td>${escapeHtml(status)}</td>

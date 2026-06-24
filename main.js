@@ -336,6 +336,11 @@ function ensureReportsSchema(db) {
     }
 
     createReportsTable(db);
+    if (columns.length && !columns.includes('thoi_gian')) {
+        db.run('ALTER TABLE reports ADD COLUMN thoi_gian TEXT NOT NULL DEFAULT "[]";');
+        db.run('ALTER TABLE reports ADD COLUMN thoi_gian_text TEXT NOT NULL DEFAULT "";');
+    }
+    db.run('CREATE INDEX IF NOT EXISTS idx_reports_thoi_gian_text ON reports(thoi_gian_text);');
 }
 
 function createReportsTable(db) {
@@ -346,6 +351,8 @@ function createReportsTable(db) {
             ma_du_an TEXT NOT NULL,
             noi_dung_cong_viec TEXT NOT NULL,
             noi_dung_text TEXT NOT NULL,
+            thoi_gian TEXT NOT NULL DEFAULT '[]',
+            thoi_gian_text TEXT NOT NULL DEFAULT '',
             nguoi_thuc_hien TEXT NOT NULL,
             nguoi_text TEXT NOT NULL,
             trang_thai TEXT NOT NULL,
@@ -366,6 +373,7 @@ function createReportsTable(db) {
     db.run('CREATE INDEX IF NOT EXISTS idx_reports_ngay ON reports(ngay_thuc_hien);');
     db.run('CREATE INDEX IF NOT EXISTS idx_reports_nguoi_text ON reports(nguoi_text);');
     db.run('CREATE INDEX IF NOT EXISTS idx_reports_noi_dung_text ON reports(noi_dung_text);');
+    db.run('CREATE INDEX IF NOT EXISTS idx_reports_thoi_gian_text ON reports(thoi_gian_text);');
     db.run('CREATE INDEX IF NOT EXISTS idx_reports_trang_thai_text ON reports(trang_thai_text);');
 }
 
@@ -377,12 +385,12 @@ function migrateLegacyReports(db) {
     const insert = db.prepare(`
         INSERT INTO reports (
             id, ma_du_an, noi_dung_cong_viec, noi_dung_text,
-            nguoi_thuc_hien, nguoi_text, trang_thai, trang_thai_text,
+            thoi_gian, thoi_gian_text, nguoi_thuc_hien, nguoi_text, trang_thai, trang_thai_text,
             ngay_thuc_hien, folder_ngay, folder_nguoi, folder_nguoi_text,
             raw_text, excel_exported, excel_file, excel_sheet, created_at
         ) VALUES (
             $id, $ma_du_an, $noi_dung_cong_viec, $noi_dung_text,
-            $nguoi_thuc_hien, $nguoi_text, $trang_thai, $trang_thai_text,
+            $thoi_gian, $thoi_gian_text, $nguoi_thuc_hien, $nguoi_text, $trang_thai, $trang_thai_text,
             $ngay_thuc_hien, $folder_ngay, $folder_nguoi, $folder_nguoi_text,
             $raw_text, $excel_exported, $excel_file, $excel_sheet, $created_at
         );
@@ -422,6 +430,7 @@ function listText(value, mapper = (item) => item) {
 function reportToDbParams(report) {
     const peopleText = listText(report.nguoi_thuc_hien, (person) => person.displayName || person);
     const contentText = listText(report.noi_dung_cong_viec);
+    const timeText = listText(report.thoi_gian);
     const statusText = listText(report.trang_thai);
     const folderPeopleText = listText(report.folder_nguoi);
 
@@ -430,6 +439,8 @@ function reportToDbParams(report) {
         $ma_du_an: report.ma_du_an || '',
         $noi_dung_cong_viec: serializeList(report.noi_dung_cong_viec),
         $noi_dung_text: contentText,
+        $thoi_gian: serializeList(report.thoi_gian),
+        $thoi_gian_text: timeText,
         $nguoi_thuc_hien: serializeList(report.nguoi_thuc_hien),
         $nguoi_text: peopleText,
         $trang_thai: serializeList(report.trang_thai),
@@ -452,6 +463,7 @@ function rowToReport(row) {
         id: row.id,
         ma_du_an: row.ma_du_an,
         noi_dung_cong_viec: deserializeList(row.noi_dung_cong_viec),
+        thoi_gian: deserializeList(row.thoi_gian),
         nguoi_thuc_hien: deserializeList(row.nguoi_thuc_hien),
         trang_thai: deserializeList(row.trang_thai),
         ngay_thuc_hien: row.ngay_thuc_hien,
@@ -470,12 +482,12 @@ async function insertReportsSqlite(reports) {
     const stmt = db.prepare(`
         INSERT INTO reports (
             id, ma_du_an, noi_dung_cong_viec, noi_dung_text,
-            nguoi_thuc_hien, nguoi_text, trang_thai, trang_thai_text,
+            thoi_gian, thoi_gian_text, nguoi_thuc_hien, nguoi_text, trang_thai, trang_thai_text,
             ngay_thuc_hien, folder_ngay, folder_nguoi, folder_nguoi_text, raw_text,
             excel_exported, excel_file, excel_sheet, created_at
         ) VALUES (
             $id, $ma_du_an, $noi_dung_cong_viec, $noi_dung_text,
-            $nguoi_thuc_hien, $nguoi_text, $trang_thai, $trang_thai_text,
+            $thoi_gian, $thoi_gian_text, $nguoi_thuc_hien, $nguoi_text, $trang_thai, $trang_thai_text,
             $ngay_thuc_hien, $folder_ngay, $folder_nguoi, $folder_nguoi_text, $raw_text,
             $excel_exported, $excel_file, $excel_sheet, $created_at
         );
@@ -519,6 +531,10 @@ async function queryReportsSqlite(query = {}) {
     if (query.noi_dung) {
         clauses.push('noi_dung_text LIKE $noi_dung');
         params.$noi_dung = `%${query.noi_dung}%`;
+    }
+    if (query.thoi_gian) {
+        clauses.push('thoi_gian_text LIKE $thoi_gian');
+        params.$thoi_gian = `%${query.thoi_gian}%`;
     }
     if (query.trang_thai) {
         clauses.push('trang_thai_text LIKE $trang_thai');
@@ -1226,6 +1242,7 @@ ipcMain.handle('get-app-info', async () => {
         version: pkg.version || '1.0.0',
         description: pkg.description || 'Phần mềm chuẩn hóa báo cáo công việc hằng ngày, quản lý dữ liệu SQLite, thư mục ảnh/tài liệu và xuất báo cáo tuần Excel.',
         latestUpdate: [
+            'Ban 1.3.2: them truong Thoi gian cho nhap lieu, luu SQLite/tim kiem, chan ma du an ao theo nam-thang va lam sach trang thai theo tung du an.',
             'Ban 1.3.1: nut Update tu dong tai installer, mo trinh cai dat va dong phan mem hien tai de cai de ban moi.',
             'Ban 1.3.0: them canh bao ma du an khong co trong file tham khao, goi y sua ma, Detail loc dung ma du an va build installer NSIS.',
             'Bản 1.2.2: phát hành thử nghiệm dạng win-unpacked.zip để kiểm tra updater tải gói unpack.',
