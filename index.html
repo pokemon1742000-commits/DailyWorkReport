@@ -1837,7 +1837,7 @@
         <div class="brand">
             <div class="brand-icon">D</div>
             <div>Daily Work Report</div>
-            <span class="version-badge">v1.3.3</span>
+            <span class="version-badge">v1.3.4</span>
         </div>
         <div class="header-actions">
             <button id="weeklyReportBtn" title="Xuất báo cáo tuần">Báo cáo tuần</button>
@@ -2289,7 +2289,7 @@
         const { Hands } = require('@mediapipe/hands');
         const HAND_DWELL_MS = 850;
         const HAND_SELECTABLE_SELECTOR = 'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [role="button"], [tabindex]:not([tabindex="-1"])';
-        const WEEKLY_CATEGORY_OPTIONS = ['Lắp mới', 'Chỉnh máy', 'Lắp đặt', 'Sửa', 'Hỗ trợ'];
+        const WEEKLY_CATEGORY_OPTIONS = ['Lắp máy mới', 'Chỉnh máy', 'Lắp đặt tại line', 'Sửa máy', 'Hỗ trợ'];
         const WEEKLY_PROGRESS_PERCENT_OPTIONS = Array.from({ length: 20 }, (_, index) => `${(index + 1) * 5}%`);
         const WEEKLY_PROGRESS_STATUS_OPTIONS = ['Hoàn thành', 'Đang thực hiện', 'Bắt đầu làm.', 'Tạm dừng', 'Đang xử lý', 'Hoàn thiện', 'Chờ'];
         const DEFAULT_WEEKLY_COLUMNS = [
@@ -2317,8 +2317,8 @@
             sqliteFile: '',
             members: loadMembers(),
             weeklyRows: [],
-            weeklyRowsByRange: new Map(),
-            weeklyRowsByProject: new Map(),
+            weeklyRowsByRange: loadWeeklyRowsByRange(),
+            weeklyRowsByProject: loadWeeklyRowsByProject(),
             currentWeeklyRangeKey: '',
             weeklyImages: [],
             weeklyImageGroups: [],
@@ -3099,44 +3099,50 @@
             const sharedDateInfo = parseDate(shared.date || raw);
             const reports = [];
 
-            blocks.forEach((block, index) => {
+            blocks.forEach((block, blockIndex) => {
                 const projects = extractProjects(block.project);
-                const project = projects[0] || 'CHUA_XAC_DINH_DU_AN';
+                const safeProjects = projects.length ? projects : ['CHUA_XAC_DINH_DU_AN'];
                 const inlineProgress = splitContentAndInlineStatus(splitItems(block.content));
                 const contentItems = sanitizeWorkItems(inlineProgress.contentItems);
-                const aliases = projectAliases(project);
-                const timeItems = mergeUniqueItems(inlineProgress.timeItems, extractTimeItems(`${block.content}\n${block.status}\n${raw}`));
+                const timeItems = mergeUniqueItems(inlineProgress.timeItems, extractTimeItems(`${block.content}\n${block.status}\n${block.date}`));
                 const rawStatusItems = splitItems(block.status)
                     .map((item) => parseInlineProgressItem(item).status || item)
                     .filter((item) => !looksLikeTimeLine(item));
-                const statusItems = sanitizeStatusItems(mergeUniqueItems(rawStatusItems, inlineProgress.statusItems)
-                    .map((item) => cleanStatusForProject(item, aliases)));
                 const people = extractPeople(block.people || sharedPeople || shared.people || '');
                 const safePeople = people.length ? people : [{ displayName: 'Chưa xác định', folderName: 'ChuaXacDinh' }];
                 const dateInfo = parseDate(block.date || shared.date) || sharedDateInfo;
-                const warning = [];
-                if (!projects.length) warning.push('Chưa nhận diện được mã dự án.');
-                if (!contentItems.length) warning.push('Chưa nhận diện được nội dung công việc.');
-                if (!people.length) warning.push('Chưa nhận diện được người thực hiện.');
-                if (!dateInfo.iso) warning.push('Chưa nhận diện được ngày thực hiện.');
 
-                reports.push({
-                    id: `${dateInfo.iso || 'unknown'}_${project}_${String(index + 1).padStart(3, '0')}`,
-                    ma_du_an: project,
-                    noi_dung_cong_viec: contentItems.length ? contentItems : ['Chưa xác định'],
-                    thoi_gian: timeItems,
-                    nguoi_thuc_hien: safePeople,
-                    trang_thai: statusItems.length ? statusItems : ['Chưa xác định'],
-                    ngay_thuc_hien: dateInfo.iso || '',
-                    folder_ngay_name: dateInfo.folderName || 'UnknownDate',
-                    folder_ngay: '',
-                    folder_nguoi: [],
-                    raw_text: raw,
-                    excel_exported: false,
-                    excel_file: null,
-                    excel_sheet: null,
-                    selectedForExcel: false,
-                    warning
+                safeProjects.forEach((project) => {
+                    const aliases = projectAliases(project);
+                    let statusItems = sanitizeStatusItems(mergeUniqueItems(rawStatusItems, inlineProgress.statusItems)
+                        .map((item) => cleanStatusForProject(item, aliases)));
+                    if (statusItems.length === 1 && /^\d+(?:[.,]\d+)?\s*%$/.test(statusItems[0]) && contentItems.length === 1) {
+                        statusItems = [`${contentItems[0]} ${statusItems[0]}`];
+                    }
+                    const warning = [];
+                    if (!projects.length) warning.push('Chưa nhận diện được mã dự án.');
+                    if (!contentItems.length) warning.push('Chưa nhận diện được nội dung công việc.');
+                    if (!people.length) warning.push('Chưa nhận diện được người thực hiện.');
+                    if (!dateInfo.iso) warning.push('Chưa nhận diện được ngày thực hiện.');
+
+                    reports.push({
+                        id: `${dateInfo.iso || 'unknown'}_${project}_${String(blockIndex + 1).padStart(3, '0')}_${String(reports.length + 1).padStart(3, '0')}`,
+                        ma_du_an: project,
+                        noi_dung_cong_viec: contentItems.length ? contentItems : ['Chưa xác định'],
+                        thoi_gian: timeItems,
+                        nguoi_thuc_hien: safePeople,
+                        trang_thai: statusItems.length ? statusItems : ['Chưa xác định'],
+                        ngay_thuc_hien: dateInfo.iso || '',
+                        folder_ngay_name: dateInfo.folderName || 'UnknownDate',
+                        folder_ngay: '',
+                        folder_nguoi: [],
+                        raw_text: raw,
+                        excel_exported: false,
+                        excel_file: null,
+                        excel_sheet: null,
+                        selectedForExcel: false,
+                        warning
+                    });
                 });
             });
 
@@ -3144,7 +3150,7 @@
         }
 
         function parseNumberedLine(line) {
-            const match = String(line || '').match(/^(\d+)\s*[\.\)]\s*(.*)$/);
+            const match = String(line || '').match(/^(\d+)\s*[\.\):]\s*(.*)$/);
             if (!match) return null;
             return {
                 number: Number(match[1]),
@@ -4105,6 +4111,49 @@
             localStorage.setItem('dailyWorkReportWeeklyProjectExclusions', JSON.stringify(state.weeklyProjectExclusions));
         }
 
+        function normalizeWeeklyRowForStorage(row) {
+            const normalized = { ...(row || {}) };
+            normalized.hang_muc = normalizeWeeklyCategory(normalized.hang_muc);
+            DEFAULT_WEEKLY_COLUMNS.forEach((column) => {
+                if (!(column.id in normalized)) normalized[column.id] = '';
+            });
+            return normalized;
+        }
+
+        function loadWeeklyRowsByRange() {
+            try {
+                const parsed = JSON.parse(localStorage.getItem('dailyWorkReportWeeklyRowsByRange') || '{}');
+                if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return new Map();
+                return new Map(Object.entries(parsed).map(([key, rows]) => [
+                    key,
+                    Array.isArray(rows) ? rows.map(normalizeWeeklyRowForStorage) : []
+                ]));
+            } catch {
+                return new Map();
+            }
+        }
+
+        function loadWeeklyRowsByProject() {
+            try {
+                const parsed = JSON.parse(localStorage.getItem('dailyWorkReportWeeklyRowsByProject') || '{}');
+                if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return new Map();
+                return new Map(Object.entries(parsed).map(([key, row]) => [key, normalizeWeeklyRowForStorage(row)]));
+            } catch {
+                return new Map();
+            }
+        }
+
+        function saveWeeklyRowsCache() {
+            try {
+                const rangeObject = Object.fromEntries([...state.weeklyRowsByRange.entries()]);
+                const projectObject = Object.fromEntries([...state.weeklyRowsByProject.entries()]);
+                localStorage.setItem('dailyWorkReportWeeklyRowsByRange', JSON.stringify(rangeObject));
+                localStorage.setItem('dailyWorkReportWeeklyRowsByProject', JSON.stringify(projectObject));
+            } catch (error) {
+                console.warn('Không lưu được cache bảng báo cáo tuần:', error);
+            }
+        }
+
         async function addWeeklyProjectFromInput() {
             const project = normalizeProjectCode(els.weeklyProjectInput.value);
             if (!project) return;
@@ -4412,7 +4461,7 @@
         function createWeeklyRow(project, source = {}) {
             const row = {
                 stt: 0,
-                hang_muc: normalizeWeeklyCategory(source.hang_muc || 'Lắp mới'),
+                hang_muc: normalizeWeeklyCategory(source.hang_muc || 'Lắp máy mới'),
                 ten_may: source.ten_may || '',
                 du_an: project,
                 project_full: project,
@@ -4431,8 +4480,10 @@
 
         function normalizeWeeklyCategory(category) {
             const key = removeVietnameseMarks(String(category || '')).toLowerCase().trim();
-            if (key === 'setup' || key === 'lap dat') return 'Lắp đặt';
-            return WEEKLY_CATEGORY_OPTIONS.find((item) => removeVietnameseMarks(item).toLowerCase() === key) || 'Lắp mới';
+            if (key === 'lap moi' || key === 'lap may moi') return 'Lắp máy mới';
+            if (key === 'setup' || key === 'lap dat' || key === 'lap dat tai line') return 'Lắp đặt tại line';
+            if (key === 'sua' || key === 'sua may') return 'Sửa máy';
+            return WEEKLY_CATEGORY_OPTIONS.find((item) => removeVietnameseMarks(item).toLowerCase() === key) || 'Lắp máy mới';
         }
 
         function sortWeeklyRowsByCategory() {
@@ -4572,15 +4623,16 @@
 
         function cacheCurrentWeeklyRows() {
             if (!state.currentWeeklyRangeKey || !Array.isArray(state.weeklyRows)) return;
-            const clonedRows = state.weeklyRows.map((row) => ({ ...row }));
+            const clonedRows = state.weeklyRows.map(normalizeWeeklyRowForStorage);
             state.weeklyRowsByRange.set(state.currentWeeklyRangeKey, clonedRows);
             cacheWeeklyProjectRows(clonedRows);
+            saveWeeklyRowsCache();
         }
 
         function cacheWeeklyProjectRows(rows) {
             (rows || []).forEach((row) => {
                 const key = normalizeProjectKey(row.du_an || row.project_full);
-                if (key) state.weeklyRowsByProject.set(key, { ...row });
+                if (key) state.weeklyRowsByProject.set(key, normalizeWeeklyRowForStorage(row));
             });
         }
 
@@ -4849,10 +4901,13 @@
             const colors = {
                 'chinh may': ['#ffff00', '#000000'],
                 'sua': ['#ff0000', '#ffffff'],
+                'sua may': ['#ff0000', '#ffffff'],
                 'setup': ['#ffa500', '#000000'],
                 'lap dat': ['#ffa500', '#000000'],
+                'lap dat tai line': ['#ffa500', '#000000'],
                 'ho tro': ['#d9d9d9', '#000000'],
-                'lap moi': ['#5b9bd5', '#ffffff']
+                'lap moi': ['#5b9bd5', '#ffffff'],
+                'lap may moi': ['#5b9bd5', '#ffffff']
             };
             const [bg, fg] = colors[key] || ['#ffffff', '#000000'];
             return `background:${bg}!important;color:${fg}!important;`;
@@ -5630,10 +5685,10 @@
 
             const setupRows = state.weeklyRows.filter((row) => {
                 const category = removeVietnameseMarks(normalizeWeeklyCategory(row.hang_muc)).toLowerCase();
-                return category === 'lap moi' || category === 'sua';
+                return category === 'lap dat tai line' || category === 'sua may';
             });
             if (!setupRows.length) {
-                setWeeklyStatus('Không có máy hạng mục Lắp mới hoặc Sửa để thêm vào Excel setup.', true);
+                setWeeklyStatus('Không có máy hạng mục Lắp đặt tại line hoặc Sửa máy để thêm vào Excel setup.', true);
                 return;
             }
 

@@ -807,7 +807,7 @@ function normalizeWeeklyRows(rows) {
         normalizedRows.push({
             ...row,
             stt: normalizedRows.length + 1,
-            hang_muc: normalizeWeeklyCategory(row.hang_muc || 'Lắp mới'),
+            hang_muc: normalizeWeeklyCategory(row.hang_muc || 'Lắp máy mới'),
             ten_may: row.ten_may || '',
             du_an: project,
             noi_dung: Array.isArray(row.noi_dung_cong_viec) ? row.noi_dung_cong_viec : (Array.isArray(row.noi_dung) ? row.noi_dung : []),
@@ -832,18 +832,21 @@ function normalizeWeeklyCategory(category) {
     const normalized = String(category || '')
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D')
         .toLowerCase()
         .trim();
-    if (normalized === 'setup' || normalized === 'lap dat') return 'Lắp đặt';
+    if (normalized === 'setup' || normalized === 'lap dat' || normalized === 'lap dat tai line') return 'Lắp đặt tại line';
     if (normalized === 'chinh may') return 'Chỉnh máy';
-    if (normalized === 'sua') return 'Sửa';
+    if (normalized === 'sua' || normalized === 'sua may') return 'Sửa máy';
     if (normalized === 'ho tro') return 'Hỗ trợ';
-    return 'Lắp mới';
+    if (normalized === 'lap moi' || normalized === 'lap may moi') return 'Lắp máy mới';
+    return 'Lắp máy mới';
 }
 
 function weeklyCategoryOrder(category) {
     const normalized = normalizeWeeklyCategory(category);
-    return ['Lắp mới', 'Chỉnh máy', 'Lắp đặt', 'Sửa', 'Hỗ trợ'].indexOf(normalized);
+    return ['Lắp máy mới', 'Chỉnh máy', 'Lắp đặt tại line', 'Sửa máy', 'Hỗ trợ'].indexOf(normalized);
 }
 
 function normalizeWeeklyColumns(columns) {
@@ -924,18 +927,33 @@ function applyCellBaseStyle(cell, options = {}) {
 function categoryFillColor(category) {
     const normalized = String(category || '').trim().toLowerCase();
     if (normalized === 'chỉnh máy' || normalized === 'chinh may') return 'FFFFFF00';
-    if (normalized === 'sửa' || normalized === 'sua') return 'FFFF0000';
-    if (normalized === 'setup' || normalized === 'lắp đặt' || normalized === 'lap dat') return 'FFFFA500';
+    if (normalized === 'sửa' || normalized === 'sua' || normalized === 'sửa máy' || normalized === 'sua may') return 'FFFF0000';
+    if (normalized === 'setup' || normalized === 'lắp đặt' || normalized === 'lap dat' || normalized === 'lắp đặt tại line' || normalized === 'lap dat tai line') return 'FFFFA500';
     if (normalized === 'hỗ trợ' || normalized === 'ho tro') return 'FFD9D9D9';
-    if (normalized === 'lắp mới' || normalized === 'lap moi') return 'FF5B9BD5';
+    if (normalized === 'lắp mới' || normalized === 'lap moi' || normalized === 'lắp máy mới' || normalized === 'lap may moi') return 'FF5B9BD5';
     return 'FFFFFFFF';
 }
 
 function categoryFontColor(category) {
     const normalized = String(category || '').trim().toLowerCase();
-    return normalized === 'sửa' || normalized === 'sua' || normalized === 'lắp mới' || normalized === 'lap moi'
+    return normalized === 'sửa' || normalized === 'sua' || normalized === 'sửa máy' || normalized === 'sua may'
+        || normalized === 'lắp mới' || normalized === 'lap moi' || normalized === 'lắp máy mới' || normalized === 'lap may moi'
         ? 'FFFFFFFF'
         : 'FF000000';
+}
+
+function weeklyCategoryKey(category) {
+    return normalizeReferenceSheetName(category);
+}
+
+function isSetupLineInstallCategory(category) {
+    const key = weeklyCategoryKey(category);
+    return key === 'lapdattailine' || key === 'lapdat' || key === 'setup';
+}
+
+function isSetupRepairCategory(category) {
+    const key = weeklyCategoryKey(category);
+    return key === 'suamay' || key === 'sua';
 }
 
 function setMergedTitle(sheet, dateFrom, dateTo) {
@@ -1051,6 +1069,152 @@ function getUniqueOutputPath(outputDir, fileName) {
     return candidate;
 }
 
+function isExcelFileLockError(error) {
+    const code = String(error && error.code || '').toUpperCase();
+    const message = String(error && error.message || '').toLowerCase();
+    return code === 'EBUSY' || code === 'EPERM' || code === 'EACCES'
+        || message.includes('ebusy') || message.includes('eperm') || message.includes('eacces')
+        || message.includes('permission denied') || message.includes('used by another process');
+}
+
+function runPowerShellFile(script, args) {
+    return new Promise((resolve, reject) => {
+        const ps1Path = path.join(app.getPath('temp'), `daily-work-report-${Date.now()}-${Math.random().toString(16).slice(2)}.ps1`);
+        fs.writeFileSync(ps1Path, script, 'utf8');
+        execFile('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ps1Path, ...args], {
+            windowsHide: true,
+            maxBuffer: 1024 * 1024 * 4
+        }, (error, stdout, stderr) => {
+            try {
+                fs.unlinkSync(ps1Path);
+            } catch (_cleanupError) {
+                // Temp cleanup failure should not hide the real export result.
+            }
+            if (error) {
+                const detail = stderr || stdout || error.message;
+                reject(new Error(detail.trim() || error.message));
+                return;
+            }
+            resolve(stdout);
+        });
+    });
+}
+
+async function copyWorkbookToOpenExcelWorkbook(tempPath, targetPath) {
+    const script = String.raw`
+param(
+    [Parameter(Mandatory=$true)][string]$TargetPath,
+    [Parameter(Mandatory=$true)][string]$TempPath
+)
+
+$ErrorActionPreference = "Stop"
+$targetFull = [System.IO.Path]::GetFullPath($TargetPath)
+$tempFull = [System.IO.Path]::GetFullPath($TempPath)
+$createdExcel = $false
+
+try {
+    $excel = [Runtime.InteropServices.Marshal]::GetActiveObject("Excel.Application")
+} catch {
+    $excel = New-Object -ComObject Excel.Application
+    $excel.Visible = $false
+    $createdExcel = $true
+}
+
+$excel.DisplayAlerts = $false
+$targetWb = $null
+$openedTarget = $false
+
+foreach ($wb in @($excel.Workbooks)) {
+    try {
+        if ([System.IO.Path]::GetFullPath($wb.FullName).Equals($targetFull, [System.StringComparison]::OrdinalIgnoreCase)) {
+            $targetWb = $wb
+            break
+        }
+    } catch {}
+}
+
+if ($null -eq $targetWb) {
+    $targetWb = $excel.Workbooks.Open($targetFull)
+    $openedTarget = $true
+}
+
+$tempWb = $null
+try {
+    $tempWb = $excel.Workbooks.Open($tempFull, $null, $true)
+    $src = $tempWb.Worksheets.Item(1)
+    $dst = $targetWb.Worksheets.Item(1)
+
+    try { $dst.Cells.UnMerge() } catch {}
+    foreach ($shape in @($dst.Shapes)) {
+        try { $shape.Delete() } catch {}
+    }
+    $dst.Cells.Clear()
+
+    $used = $src.UsedRange
+    $used.Copy($dst.Range("A1"))
+
+    $colCount = [Math]::Min([int]$used.Columns.Count, 200)
+    for ($i = 1; $i -le $colCount; $i++) {
+        try { $dst.Columns.Item($i).ColumnWidth = $src.Columns.Item($i).ColumnWidth } catch {}
+    }
+
+    $rowCount = [Math]::Min([int]$used.Rows.Count, 2000)
+    for ($i = 1; $i -le $rowCount; $i++) {
+        try { $dst.Rows.Item($i).RowHeight = $src.Rows.Item($i).RowHeight } catch {}
+    }
+
+    foreach ($shape in @($src.Shapes)) {
+        try {
+            $shape.Copy()
+            $dst.Paste() | Out-Null
+            $newShape = $dst.Shapes.Item($dst.Shapes.Count)
+            $newShape.Left = $shape.Left
+            $newShape.Top = $shape.Top
+            $newShape.Width = $shape.Width
+            $newShape.Height = $shape.Height
+        } catch {}
+    }
+
+    $targetWb.Save()
+} finally {
+    if ($null -ne $tempWb) {
+        $tempWb.Close($false)
+    }
+    if ($openedTarget -and $createdExcel -and $null -ne $targetWb) {
+        $targetWb.Close($true)
+    }
+    if ($createdExcel) {
+        $excel.Quit()
+    }
+}
+`;
+
+    await runPowerShellFile(script, ['-TargetPath', targetPath, '-TempPath', tempPath]);
+}
+
+async function writeWorkbookAllowingOpenExcel(workbook, outputPath) {
+    try {
+        await workbook.xlsx.writeFile(outputPath);
+        return;
+    } catch (error) {
+        if (!isExcelFileLockError(error) || process.platform !== 'win32') {
+            throw error;
+        }
+    }
+
+    const tempPath = path.join(app.getPath('temp'), `daily-work-report-open-excel-${Date.now()}-${Math.random().toString(16).slice(2)}.xlsx`);
+    try {
+        await workbook.xlsx.writeFile(tempPath);
+        await copyWorkbookToOpenExcelWorkbook(tempPath, outputPath);
+    } finally {
+        try {
+            if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+        } catch (_cleanupError) {
+            // The OS temp folder can clean this up later.
+        }
+    }
+}
+
 async function exportWeeklyReport(payload) {
     const dateFrom = payload.dateFrom;
     const dateTo = payload.dateTo;
@@ -1121,7 +1285,7 @@ async function exportWeeklyReport(payload) {
         sheet.dataValidations.add(categoryRange, {
             type: 'list',
             allowBlank: true,
-            formulae: ['"Lắp mới,Chỉnh máy,Lắp đặt,Sửa,Hỗ trợ"']
+            formulae: ['"Lắp máy mới,Chỉnh máy,Lắp đặt tại line,Sửa máy,Hỗ trợ"']
         });
     }
 
@@ -1196,7 +1360,7 @@ async function exportWeeklyReport(payload) {
     fs.mkdirSync(outputDir, { recursive: true });
     const outputName = `Báo cáo tuần ${formatReportFileDate(dateFrom)} ~ ${formatReportFileDate(dateTo)}.xlsx`;
     const outputPath = getUniqueOutputPath(outputDir, outputName);
-    await workbook.xlsx.writeFile(outputPath);
+    await writeWorkbookAllowingOpenExcel(workbook, outputPath);
     return outputPath;
 }
 
@@ -1210,8 +1374,7 @@ function formatSetupWorkDate(isoDate) {
 }
 
 function setupTrackingContent(row, detail = null) {
-    const category = String(row.hang_muc || '').trim().toLowerCase();
-    if (category === 'lắp mới' || category === 'lap moi') {
+    if (isSetupLineInstallCategory(row.hang_muc)) {
         return '1. Lắp đặt tại line\n2. Hiệu chỉnh máy';
     }
     const content = detail && Array.isArray(detail.noi_dung_cong_viec)
@@ -1421,20 +1584,6 @@ function removeDuplicateSetupNewInstallRows(sheet, firstDataRow, noteColumn) {
     });
 }
 
-function setupProjectAlreadyHasNewInstall(sheet, firstDataRow, project) {
-    const projectKey = normalizeProjectCode(project);
-    if (!projectKey) return false;
-    let currentProjectKey = '';
-    for (let rowIndex = firstDataRow; rowIndex <= sheet.rowCount; rowIndex += 1) {
-        const row = sheet.getRow(rowIndex);
-        const projectInRow = normalizeProjectCode(cellDisplayText(row.getCell(2)));
-        if (projectInRow) currentProjectKey = projectInRow;
-        if (currentProjectKey !== projectKey) continue;
-        if (isSetupNewInstallContent(cellDisplayText(row.getCell(7)))) return true;
-    }
-    return false;
-}
-
 function groupProjectDetailsByDate(details) {
     const grouped = new Map();
     details.forEach((detail) => {
@@ -1465,19 +1614,20 @@ async function buildSetupTrackingRows(rows, payload) {
         detailMap.get(key).push(report);
     });
 
-    const seenNewInstallProjects = new Set();
+    const seenLineInstallProjects = new Set();
     return rows.flatMap((row) => {
         const key = normalizeProjectCode(row.du_an);
-        const category = String(row.hang_muc || '').trim().toLowerCase();
-        const isNewInstall = category === 'lắp mới' || category === 'lap moi';
-        if (isNewInstall) {
-            if (seenNewInstallProjects.has(key)) return [];
-            seenNewInstallProjects.add(key);
+        const isLineInstall = isSetupLineInstallCategory(row.hang_muc);
+        if (isLineInstall) {
+            if (seenLineInstallProjects.has(key)) return [];
+            seenLineInstallProjects.add(key);
         }
-
         const details = groupProjectDetailsByDate(detailMap.get(key) || []);
         if (!details.length) {
             return [{ weeklyRow: row, detail: null }];
+        }
+        if (isLineInstall) {
+            return [{ weeklyRow: row, detail: details[0] }];
         }
         return details.map((detail) => ({ weeklyRow: row, detail }));
     });
@@ -1486,12 +1636,11 @@ async function buildSetupTrackingRows(rows, payload) {
 async function exportSetupTrackingReport(payload) {
     const outputDir = payload.outputDir;
     const rows = normalizeWeeklyRows(payload.rows || []).filter((row) => {
-        const category = String(row.hang_muc || '').trim().toLowerCase();
-        return category === 'lắp mới' || category === 'lap moi' || category === 'sửa' || category === 'sua';
+        return isSetupLineInstallCategory(row.hang_muc) || isSetupRepairCategory(row.hang_muc);
     });
 
     if (!rows.length) {
-        throw new Error('Không có dòng hạng mục Lắp mới hoặc Sửa để thêm vào Excel setup.');
+        throw new Error('Không có dòng hạng mục Lắp đặt tại line hoặc Sửa máy để thêm vào Excel setup.');
     }
     if (!fs.existsSync(SETUP_TRACKING_TEMPLATE_FILE)) {
         throw new Error('Không tìm thấy template theo dõi setup nội bộ.');
@@ -1532,17 +1681,7 @@ async function exportSetupTrackingReport(payload) {
     const firstDataRow = headerRowNumber + 1;
     const dataTemplateRow = sheet.getRow(firstDataRow);
     const setupEntries = await buildSetupTrackingRows(rows, payload);
-    const setupGroups = groupSetupEntriesByProject(setupEntries).map((group) => {
-        const hasExistingNewInstall = setupProjectAlreadyHasNewInstall(sheet, firstDataRow, group.weeklyRow.du_an);
-        if (!hasExistingNewInstall) return group;
-        return {
-            ...group,
-            entries: group.entries.filter((entry) => {
-                const category = String(entry.weeklyRow.hang_muc || '').trim().toLowerCase();
-                return category !== 'lắp mới' && category !== 'lap moi';
-            })
-        };
-    }).filter((group) => group.entries.length);
+    const setupGroups = groupSetupEntriesByProject(setupEntries);
 
     setupGroups.forEach((group) => {
         const existingGroup = findExistingSetupProjectGroup(sheet, firstDataRow, group.weeklyRow.du_an);
@@ -1583,7 +1722,7 @@ async function exportSetupTrackingReport(payload) {
     removeDuplicateSetupNewInstallRows(sheet, firstDataRow, noteColumn);
     rebuildSetupProjectMerges(sheet, firstDataRow, noteColumn);
 
-    await workbook.xlsx.writeFile(outputPath);
+    await writeWorkbookAllowingOpenExcel(workbook, outputPath);
     return outputPath;
 }
 
@@ -1644,6 +1783,7 @@ ipcMain.handle('get-app-info', async () => {
         version: pkg.version || '1.0.0',
         description: pkg.description || 'Phần mềm chuẩn hóa báo cáo công việc hằng ngày, quản lý dữ liệu SQLite, thư mục ảnh/tài liệu và xuất báo cáo tuần Excel.',
         latestUpdate: [
+            'Ban 1.3.4: cap nhat hang muc bao cao tuan, giu noi dung da nhap, sua xuat Excel setup lay Lap dat tai line/Sua may va ho tro ghi khi file Excel dang mo.',
             'Ban 1.3.3: bo sung xuat Excel setup theo file noi bo, ghi them vao dung nhom ma thiet bi, loc lap moi trung va cai thien bao cao tuan.',
             'Ban 1.3.2: them truong Thoi gian cho nhap lieu, luu SQLite/tim kiem, chan ma du an ao theo nam-thang va lam sach trang thai theo tung du an.',
             'Ban 1.3.1: nut Update tu dong tai installer, mo trinh cai dat va dong phan mem hien tai de cai de ban moi.',
