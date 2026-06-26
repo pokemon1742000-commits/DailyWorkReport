@@ -2738,6 +2738,11 @@
         const WEEKLY_CATEGORY_OPTIONS = ['Lắp máy mới', 'Chỉnh máy', 'Lắp đặt tại line', 'Sửa máy', 'Hỗ trợ'];
         const WEEKLY_PROGRESS_PERCENT_OPTIONS = Array.from({ length: 20 }, (_, index) => `${(index + 1) * 5}%`);
         const WEEKLY_PROGRESS_STATUS_OPTIONS = ['Hoàn thành', 'Đang thực hiện', 'Bắt đầu làm.', 'Tạm dừng', 'Đang xử lý', 'Hoàn thiện', 'Chờ'];
+        let imeComposing = false;
+
+        function isImeInput(event) {
+            return imeComposing || Boolean(event && (event.isComposing || event.key === 'Process' || event.keyCode === 229));
+        }
         const DEFAULT_WEEKLY_COLUMNS = [
             { id: 'stt', label: 'STT', width: 44, locked: true },
             { id: 'hang_muc', label: 'HẠNG\nMỤC', width: 132, locked: true },
@@ -3119,7 +3124,14 @@
         });
         document.addEventListener('mousemove', handleGlobalMouseMove);
         document.addEventListener('mouseup', stopGlobalResize);
+        document.addEventListener('compositionstart', () => {
+            imeComposing = true;
+        }, true);
+        document.addEventListener('compositionend', () => {
+            imeComposing = false;
+        }, true);
         document.addEventListener('keydown', (event) => {
+            if (isImeInput(event)) return;
             if (event.key === 'Escape') hideRawInputContextMenu();
             if (!els.imageViewer.classList.contains('open')) return;
             if (event.key === 'Escape') closeImageViewer();
@@ -3164,16 +3176,19 @@
 
         els.addMemberBtn.addEventListener('click', addMemberFromInput);
         els.memberNameInput.addEventListener('keydown', (event) => {
+            if (isImeInput(event)) return;
             if (event.key === 'Enter') {
                 addMemberFromInput();
             }
         });
         els.addWeeklyProjectBtn.addEventListener('click', addWeeklyProjectFromInput);
         els.weeklyProjectInput.addEventListener('keydown', (event) => {
+            if (isImeInput(event)) return;
             if (event.key === 'Enter') addWeeklyProjectFromInput();
         });
         els.addWeeklyColumnBtn.addEventListener('click', addWeeklyColumnFromInput);
         els.weeklyColumnInput.addEventListener('keydown', (event) => {
+            if (isImeInput(event)) return;
             if (event.key === 'Enter') addWeeklyColumnFromInput();
         });
         els.learningEnabled.addEventListener('change', () => {
@@ -5480,6 +5495,7 @@
             document.querySelectorAll('[data-edit-weekly-project]').forEach((input) => {
                 input.addEventListener('change', () => updateWeeklyProject(Number(input.dataset.editWeeklyProject), input.value));
                 input.addEventListener('keydown', (event) => {
+                    if (isImeInput(event)) return;
                     if (event.key === 'Enter') {
                         event.preventDefault();
                         input.blur();
@@ -6001,6 +6017,7 @@
             });
             document.querySelectorAll('[data-weekly-project-edit]').forEach((input) => {
                 input.addEventListener('keydown', (event) => {
+                    if (isImeInput(event)) return;
                     if (event.key === 'Enter') {
                         event.preventDefault();
                         event.currentTarget.blur();
@@ -6241,6 +6258,7 @@
             `;
             const input = submenu.querySelector('[data-weekly-progress-custom]');
             input.addEventListener('keydown', (event) => {
+                if (isImeInput(event)) return;
                 if (event.key === 'Enter') {
                     event.preventDefault();
                     setWeeklyProgressValue(index, normalizeProgressPercent(input.value));

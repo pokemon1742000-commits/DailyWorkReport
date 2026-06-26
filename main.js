@@ -5,6 +5,7 @@ const path = require('path');
 const { execFile, spawn } = require('child_process');
 const initSqlJs = require('sql.js');
 const ExcelJS = require('exceljs');
+const { autoUpdater } = require('electron-updater');
 
 const DEFAULT_WEEKLY_LOGO = path.join(__dirname, 'assets', 'meiko-automation-logo.png');
 const APP_ICON_FILE = path.join(__dirname, 'assets', 'daily-work-report-icon.png');
@@ -17,6 +18,7 @@ const GITHUB_REPO_URL = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}`;
 
 let sqlPromise = null;
 let machineReferenceCache = null;
+let autoUpdaterConfigured = false;
 const ZALO_IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.webp', '.heic', '.tif', '.tiff']);
 const zaloAutoMoveState = {
     enabled: false,
@@ -113,6 +115,54 @@ function execFileText(command, args, options = {}) {
 
 function wait(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function ensureVietnameseImeCompatibility() {
+    if (process.platform !== 'win32') return;
+    const script = String.raw`
+$process = Get-CimInstance Win32_Process | Where-Object {
+    $_.Name -match '^(UniKey|UniKeyNT|Unikey|unikey).*\.exe$'
+} | Select-Object -First 1
+$candidate = if ($process -and $process.ExecutablePath) { $process.ExecutablePath } else { '' }
+if (-not $candidate) {
+    $programFilesX86 = [Environment]::GetEnvironmentVariable('ProgramFiles(x86)')
+    $roots = @(
+        $env:ProgramFiles,
+        $programFilesX86,
+        $env:LOCALAPPDATA,
+        $env:APPDATA,
+        [Environment]::GetFolderPath('Desktop')
+    ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) }
+    foreach ($root in $roots) {
+        $found = Get-ChildItem -LiteralPath $root -Recurse -ErrorAction SilentlyContinue -Include 'UniKey*.exe','Unikey*.exe','unikey*.exe' |
+            Where-Object { $_.FullName -notmatch '\\node_modules\\|\\dist\\|\\Daily_work_report\\' } |
+            Select-Object -First 1
+        if ($found) {
+            $candidate = $found.FullName
+            break
+        }
+    }
+}
+if ($candidate -and (Test-Path -LiteralPath $candidate)) {
+    try {
+        Start-Process -FilePath $candidate -Verb RunAs -WindowStyle Minimized
+        "STARTED|$candidate"
+    } catch {
+        "FAILED|$candidate|$($_.Exception.Message)"
+    }
+} else {
+    "NOT_FOUND"
+}
+`;
+    try {
+        const result = await execFileText('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', script], { timeout: 7000 });
+        const message = result.stdout.trim();
+        if (message.startsWith('STARTED|')) {
+            console.log('Vietnamese IME helper started:', message.slice('STARTED|'.length));
+        }
+    } catch (error) {
+        console.warn('Vietnamese IME helper skipped:', error.message || error);
+    }
 }
 
 function parseExplorerFolderLines(output) {
@@ -262,6 +312,69 @@ function compareVersions(left, right) {
     return 0;
 }
 
+function configureDifferentialUpdater() {
+    if (autoUpdaterConfigured) return;
+    autoUpdater.autoDownload = false;
+    autoUpdater.autoInstallOnAppQuit = false;
+    autoUpdater.allowPrerelease = false;
+    autoUpdater.allowDowngrade = false;
+    autoUpdater.setFeedURL({
+        provider: 'github',
+        owner: GITHUB_OWNER,
+        repo: GITHUB_REPO
+    });
+    autoUpdaterConfigured = true;
+}
+
+async function updateFromGithubRelease() {
+    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+    const currentVersion = normalizeVersion(pkg.version || app.getVersion() || '0.0.0');
+
+    if (!app.isPackaged) {
+        return updateFromGithubInstallerFallback();
+    }
+
+    try {
+        configureDifferentialUpdater();
+        const checkResult = await autoUpdater.checkForUpdates();
+        const updateInfo = checkResult && checkResult.updateInfo || {};
+        const latestVersion = normalizeVersion(updateInfo.version || updateInfo.tag || '');
+
+        if (!latestVersion || compareVersions(latestVersion, currentVersion) <= 0) {
+            return {
+                mode: 'differential',
+                currentVersion,
+                latestVersion: latestVersion || currentVersion,
+                releaseUrl: GITHUB_REPO_URL,
+                message: `Bạn đang dùng phiên bản mới nhất (${currentVersion}).`
+            };
+        }
+
+        const downloadedFiles = await autoUpdater.downloadUpdate();
+        const downloadedFile = Array.isArray(downloadedFiles) ? downloadedFiles.join('; ') : String(downloadedFiles || '');
+
+        setTimeout(() => {
+            autoUpdater.quitAndInstall(false, true);
+        }, 700);
+
+        return {
+            mode: 'differential',
+            assetType: 'nsis-differential',
+            installerStarted: true,
+            currentVersion,
+            latestVersion,
+            releaseUrl: `${GITHUB_REPO_URL}/releases/tag/v${latestVersion}`,
+            downloadedFile,
+            message: `Đã tải bản cập nhật ${latestVersion}. Phần mềm sẽ đóng và cài phần thay đổi bằng differential update.`
+        };
+    } catch (error) {
+        const fallback = await updateFromGithubInstallerFallback();
+        fallback.mode = 'installer-fallback';
+        fallback.message = `${fallback.message || ''}\nUpdater vi sai lỗi nên đã chuyển sang tải installer đầy đủ. Lỗi: ${error.message || error}`;
+        return fallback;
+    }
+}
+
 function psQuote(value) {
     return `'${String(value || '').replace(/'/g, "''")}'`;
 }
@@ -344,7 +457,7 @@ shell.Run command, 0, False
     return { ps1Path, vbsPath, logPath };
 }
 
-async function updateFromGithubRelease() {
+async function updateFromGithubInstallerFallback() {
     const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
     const currentVersion = normalizeVersion(pkg.version || app.getVersion() || '0.0.0');
     const release = await requestGithubJson(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`);
@@ -2447,6 +2560,9 @@ app.whenReady().then(() => {
         callback(permission === 'media');
     });
     createWindow();
+    setTimeout(() => {
+        ensureVietnameseImeCompatibility();
+    }, 1200);
 });
 
 app.on('window-all-closed', () => {
@@ -2515,17 +2631,18 @@ ipcMain.handle('get-app-info', async () => {
         version: pkg.version || '1.0.0',
         description: pkg.description || 'Phần mềm chuẩn hóa báo cáo công việc hằng ngày, quản lý dữ liệu SQLite, thư mục ảnh/tài liệu và xuất báo cáo tuần Excel.',
         latestUpdate: [
-            'Ban 1.5.5: sua updater co log, cho app dong han, cai silent va tu mo installer neu silent loi; cap nhat logo phan mem moi.',
-            'Ban 1.5.3: sua updater de tu dong dong app, cai dat silent va mo lai phan mem sau khi cap nhat.',
-            'Ban 1.5.2: sua badge version tren tieu de de tu dong doc dung version tu package.json.',
-            'Ban 1.5.1: sua loi ban chay Administrator khong doc duoc thu muc File Explorer dang mo.',
-            'Ban 1.5.0: them che do chay quyen Administrator cho ban build Windows va hien thi thu muc dich anh Zalo.',
-            'Ban 1.4.0: them popup phat hien phien ban moi tren GitHub, nut Update ngay/De sau va cai tien AI hoc nhap lieu, hand tracking.',
-            'Ban 1.3.4: cap nhat hang muc bao cao tuan, giu noi dung da nhap, sua xuat Excel setup lay Lap dat tai line/Sua may va ho tro ghi khi file Excel dang mo.',
-            'Ban 1.3.3: bo sung xuat Excel setup theo file noi bo, ghi them vao dung nhom ma thiet bi, loc lap moi trung va cai thien bao cao tuan.',
-            'Ban 1.3.2: them truong Thoi gian cho nhap lieu, luu SQLite/tim kiem, chan ma du an ao theo nam-thang va lam sach trang thai theo tung du an.',
-            'Ban 1.3.1: nut Update tu dong tai installer, mo trinh cai dat va dong phan mem hien tai de cai de ban moi.',
-            'Ban 1.3.0: them canh bao ma du an khong co trong file tham khao, goi y sua ma, Detail loc dung ma du an va build installer NSIS.',
+            'Bản 1.5.6: chuyển updater sang electron-updater để hỗ trợ cập nhật vi sai bằng latest.yml và blockmap, chỉ tải phần thay đổi khi có thể.',
+            'Bản 1.5.5: sửa updater có log, chờ phần mềm đóng hẳn, cài silent và tự mở installer nếu silent lỗi; cập nhật logo phần mềm mới và hỗ trợ nhập tiếng Việt bằng Unikey/Telex.',
+            'Bản 1.5.3: sửa updater để tự động đóng phần mềm, cài đặt silent và mở lại phần mềm sau khi cập nhật.',
+            'Bản 1.5.2: sửa nhãn phiên bản trên tiêu đề để tự động đọc đúng version từ package.json.',
+            'Bản 1.5.1: sửa lỗi bản chạy Administrator không đọc được thư mục File Explorer đang mở.',
+            'Bản 1.5.0: thêm chế độ chạy quyền Administrator cho bản build Windows và hiển thị thư mục đích ảnh Zalo.',
+            'Bản 1.4.0: thêm popup phát hiện phiên bản mới trên GitHub, nút Update ngay/Để sau và cải tiến AI học nhập liệu, hand tracking.',
+            'Bản 1.3.4: cập nhật hạng mục báo cáo tuần, giữ nội dung đã nhập, sửa xuất Excel setup lấy Lắp đặt tại line/Sửa máy và hỗ trợ ghi khi file Excel đang mở.',
+            'Bản 1.3.3: bổ sung xuất Excel setup theo file nội bộ, ghi thêm vào đúng nhóm mã thiết bị, lọc lắp mới trùng và cải thiện báo cáo tuần.',
+            'Bản 1.3.2: thêm trường Thời gian cho nhập liệu, lưu SQLite/tìm kiếm, chặn mã dự án ảo theo năm-tháng và làm sạch trạng thái theo từng dự án.',
+            'Bản 1.3.1: nút Update tự động tải installer, mở trình cài đặt và đóng phần mềm hiện tại để cài đè bản mới.',
+            'Bản 1.3.0: thêm cảnh báo mã dự án không có trong file tham khảo, gợi ý sửa mã, Detail lọc đúng mã dự án và build installer NSIS.',
             'Bản 1.2.2: phát hành thử nghiệm dạng win-unpacked.zip để kiểm tra updater tải gói unpack.',
             'Bản 1.2.1: thêm gói win-unpacked.zip và updater có thể tải cả file .exe hoặc .zip từ GitHub Releases.',
             'Bản 1.2.0: đổi nút tạo dữ liệu thành Tạo Folder, giữ bảng chuẩn hóa sau khi tạo folder và thêm nút Clear.',
