@@ -27,8 +27,12 @@ const zaloAutoMoveState = {
     useActiveExplorer: true,
     seen: new Set(),
     pending: new Map(),
+    watcher: null,
+    pollRequested: false,
+    pollAgain: false,
     movedCount: 0,
     lastDestination: '',
+    activeExplorerFolder: '',
     openExplorerFolders: [],
     lastExplorerScanAt: 0,
     lastMessage: 'Chưa bật tự chuyển ảnh Zalo.',
@@ -257,7 +261,8 @@ async function updateFromGithubRelease() {
     if (assetType === 'exe') {
         spawn(destinationFile, [], {
             detached: true,
-            stdio: 'ignore'
+            stdio: 'ignore',
+            windowsHide: true
         }).unref();
         installerStarted = true;
         setTimeout(() => app.quit(), 1200);
@@ -1340,35 +1345,73 @@ function notifyZaloImageMoved(payload) {
 async function getOpenExplorerFolders() {
     if (process.platform !== 'win32') return [];
     const script = String.raw`
+$signature = @"
+using System;
+using System.Runtime.InteropServices;
+public static class Win32Foreground {
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetForegroundWindow();
+}
+"@
+try { Add-Type -TypeDefinition $signature -ErrorAction SilentlyContinue } catch {}
+$foreground = [Win32Foreground]::GetForegroundWindow().ToInt64()
 $shell = New-Object -ComObject Shell.Application
+$items = @()
 foreach ($window in @($shell.Windows())) {
     try {
-        if ($window.Document.Folder.Self.Path) {
-            $window.Document.Folder.Self.Path
+        $path = $window.Document.Folder.Self.Path
+        if ($path) {
+            $isActive = ([int64]$window.HWND -eq $foreground)
+            $items += [pscustomobject]@{
+                Active = $isActive
+                Path = $path
+            }
         }
     } catch {}
+}
+$items | Sort-Object @{ Expression = 'Active'; Descending = $true }, Path | ForEach-Object {
+    if ($_.Active) { "__ACTIVE__|$($_.Path)" } else { $_.Path }
 }
 `;
     try {
         const result = await execFileText('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', script], { timeout: 4000 });
-        return result.stdout
+        const folders = result.stdout
             .trim()
             .split(/\r?\n/)
             .map((folder) => folder.trim())
-            .filter((folder) => folder && fs.existsSync(folder) && fs.statSync(folder).isDirectory());
+            .filter(Boolean);
+        let detectedActiveFolder = '';
+        const cleanedFolders = folders
+            .map((folder) => {
+                const active = folder.startsWith('__ACTIVE__|');
+                const cleanFolder = active ? folder.replace(/^__ACTIVE__\|/, '') : folder;
+                if (active) detectedActiveFolder = cleanFolder;
+                return cleanFolder;
+            })
+            .filter((folder, index, list) => (
+                folder
+                && list.findIndex((item) => path.resolve(item).toLowerCase() === path.resolve(folder).toLowerCase()) === index
+                && fs.existsSync(folder)
+                && fs.statSync(folder).isDirectory()
+            ));
+        if (detectedActiveFolder && cleanedFolders.some((folder) => path.resolve(folder).toLowerCase() === path.resolve(detectedActiveFolder).toLowerCase())) {
+            zaloAutoMoveState.activeExplorerFolder = detectedActiveFolder;
+        } else if (
+            zaloAutoMoveState.activeExplorerFolder
+            && !cleanedFolders.some((folder) => path.resolve(folder).toLowerCase() === path.resolve(zaloAutoMoveState.activeExplorerFolder).toLowerCase())
+        ) {
+            zaloAutoMoveState.activeExplorerFolder = '';
+        }
+        return cleanedFolders;
     } catch {
         return [];
     }
 }
 
 async function getCurrentExplorerDestination(sourceFolder) {
-    const now = Date.now();
-    if (now - zaloAutoMoveState.lastExplorerScanAt > 2500) {
-        const folders = await getOpenExplorerFolders();
-        zaloAutoMoveState.openExplorerFolders = folders;
-        zaloAutoMoveState.lastExplorerScanAt = now;
-    }
-    const folders = zaloAutoMoveState.openExplorerFolders;
+    const folders = await getOpenExplorerFolders();
+    zaloAutoMoveState.openExplorerFolders = folders;
+    zaloAutoMoveState.lastExplorerScanAt = Date.now();
     const source = sourceFolder ? path.resolve(sourceFolder) : '';
     const validFolders = folders.filter((folder) => {
         try {
@@ -1378,8 +1421,11 @@ async function getCurrentExplorerDestination(sourceFolder) {
         }
     });
 
-    if (zaloAutoMoveState.lastDestination && validFolders.some((folder) => path.resolve(folder) === path.resolve(zaloAutoMoveState.lastDestination))) {
-        return zaloAutoMoveState.lastDestination;
+    if (
+        zaloAutoMoveState.activeExplorerFolder
+        && validFolders.some((folder) => path.resolve(folder).toLowerCase() === path.resolve(zaloAutoMoveState.activeExplorerFolder).toLowerCase())
+    ) {
+        return zaloAutoMoveState.activeExplorerFolder;
     }
 
     return validFolders[0] || '';
@@ -1393,6 +1439,7 @@ function getZaloAutoMoveStatus() {
         useActiveExplorer: zaloAutoMoveState.useActiveExplorer,
         movedCount: zaloAutoMoveState.movedCount,
         lastDestination: zaloAutoMoveState.lastDestination,
+        activeExplorerFolder: zaloAutoMoveState.activeExplorerFolder,
         openExplorerFolders: zaloAutoMoveState.openExplorerFolders,
         lastMessage: zaloAutoMoveState.lastMessage,
         lastError: zaloAutoMoveState.lastError
@@ -1401,21 +1448,51 @@ function getZaloAutoMoveStatus() {
 
 function stopZaloAutoMove() {
     if (zaloAutoMoveState.timer) clearInterval(zaloAutoMoveState.timer);
+    if (zaloAutoMoveState.watcher) {
+        try {
+            zaloAutoMoveState.watcher.close();
+        } catch {}
+    }
     zaloAutoMoveState.timer = null;
+    zaloAutoMoveState.watcher = null;
+    zaloAutoMoveState.pollRequested = false;
+    zaloAutoMoveState.pollAgain = false;
     zaloAutoMoveState.enabled = false;
     zaloAutoMoveState.busy = false;
     zaloAutoMoveState.lastMessage = 'Đã tắt tự chuyển ảnh Zalo.';
     return getZaloAutoMoveStatus();
 }
 
+function requestZaloPoll(delayMs = 0) {
+    if (!zaloAutoMoveState.enabled) return;
+    if (zaloAutoMoveState.pollRequested || zaloAutoMoveState.busy) {
+        zaloAutoMoveState.pollAgain = true;
+        return;
+    }
+    zaloAutoMoveState.pollRequested = true;
+    setTimeout(async () => {
+        zaloAutoMoveState.pollRequested = false;
+        await pollZaloDownloadFolder();
+    }, delayMs);
+}
+
 function seedZaloSeenFiles(sourceFolder) {
     zaloAutoMoveState.seen = new Set();
     zaloAutoMoveState.pending = new Map();
     if (!sourceFolder || !fs.existsSync(sourceFolder)) return;
+    const now = Date.now();
     fs.readdirSync(sourceFolder).forEach((fileName) => {
         const filePath = path.join(sourceFolder, fileName);
-        if (isZaloImageFile(filePath)) {
+        if (!isZaloImageFile(filePath)) return;
+        const stat = fs.statSync(filePath);
+        if (now - stat.mtimeMs > 15000) {
             zaloAutoMoveState.seen.add(path.resolve(filePath));
+        } else {
+            zaloAutoMoveState.pending.set(path.resolve(filePath), {
+                size: stat.size,
+                mtimeMs: stat.mtimeMs,
+                firstSeenAt: now - 300
+            });
         }
     });
 }
@@ -1467,7 +1544,7 @@ async function pollZaloDownloadFolder() {
                 zaloAutoMoveState.pending.set(key, { size: stat.size, mtimeMs: stat.mtimeMs, firstSeenAt: now });
                 return;
             }
-            if (now - pending.firstSeenAt < 1000 || stat.size <= 0) return;
+            if (now - pending.firstSeenAt < 250 || stat.size <= 0) return;
             if (!destination || !fs.existsSync(destination)) {
                 zaloAutoMoveState.lastError = 'Chưa xác định được thư mục Explorer đang mở. Hãy mở thư mục ảnh đích trong File Explorer rồi tải ảnh Zalo.';
                 return;
@@ -1491,6 +1568,10 @@ async function pollZaloDownloadFolder() {
         zaloAutoMoveState.lastError = error.message || String(error);
     } finally {
         zaloAutoMoveState.busy = false;
+        if (zaloAutoMoveState.enabled && zaloAutoMoveState.pollAgain) {
+            zaloAutoMoveState.pollAgain = false;
+            requestZaloPoll(80);
+        }
     }
 }
 
@@ -1507,17 +1588,28 @@ function startZaloAutoMove(config = {}) {
     zaloAutoMoveState.useActiveExplorer = true;
     zaloAutoMoveState.lastDestination = '';
     zaloAutoMoveState.lastError = '';
+    zaloAutoMoveState.pollRequested = false;
+    zaloAutoMoveState.pollAgain = false;
     zaloAutoMoveState.lastMessage = 'Đang chạy ngầm tự chuyển ảnh Zalo.';
     if (path.resolve(sourceFolder).toLowerCase() === path.resolve(app.getPath('desktop')).toLowerCase()) {
         zaloAutoMoveState.lastMessage = 'Đang chạy ngầm tự chuyển ảnh Zalo. Lưu ý: thư mục Zalo đang là Desktop, nên hãy mở riêng thư mục ảnh đích trong File Explorer.';
     }
     seedZaloSeenFiles(sourceFolder);
+    if (zaloAutoMoveState.watcher) {
+        try {
+            zaloAutoMoveState.watcher.close();
+        } catch {}
+    }
+    try {
+        zaloAutoMoveState.watcher = fs.watch(sourceFolder, () => requestZaloPoll(80));
+    } catch (error) {
+        zaloAutoMoveState.lastError = `Không theo dõi được thư mục Zalo: ${error.message || error}`;
+    }
     zaloAutoMoveState.timer = setInterval(() => {
-        refreshZaloExplorerCache();
-        pollZaloDownloadFolder();
-    }, Math.max(Number(config.intervalMs) || 1200, 600));
+        requestZaloPoll(0);
+    }, Math.max(Number(config.intervalMs) || 500, 350));
     refreshZaloExplorerCache();
-    pollZaloDownloadFolder();
+    requestZaloPoll(120);
     return getZaloAutoMoveStatus();
 }
 

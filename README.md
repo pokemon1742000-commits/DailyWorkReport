@@ -9,6 +9,18 @@ npm install
 npm start
 ```
 
+Neu muon chay tren Windows ma chi hien cua so phan mem, bam file:
+
+```text
+Run Daily Work Report.vbs
+```
+
+Hoac chay:
+
+```bash
+npm run start:hidden
+```
+
 ## Build Windows
 
 ```bash

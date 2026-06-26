@@ -561,6 +561,36 @@
             background: color-mix(in srgb, var(--panel-soft) 80%, var(--panel));
         }
 
+        .zalo-destination-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 42px;
+            padding: 8px 16px;
+            border-bottom: 1px solid var(--line);
+            background: color-mix(in srgb, var(--panel-soft) 62%, var(--panel));
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .zalo-destination-bar strong {
+            flex: 0 0 auto;
+            color: var(--text);
+            font-weight: 800;
+        }
+
+        .zalo-destination-bar span {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .zalo-destination-bar.active {
+            color: var(--blue-strong);
+            background: color-mix(in srgb, var(--blue) 8%, var(--panel));
+        }
+
         h1, h2, h3 {
             margin: 0;
         }
@@ -2230,6 +2260,10 @@
                 </section>
 
                 <section class="panel">
+                    <div id="zaloDestinationBar" class="zalo-destination-bar">
+                        <strong>Ảnh Zalo sẽ chuyển đến:</strong>
+                        <span id="zaloDestinationText">Chưa xác định thư mục đích</span>
+                    </div>
                     <div class="panel-header">
                         <h2>Bảng chuẩn hóa</h2>
                         <div class="summary">
@@ -2779,6 +2813,8 @@
             inputStatus: document.getElementById('inputStatus'),
             previewList: document.getElementById('previewList'),
             totalPill: document.getElementById('totalPill'),
+            zaloDestinationBar: document.getElementById('zaloDestinationBar'),
+            zaloDestinationText: document.getElementById('zaloDestinationText'),
             folderStructurePanel: document.querySelector('.folder-structure-panel'),
             folderPinBtn: document.getElementById('folderPinBtn'),
             folderStructureBody: document.getElementById('folderStructureBody'),
@@ -2899,7 +2935,7 @@
             } catch {
                 // Status polling is only informational.
             }
-        }, 2500);
+        }, 700);
         applyTheme(localStorage.getItem('dailyWorkReportTheme') || 'light');
         applyFolderPinState();
         updateCurrentDateTime();
@@ -5213,6 +5249,18 @@
             els.startZaloAutoMoveBtn.classList.toggle('zalo-running', running);
         }
 
+        function updateZaloDestinationBar(status) {
+            const destination = status && (
+                status.lastDestination
+                || status.activeExplorerFolder
+                || (Array.isArray(status.openExplorerFolders) ? status.openExplorerFolders[0] : '')
+            );
+            const text = destination || 'Chưa xác định thư mục đích';
+            els.zaloDestinationText.textContent = text;
+            els.zaloDestinationText.title = text;
+            els.zaloDestinationBar.classList.toggle('active', Boolean(destination));
+        }
+
         function updateZaloAutoMoveStatus(statusOrMessage, isError = false) {
             const status = typeof statusOrMessage === 'object' && statusOrMessage
                 ? statusOrMessage
@@ -5222,6 +5270,7 @@
             if (status.lastMessage) parts.push(status.lastMessage);
             if (status.sourceFolder) parts.push(`Zalo: ${status.sourceFolder}`);
             if (status.lastDestination) parts.push(`Đích gần nhất: ${status.lastDestination}`);
+            if (status.activeExplorerFolder) parts.push(`Explorer đang active: ${status.activeExplorerFolder}`);
             if (Array.isArray(status.openExplorerFolders) && status.openExplorerFolders.length) {
                 parts.push(`Explorer đang mở: ${status.openExplorerFolders.join(' | ')}`);
             }
@@ -5229,6 +5278,7 @@
             if (status.lastError) parts.push(`Lỗi: ${status.lastError}`);
             els.zaloAutoMoveStatus.textContent = parts.join('\n') || 'Chưa bật tự chuyển ảnh Zalo.';
             els.zaloAutoMoveStatus.classList.toggle('error', Boolean(isError || status.lastError));
+            updateZaloDestinationBar(status);
         }
 
         async function chooseZaloDownloadFolder() {
