@@ -275,31 +275,62 @@ function createUpdateInstallLauncher(installerFile, latestVersion) {
     const token = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     const ps1Path = path.join(updatesDir, `install-daily-work-report-${latestVersion || 'latest'}-${token}.ps1`);
     const vbsPath = path.join(updatesDir, `install-daily-work-report-${latestVersion || 'latest'}-${token}.vbs`);
+    const logPath = path.join(updatesDir, `install-daily-work-report-${latestVersion || 'latest'}-${token}.log`);
     const currentPid = process.pid;
     const currentExe = process.execPath;
     const ps1 = `
-$ErrorActionPreference = 'SilentlyContinue'
+$ErrorActionPreference = 'Continue'
 $installer = ${psQuote(installerFile)}
 $currentExe = ${psQuote(currentExe)}
+$logFile = ${psQuote(logPath)}
 $currentPid = ${currentPid}
+function Write-UpdateLog([string]$message) {
+    $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+    Add-Content -LiteralPath $logFile -Value "[$stamp] $message" -Encoding UTF8
+}
+Write-UpdateLog "Launcher started. Installer=$installer CurrentExe=$currentExe CurrentPid=$currentPid"
+try { Wait-Process -Id $currentPid -Timeout 90; Write-UpdateLog "App process closed." } catch { Write-UpdateLog "Wait app process timeout or failed: $($_.Exception.Message)" }
+Start-Sleep -Milliseconds 900
+if (-not (Test-Path -LiteralPath $installer)) {
+    Write-UpdateLog "Installer not found."
+    exit 2
+}
+try { Unblock-File -LiteralPath $installer; Write-UpdateLog "Installer unblocked." } catch { Write-UpdateLog "Unblock failed: $($_.Exception.Message)" }
+$installed = $false
 try {
-    Wait-Process -Id $currentPid -Timeout 60
-} catch {}
-Start-Sleep -Milliseconds 600
-if (Test-Path -LiteralPath $installer) {
+    Write-UpdateLog "Starting silent installer."
+    $process = Start-Process -FilePath $installer -ArgumentList '/S' -Wait -PassThru -WindowStyle Normal
+    $exitCode = if ($null -ne $process) { $process.ExitCode } else { -1 }
+    Write-UpdateLog "Silent installer exited with code $exitCode."
+    if ($exitCode -eq 0) {
+        $installed = $true
+    }
+} catch {
+    Write-UpdateLog "Silent installer failed: $($_.Exception.Message)"
+}
+if (-not $installed) {
     try {
-        $process = Start-Process -FilePath $installer -ArgumentList '/S' -Verb RunAs -Wait -PassThru
+        Write-UpdateLog "Opening installer visibly for manual confirmation."
+        $process = Start-Process -FilePath $installer -Wait -PassThru -WindowStyle Normal
+        $exitCode = if ($null -ne $process) { $process.ExitCode } else { -1 }
+        Write-UpdateLog "Visible installer exited with code $exitCode."
+        if ($exitCode -eq 0) {
+            $installed = $true
+        }
     } catch {
-        $process = Start-Process -FilePath $installer -ArgumentList '/S' -Wait -PassThru
+        Write-UpdateLog "Visible installer failed: $($_.Exception.Message)"
     }
 }
 Start-Sleep -Seconds 2
 if (Test-Path -LiteralPath $currentExe) {
+    Write-UpdateLog "Reopening app: $currentExe"
     Start-Process -FilePath $currentExe | Out-Null
+} else {
+    Write-UpdateLog "Current exe not found after install."
 }
 Start-Sleep -Seconds 2
-Remove-Item -LiteralPath ${psQuote(ps1Path)} -Force
-Remove-Item -LiteralPath ${psQuote(vbsPath)} -Force
+try { Remove-Item -LiteralPath ${psQuote(ps1Path)} -Force } catch {}
+try { Remove-Item -LiteralPath ${psQuote(vbsPath)} -Force } catch {}
 `;
     const vbs = `
 Option Explicit
@@ -310,7 +341,7 @@ shell.Run command, 0, False
 `;
     fs.writeFileSync(ps1Path, ps1, 'utf8');
     fs.writeFileSync(vbsPath, vbs, 'utf8');
-    return { ps1Path, vbsPath };
+    return { ps1Path, vbsPath, logPath };
 }
 
 async function updateFromGithubRelease() {
@@ -367,10 +398,11 @@ async function updateFromGithubRelease() {
         releaseUrl: release.html_url || GITHUB_REPO_URL,
         downloadedFile: destinationFile,
         installLauncher: installLauncher && installLauncher.vbsPath || '',
+        installLog: installLauncher && installLauncher.logPath || '',
         assetName: asset.name,
         message: assetType === 'zip'
             ? `Da tai goi win-unpacked ${latestVersion || ''} ve: ${destinationFile}. Hay giai nen va chay Daily Work Report.exe.`
-            : `Da tai ban cap nhat ${latestVersion || ''} ve: ${destinationFile}. Phan mem se dong, tu cai dat va mo lai sau khi cai xong.`
+            : `Da tai ban cap nhat ${latestVersion || ''} ve: ${destinationFile}. Phan mem se dong, tu cai dat silent; neu silent loi se tu mo installer de cai dat.`
     };
 }
 
@@ -2483,6 +2515,7 @@ ipcMain.handle('get-app-info', async () => {
         version: pkg.version || '1.0.0',
         description: pkg.description || 'Phần mềm chuẩn hóa báo cáo công việc hằng ngày, quản lý dữ liệu SQLite, thư mục ảnh/tài liệu và xuất báo cáo tuần Excel.',
         latestUpdate: [
+            'Ban 1.5.5: sua updater co log, cho app dong han, cai silent va tu mo installer neu silent loi; cap nhat logo phan mem moi.',
             'Ban 1.5.3: sua updater de tu dong dong app, cai dat silent va mo lai phan mem sau khi cap nhat.',
             'Ban 1.5.2: sua badge version tren tieu de de tu dong doc dung version tu package.json.',
             'Ban 1.5.1: sua loi ban chay Administrator khong doc duoc thu muc File Explorer dang mo.',

@@ -3707,6 +3707,7 @@
                     'Cập nhật hoàn tất.',
                     result.message || '',
                     result.downloadedFile ? `\nFile cập nhật: ${result.downloadedFile}` : '',
+                    result.installLog ? `\nLog cài đặt: ${result.installLog}` : '',
                     result.releaseUrl ? `\nRelease: ${result.releaseUrl}` : '',
                     result.installOutput ? `\nNPM install:\n${result.installOutput}` : '',
                     result.after && result.after.commit ? `\nCommit hiện tại: ${result.after.commit}` : ''
@@ -3746,6 +3747,7 @@
                 els.updatePromptLog.textContent = [
                     result.message || 'Đã tải bản cập nhật.',
                     result.downloadedFile ? `File: ${result.downloadedFile}` : '',
+                    result.installLog ? `Log cài đặt: ${result.installLog}` : '',
                     result.releaseUrl ? `Release: ${result.releaseUrl}` : ''
                 ].filter(Boolean).join('\n');
                 if (!result.installerStarted) {
