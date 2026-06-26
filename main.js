@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain, protocol, session, shell } = require('electron');
+const { app, BrowserWindow, Notification, dialog, ipcMain, protocol, session, shell } = require('electron');
 const fs = require('fs');
 const https = require('https');
 const path = require('path');
@@ -7,6 +7,7 @@ const initSqlJs = require('sql.js');
 const ExcelJS = require('exceljs');
 
 const DEFAULT_WEEKLY_LOGO = path.join(__dirname, 'assets', 'meiko-automation-logo.png');
+const APP_ICON_FILE = path.join(__dirname, 'assets', 'daily-work-report-icon.png');
 const MACHINE_REFERENCE_FILE = path.join(__dirname, 'reference_files', 'Thamkhao.xlsm');
 const SETUP_TRACKING_TEMPLATE_FILE = path.join(__dirname, 'reference_files', 'Theo_doi_setup_may_cho_khach_hang.xlsx');
 const MACHINE_REFERENCE_SHEET_KEY = 'danhsachmay';
@@ -16,6 +17,23 @@ const GITHUB_REPO_URL = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}`;
 
 let sqlPromise = null;
 let machineReferenceCache = null;
+const ZALO_IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.webp', '.heic', '.tif', '.tiff']);
+const zaloAutoMoveState = {
+    enabled: false,
+    timer: null,
+    busy: false,
+    sourceFolder: '',
+    fallbackFolder: '',
+    useActiveExplorer: true,
+    seen: new Set(),
+    pending: new Map(),
+    movedCount: 0,
+    lastDestination: '',
+    openExplorerFolders: [],
+    lastExplorerScanAt: 0,
+    lastMessage: 'Chưa bật tự chuyển ảnh Zalo.',
+    lastError: ''
+};
 
 protocol.registerSchemesAsPrivileged([{
     scheme: 'app-resource',
@@ -211,7 +229,8 @@ async function updateFromGithubRelease() {
     const release = await requestGithubJson(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`);
     const latestVersion = normalizeVersion(release.tag_name || release.name || '');
     const assets = Array.isArray(release.assets) ? release.assets : [];
-    const asset = assets.find((item) => /\.exe$/i.test(item.name || '') && item.browser_download_url)
+    const asset = assets.find((item) => /setup.*\.exe$/i.test(item.name || '') && item.browser_download_url)
+        || assets.find((item) => /\.exe$/i.test(item.name || '') && item.browser_download_url)
         || assets.find((item) => /win-unpacked\.zip$/i.test(item.name || '') && item.browser_download_url)
         || assets.find((item) => /\.zip$/i.test(item.name || '') && item.browser_download_url);
 
@@ -261,12 +280,33 @@ async function updateFromGithubRelease() {
     };
 }
 
-async function updateFromGithub() {
-    const before = await getGitInfo();
-    if (!before.isRepo || !before.remoteUrl) {
-        return updateFromGithubRelease();
-    }
+async function checkGithubReleaseUpdate() {
+    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+    const currentVersion = normalizeVersion(pkg.version || app.getVersion() || '0.0.0');
+    const release = await requestGithubJson(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`);
+    const latestVersion = normalizeVersion(release.tag_name || release.name || '');
+    const assets = Array.isArray(release.assets) ? release.assets : [];
+    const asset = assets.find((item) => /setup.*\.exe$/i.test(item.name || '') && item.browser_download_url)
+        || assets.find((item) => /\.exe$/i.test(item.name || '') && item.browser_download_url)
+        || assets.find((item) => /win-unpacked\.zip$/i.test(item.name || '') && item.browser_download_url)
+        || assets.find((item) => /\.zip$/i.test(item.name || '') && item.browser_download_url);
 
+    return {
+        currentVersion,
+        latestVersion,
+        hasUpdate: Boolean(latestVersion && compareVersions(latestVersion, currentVersion) > 0),
+        releaseUrl: release.html_url || GITHUB_REPO_URL,
+        releaseName: release.name || release.tag_name || '',
+        body: release.body || '',
+        assetName: asset && asset.name || '',
+        assetType: asset && /\.zip$/i.test(asset.name || '') ? 'zip' : 'exe'
+    };
+}
+
+async function updateFromGithub() {
+    return updateFromGithubRelease();
+
+    const before = await getGitInfo();
     const packageBefore = fs.existsSync(path.join(__dirname, 'package-lock.json'))
         ? fs.readFileSync(path.join(__dirname, 'package-lock.json'), 'utf8')
         : '';
@@ -435,6 +475,47 @@ function deserializeList(value) {
 function listText(value, mapper = (item) => item) {
     const list = Array.isArray(value) ? value : [];
     return list.map(mapper).filter(Boolean).join('; ');
+}
+
+function comparableText(value) {
+    return String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
+}
+
+function comparableList(value) {
+    return (Array.isArray(value) ? value : [value])
+        .map((item) => comparableText(item))
+        .filter(Boolean)
+        .join('\n');
+}
+
+function comparablePeople(value) {
+    return (Array.isArray(value) ? value : [value])
+        .map((person) => {
+            if (typeof person === 'string') return person;
+            return person && (person.displayName || person.name || person.folderName || '');
+        })
+        .map(comparableText)
+        .filter(Boolean)
+        .sort()
+        .join('\n');
+}
+
+function reportDuplicateFingerprint(report) {
+    return [
+        normalizeProjectCode(report && report.ma_du_an),
+        comparableList(report && report.noi_dung_cong_viec),
+        comparableList(report && report.thoi_gian),
+        comparablePeople(report && report.nguoi_thuc_hien),
+        comparableList(report && report.trang_thai),
+        comparableText(report && report.ngay_thuc_hien)
+    ].join('||');
 }
 
 function sanitizeFolderName(value) {
@@ -730,24 +811,31 @@ async function lookupMachineReferenceByProjects(projects) {
         const code = String(project || '').trim();
         const key = normalizeProjectCode(code);
         const info = reference[key] || {};
+        const lookupKeys = projectLookupCandidates(code);
         return {
             project: code,
             found: Boolean(reference[key]),
             ten_may: info.machineName || '',
             ghi_chu: info.projectName || '',
-            suggestions: reference[key] ? [] : buildProjectSuggestions(key, referenceCodes, reference)
+            suggestions: reference[key] ? [] : buildProjectSuggestions(lookupKeys, referenceCodes, reference)
         };
     });
 }
 
-function buildProjectSuggestions(projectKey, referenceCodes, reference) {
-    if (!projectKey) return [];
+function buildProjectSuggestions(projectKeys, referenceCodes, reference) {
+    const keys = (Array.isArray(projectKeys) ? projectKeys : [projectKeys])
+        .map(normalizeProjectCode)
+        .filter(Boolean);
+    if (!keys.length) return [];
     return referenceCodes
-        .map((code) => ({
-            code,
-            score: projectSimilarityScore(projectKey, code),
-            info: reference[code] || {}
-        }))
+        .map((code) => {
+            const score = Math.max(...keys.map((projectKey) => projectSimilarityScore(projectKey, code)));
+            return {
+                code,
+                score,
+                info: reference[code] || {}
+            };
+        })
         .filter((item) => item.score > 0)
         .sort((a, b) => b.score - a.score || a.code.localeCompare(b.code))
         .slice(0, 8)
@@ -758,6 +846,33 @@ function buildProjectSuggestions(projectKey, referenceCodes, reference) {
         }));
 }
 
+function projectLookupCandidates(text) {
+    const raw = String(text || '').toUpperCase();
+    const candidates = new Set();
+    const direct = normalizeProjectCode(raw);
+    if (direct && direct.length <= 24) candidates.add(direct);
+
+    const codePattern = /\b(?:AUT[A-Z]?|MEC)\s*[:\-]?\s*[A-Z0-9]{4,12}\b/gi;
+    let match;
+    while ((match = codePattern.exec(raw)) !== null) {
+        const code = normalizeProjectCode(match[0]);
+        if (code) candidates.add(code);
+    }
+
+    const prefixGroupPattern = /\b(AUT[A-Z]?|MEC)\s*[:：]\s*([A-Z0-9,\s.\-]{4,60})/gi;
+    while ((match = prefixGroupPattern.exec(raw)) !== null) {
+        const prefix = normalizeProjectCode(match[1]);
+        String(match[2] || '')
+            .split(/[,;.\s]+/)
+            .map(normalizeProjectCode)
+            .filter((part) => part.length >= 4 && part.length <= 12)
+            .forEach((part) => candidates.add(`${prefix}${part}`));
+    }
+
+    if (!candidates.size && direct) candidates.add(direct.slice(0, 24));
+    return [...candidates];
+}
+
 function projectSimilarityScore(a, b) {
     if (!a || !b) return 0;
     if (a === b) return 1000;
@@ -765,19 +880,105 @@ function projectSimilarityScore(a, b) {
     const prefixB = (b.match(/^[A-Z]+/) || [''])[0];
     const digitA = a.replace(/^[A-Z]+/, '');
     const digitB = b.replace(/^[A-Z]+/, '');
+    const compactA = projectComparableCore(a);
+    const compactB = projectComparableCore(b);
     const commonPrefix = commonPrefixLength(a, b);
     const commonDigitPrefix = commonPrefixLength(digitA, digitB);
+    const commonCorePrefix = commonPrefixLength(compactA, compactB);
+    const commonCoreSuffix = commonSuffixLength(compactA, compactB);
     const contains = a.includes(b) || b.includes(a) ? 80 : 0;
-    const samePrefix = prefixA && prefixA === prefixB ? 120 : 0;
+    const coreContains = compactA && compactB && (compactA.includes(compactB) || compactB.includes(compactA)) ? 180 : 0;
+    const coreExact = compactA && compactB && compactA === compactB ? 520 : 0;
+    const coreVariantExact = !coreExact ? projectCoreVariantExactScore(compactA, compactB) : 0;
+    const samePrefix = prefixA && prefixA === prefixB ? 70 : 0;
+    const crossKnownPrefix = prefixA && prefixB && prefixA !== prefixB && isKnownProjectPrefix(prefixA) && isKnownProjectPrefix(prefixB) ? 35 : 0;
     const distance = levenshteinDistance(a, b);
     const distanceScore = Math.max(0, 80 - distance * 10);
-    return samePrefix + commonPrefix * 12 + commonDigitPrefix * 18 + contains + distanceScore;
+    const coreDistance = compactA && compactB ? projectCoreDistance(compactA, compactB) : 99;
+    const coreDistanceScore = Math.max(0, 220 - coreDistance * 36);
+    const lengthPenalty = Math.abs(String(compactA).length - String(compactB).length) * 8;
+    return samePrefix
+        + crossKnownPrefix
+        + coreExact
+        + coreVariantExact
+        + commonPrefix * 8
+        + commonDigitPrefix * 16
+        + commonCorePrefix * 22
+        + commonCoreSuffix * 18
+        + contains
+        + coreContains
+        + distanceScore
+        + coreDistanceScore
+        - lengthPenalty;
 }
 
 function commonPrefixLength(a, b) {
     let index = 0;
     while (index < a.length && index < b.length && a[index] === b[index]) index += 1;
     return index;
+}
+
+function commonSuffixLength(a, b) {
+    let count = 0;
+    while (
+        count < a.length
+        && count < b.length
+        && a[a.length - 1 - count] === b[b.length - 1 - count]
+    ) {
+        count += 1;
+    }
+    return count;
+}
+
+function isKnownProjectPrefix(prefix) {
+    return /^(?:AUT[A-Z]?|MEC)$/.test(String(prefix || '').toUpperCase());
+}
+
+function projectComparableCore(project) {
+    const text = String(project || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const withoutPrefix = text.replace(/^(?:AUT[A-Z]?|MEC)/, '');
+    const digits = withoutPrefix.replace(/[^0-9]/g, '');
+    if (digits.length >= 4) return digits;
+    return withoutPrefix || text;
+}
+
+function projectCoreVariantExactScore(a, b) {
+    if (!a || !b) return 0;
+    return Math.max(projectCoreDeletionScore(a, b), projectCoreDeletionScore(b, a));
+}
+
+function projectCoreDeletionScore(longer, target) {
+    if (!longer || !target || longer.length <= target.length) return 0;
+    let best = 0;
+    for (let index = 0; index < longer.length; index += 1) {
+        const variant = `${longer.slice(0, index)}${longer.slice(index + 1)}`;
+        if (variant === target) {
+            best = Math.max(best, longer[index] === '0' ? 620 : 360);
+        }
+    }
+    return best;
+}
+
+function projectCoreDistance(a, b) {
+    const variantsA = projectCoreVariants(a);
+    const variantsB = projectCoreVariants(b);
+    let best = levenshteinDistance(a, b);
+    variantsA.forEach((variant) => {
+        best = Math.min(best, levenshteinDistance(variant, b));
+    });
+    variantsB.forEach((variant) => {
+        best = Math.min(best, levenshteinDistance(a, variant));
+    });
+    return best;
+}
+
+function projectCoreVariants(core) {
+    const text = String(core || '');
+    const variants = new Set([text]);
+    for (let index = 0; index < text.length; index += 1) {
+        variants.add(`${text.slice(0, index)}${text.slice(index + 1)}`);
+    }
+    return variants;
 }
 
 function levenshteinDistance(a, b) {
@@ -1067,6 +1268,257 @@ function getUniqueOutputPath(outputDir, fileName) {
         index += 1;
     }
     return candidate;
+}
+
+function defaultZaloDownloadCandidates() {
+    const home = app.getPath('home');
+    return [
+        path.join(app.getPath('downloads'), 'Zalo Received Files'),
+        path.join(app.getPath('documents'), 'Zalo Received Files'),
+        path.join(home, 'OneDrive', 'Documents', 'Zalo Received Files'),
+        path.join(home, 'OneDrive', 'Downloads', 'Zalo Received Files')
+    ];
+}
+
+function findDefaultZaloDownloadFolder() {
+    return defaultZaloDownloadCandidates().find((folder) => fs.existsSync(folder) && fs.statSync(folder).isDirectory()) || '';
+}
+
+function isZaloImageFile(filePath) {
+    try {
+        return fs.statSync(filePath).isFile() && ZALO_IMAGE_EXTENSIONS.has(path.extname(filePath).toLowerCase());
+    } catch {
+        return false;
+    }
+}
+
+function uniqueMoveTarget(destinationFolder, fileName) {
+    const parsed = path.parse(fileName);
+    let candidate = path.join(destinationFolder, fileName);
+    let index = 1;
+    while (fs.existsSync(candidate)) {
+        candidate = path.join(destinationFolder, `${parsed.name} (${index})${parsed.ext}`);
+        index += 1;
+    }
+    return candidate;
+}
+
+function moveFileSafe(sourceFile, destinationFolder) {
+    fs.mkdirSync(destinationFolder, { recursive: true });
+    const target = uniqueMoveTarget(destinationFolder, path.basename(sourceFile));
+    try {
+        fs.renameSync(sourceFile, target);
+    } catch (error) {
+        if (error.code !== 'EXDEV') throw error;
+        fs.copyFileSync(sourceFile, target);
+        fs.unlinkSync(sourceFile);
+    }
+    return target;
+}
+
+function notifyRenderer(channel, payload) {
+    BrowserWindow.getAllWindows().forEach((window) => {
+        if (!window.isDestroyed()) {
+            window.webContents.send(channel, payload);
+        }
+    });
+}
+
+function notifyZaloImageMoved(payload) {
+    notifyRenderer('zalo-image-moved', payload);
+    if (Notification.isSupported()) {
+        const notification = new Notification({
+            title: 'Daily Work Report',
+            body: 'Đã chuyển',
+            icon: APP_ICON_FILE,
+            silent: false
+        });
+        notification.show();
+    }
+}
+
+async function getOpenExplorerFolders() {
+    if (process.platform !== 'win32') return [];
+    const script = String.raw`
+$shell = New-Object -ComObject Shell.Application
+foreach ($window in @($shell.Windows())) {
+    try {
+        if ($window.Document.Folder.Self.Path) {
+            $window.Document.Folder.Self.Path
+        }
+    } catch {}
+}
+`;
+    try {
+        const result = await execFileText('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', script], { timeout: 4000 });
+        return result.stdout
+            .trim()
+            .split(/\r?\n/)
+            .map((folder) => folder.trim())
+            .filter((folder) => folder && fs.existsSync(folder) && fs.statSync(folder).isDirectory());
+    } catch {
+        return [];
+    }
+}
+
+async function getCurrentExplorerDestination(sourceFolder) {
+    const now = Date.now();
+    if (now - zaloAutoMoveState.lastExplorerScanAt > 2500) {
+        const folders = await getOpenExplorerFolders();
+        zaloAutoMoveState.openExplorerFolders = folders;
+        zaloAutoMoveState.lastExplorerScanAt = now;
+    }
+    const folders = zaloAutoMoveState.openExplorerFolders;
+    const source = sourceFolder ? path.resolve(sourceFolder) : '';
+    const validFolders = folders.filter((folder) => {
+        try {
+            return fs.existsSync(folder) && fs.statSync(folder).isDirectory() && path.resolve(folder) !== source;
+        } catch {
+            return false;
+        }
+    });
+
+    if (zaloAutoMoveState.lastDestination && validFolders.some((folder) => path.resolve(folder) === path.resolve(zaloAutoMoveState.lastDestination))) {
+        return zaloAutoMoveState.lastDestination;
+    }
+
+    return validFolders[0] || '';
+}
+
+function getZaloAutoMoveStatus() {
+    return {
+        enabled: zaloAutoMoveState.enabled,
+        sourceFolder: zaloAutoMoveState.sourceFolder,
+        fallbackFolder: zaloAutoMoveState.fallbackFolder,
+        useActiveExplorer: zaloAutoMoveState.useActiveExplorer,
+        movedCount: zaloAutoMoveState.movedCount,
+        lastDestination: zaloAutoMoveState.lastDestination,
+        openExplorerFolders: zaloAutoMoveState.openExplorerFolders,
+        lastMessage: zaloAutoMoveState.lastMessage,
+        lastError: zaloAutoMoveState.lastError
+    };
+}
+
+function stopZaloAutoMove() {
+    if (zaloAutoMoveState.timer) clearInterval(zaloAutoMoveState.timer);
+    zaloAutoMoveState.timer = null;
+    zaloAutoMoveState.enabled = false;
+    zaloAutoMoveState.busy = false;
+    zaloAutoMoveState.lastMessage = 'Đã tắt tự chuyển ảnh Zalo.';
+    return getZaloAutoMoveStatus();
+}
+
+function seedZaloSeenFiles(sourceFolder) {
+    zaloAutoMoveState.seen = new Set();
+    zaloAutoMoveState.pending = new Map();
+    if (!sourceFolder || !fs.existsSync(sourceFolder)) return;
+    fs.readdirSync(sourceFolder).forEach((fileName) => {
+        const filePath = path.join(sourceFolder, fileName);
+        if (isZaloImageFile(filePath)) {
+            zaloAutoMoveState.seen.add(path.resolve(filePath));
+        }
+    });
+}
+
+async function refreshZaloExplorerCache() {
+    if (!zaloAutoMoveState.enabled) return;
+    const folders = await getOpenExplorerFolders();
+    zaloAutoMoveState.openExplorerFolders = folders;
+    zaloAutoMoveState.lastExplorerScanAt = Date.now();
+    const source = zaloAutoMoveState.sourceFolder ? path.resolve(zaloAutoMoveState.sourceFolder) : '';
+    const validFolders = folders.filter((folder) => {
+        try {
+            return fs.existsSync(folder) && fs.statSync(folder).isDirectory() && path.resolve(folder) !== source;
+        } catch {
+            return false;
+        }
+    });
+    if (validFolders.length === 1) {
+        zaloAutoMoveState.lastDestination = validFolders[0];
+    } else if (zaloAutoMoveState.lastDestination && !validFolders.some((folder) => path.resolve(folder) === path.resolve(zaloAutoMoveState.lastDestination))) {
+        zaloAutoMoveState.lastDestination = '';
+    }
+}
+
+async function pollZaloDownloadFolder() {
+    if (zaloAutoMoveState.busy || !zaloAutoMoveState.enabled) return;
+    zaloAutoMoveState.busy = true;
+    try {
+        const sourceFolder = zaloAutoMoveState.sourceFolder;
+        if (!sourceFolder || !fs.existsSync(sourceFolder)) {
+            zaloAutoMoveState.lastError = 'Không tìm thấy thư mục tải Zalo.';
+            return;
+        }
+
+        const destination = await getCurrentExplorerDestination(sourceFolder);
+        if (destination) {
+            zaloAutoMoveState.lastDestination = destination;
+        }
+
+        const now = Date.now();
+        fs.readdirSync(sourceFolder).forEach((fileName) => {
+            const filePath = path.join(sourceFolder, fileName);
+            const key = path.resolve(filePath);
+            if (zaloAutoMoveState.seen.has(key) || !isZaloImageFile(filePath)) return;
+
+            const stat = fs.statSync(filePath);
+            const pending = zaloAutoMoveState.pending.get(key);
+            if (!pending || pending.size !== stat.size || pending.mtimeMs !== stat.mtimeMs) {
+                zaloAutoMoveState.pending.set(key, { size: stat.size, mtimeMs: stat.mtimeMs, firstSeenAt: now });
+                return;
+            }
+            if (now - pending.firstSeenAt < 1000 || stat.size <= 0) return;
+            if (!destination || !fs.existsSync(destination)) {
+                zaloAutoMoveState.lastError = 'Chưa xác định được thư mục Explorer đang mở. Hãy mở thư mục ảnh đích trong File Explorer rồi tải ảnh Zalo.';
+                return;
+            }
+
+            const movedTo = moveFileSafe(filePath, destination);
+            zaloAutoMoveState.seen.add(key);
+            zaloAutoMoveState.pending.delete(key);
+            zaloAutoMoveState.movedCount += 1;
+            zaloAutoMoveState.lastDestination = destination;
+            zaloAutoMoveState.lastError = '';
+            zaloAutoMoveState.lastMessage = `Đã chuyển ${fileName} -> ${movedTo}`;
+            notifyZaloImageMoved({
+                fileName,
+                from: filePath,
+                to: movedTo,
+                destination
+            });
+        });
+    } catch (error) {
+        zaloAutoMoveState.lastError = error.message || String(error);
+    } finally {
+        zaloAutoMoveState.busy = false;
+    }
+}
+
+function startZaloAutoMove(config = {}) {
+    if (zaloAutoMoveState.timer) clearInterval(zaloAutoMoveState.timer);
+    const sourceFolder = config.sourceFolder || findDefaultZaloDownloadFolder();
+    if (!sourceFolder || !fs.existsSync(sourceFolder) || !fs.statSync(sourceFolder).isDirectory()) {
+        throw new Error('Không tìm thấy thư mục tải ảnh Zalo. Hãy chọn thư mục Zalo Received Files.');
+    }
+    const fallbackFolder = config.fallbackFolder || '';
+    zaloAutoMoveState.enabled = true;
+    zaloAutoMoveState.sourceFolder = sourceFolder;
+    zaloAutoMoveState.fallbackFolder = fallbackFolder;
+    zaloAutoMoveState.useActiveExplorer = true;
+    zaloAutoMoveState.lastDestination = '';
+    zaloAutoMoveState.lastError = '';
+    zaloAutoMoveState.lastMessage = 'Đang chạy ngầm tự chuyển ảnh Zalo.';
+    if (path.resolve(sourceFolder).toLowerCase() === path.resolve(app.getPath('desktop')).toLowerCase()) {
+        zaloAutoMoveState.lastMessage = 'Đang chạy ngầm tự chuyển ảnh Zalo. Lưu ý: thư mục Zalo đang là Desktop, nên hãy mở riêng thư mục ảnh đích trong File Explorer.';
+    }
+    seedZaloSeenFiles(sourceFolder);
+    zaloAutoMoveState.timer = setInterval(() => {
+        refreshZaloExplorerCache();
+        pollZaloDownloadFolder();
+    }, Math.max(Number(config.intervalMs) || 1200, 600));
+    refreshZaloExplorerCache();
+    pollZaloDownloadFolder();
+    return getZaloAutoMoveStatus();
 }
 
 function isExcelFileLockError(error) {
@@ -1732,6 +2184,7 @@ function createWindow() {
         height: 920,
         minWidth: 1100,
         minHeight: 720,
+        icon: APP_ICON_FILE,
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false
@@ -1756,6 +2209,10 @@ app.on('window-all-closed', () => {
     }
 });
 
+app.on('before-quit', () => {
+    stopZaloAutoMove();
+});
+
 app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
         createWindow();
@@ -1775,6 +2232,35 @@ ipcMain.handle('choose-root-folder', async () => {
     return result.filePaths[0];
 });
 
+ipcMain.handle('choose-zalo-download-folder', async () => {
+    const result = await dialog.showOpenDialog({
+        title: 'Chọn thư mục tải ảnh Zalo',
+        properties: ['openDirectory']
+    });
+
+    if (result.canceled || result.filePaths.length === 0) {
+        return null;
+    }
+
+    return result.filePaths[0];
+});
+
+ipcMain.handle('find-default-zalo-download-folder', async () => {
+    return findDefaultZaloDownloadFolder();
+});
+
+ipcMain.handle('start-zalo-auto-move', async (_event, config) => {
+    return startZaloAutoMove(config || {});
+});
+
+ipcMain.handle('stop-zalo-auto-move', async () => {
+    return stopZaloAutoMove();
+});
+
+ipcMain.handle('get-zalo-auto-move-status', async () => {
+    return getZaloAutoMoveStatus();
+});
+
 ipcMain.handle('get-app-info', async () => {
     const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
     const git = await getGitInfo();
@@ -1783,6 +2269,7 @@ ipcMain.handle('get-app-info', async () => {
         version: pkg.version || '1.0.0',
         description: pkg.description || 'Phần mềm chuẩn hóa báo cáo công việc hằng ngày, quản lý dữ liệu SQLite, thư mục ảnh/tài liệu và xuất báo cáo tuần Excel.',
         latestUpdate: [
+            'Ban 1.4.0: them popup phat hien phien ban moi tren GitHub, nut Update ngay/De sau va cai tien AI hoc nhap lieu, hand tracking.',
             'Ban 1.3.4: cap nhat hang muc bao cao tuan, giu noi dung da nhap, sua xuat Excel setup lay Lap dat tai line/Sua may va ho tro ghi khi file Excel dang mo.',
             'Ban 1.3.3: bo sung xuat Excel setup theo file noi bo, ghi them vao dung nhom ma thiet bi, loc lap moi trung va cai thien bao cao tuan.',
             'Ban 1.3.2: them truong Thoi gian cho nhap lieu, luu SQLite/tim kiem, chan ma du an ao theo nam-thang va lam sach trang thai theo tung du an.',
@@ -1805,6 +2292,10 @@ ipcMain.handle('get-app-info', async () => {
 
 ipcMain.handle('update-app-from-github', async () => {
     return updateFromGithub();
+});
+
+ipcMain.handle('check-app-update-from-github', async () => {
+    return checkGithubReleaseUpdate();
 });
 
 ipcMain.handle('open-external-link', async (_event, url) => {
@@ -1940,8 +2431,24 @@ ipcMain.handle('save-reports', async (_event, payload) => {
 
     fs.mkdirSync(rootFolder, { recursive: true });
 
+    const existingResult = await loadReportsSqlite();
+    const existingFingerprints = new Set((existingResult.reports || []).map(reportDuplicateFingerprint));
+    const batchFingerprints = new Set();
+    const uniqueReports = [];
+    let skippedDuplicates = 0;
+
+    reports.forEach((report) => {
+        const fingerprint = reportDuplicateFingerprint(report);
+        if (existingFingerprints.has(fingerprint) || batchFingerprints.has(fingerprint)) {
+            skippedDuplicates += 1;
+            return;
+        }
+        batchFingerprints.add(fingerprint);
+        uniqueReports.push(report);
+    });
+
     const saveBatchId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const savedReports = reports.map((report, index) => {
+    const savedReports = uniqueReports.map((report, index) => {
         const folderDate = report.folder_ngay_name || 'UnknownDate';
         const dayFolder = path.join(rootFolder, folderDate);
         fs.mkdirSync(dayFolder, { recursive: true });
@@ -1968,10 +2475,11 @@ ipcMain.handle('save-reports', async (_event, payload) => {
     });
 
     const dataFile = getJsonFile();
-    const sqliteFile = await insertReportsSqlite(savedReports);
+    const sqliteFile = savedReports.length ? await insertReportsSqlite(savedReports) : existingResult.sqliteFile;
 
     return {
         count: savedReports.length,
+        skippedDuplicates,
         dataFile,
         sqliteFile,
         reports: savedReports

@@ -174,6 +174,53 @@
             --detail-width: 480px;
         }
 
+        .toast-stack {
+            position: fixed;
+            right: 18px;
+            bottom: 18px;
+            z-index: 2500;
+            display: grid;
+            gap: 10px;
+            max-width: min(420px, calc(100vw - 36px));
+            pointer-events: none;
+        }
+
+        .toast {
+            border: 1px solid var(--line);
+            border-left: 5px solid var(--green);
+            border-radius: 10px;
+            background: var(--panel);
+            color: var(--text);
+            box-shadow: var(--shadow);
+            padding: 12px 14px;
+            pointer-events: auto;
+            animation: toastIn 180ms ease-out;
+        }
+
+        .toast strong {
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .toast div {
+            color: var(--muted);
+            font-size: 13px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        @keyframes toastIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         header {
             min-height: 62px;
             display: flex;
@@ -211,11 +258,8 @@
             height: 34px;
             border: 1px solid color-mix(in srgb, var(--blue) 52%, var(--line));
             border-radius: 6px;
-            display: grid;
-            place-items: center;
-            color: #fff;
-            background: linear-gradient(135deg, var(--blue), var(--green));
-            font-weight: 800;
+            display: block;
+            object-fit: cover;
             box-shadow: var(--shadow-soft);
         }
 
@@ -353,13 +397,61 @@
 
         .hand-camera-runtime {
             position: fixed;
-            width: 1px;
-            height: 1px;
-            left: -9999px;
-            top: -9999px;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
             overflow: hidden;
             opacity: 0;
             pointer-events: none;
+            z-index: 0;
+            transition: opacity 160ms ease;
+            background: #000;
+        }
+
+        .hand-camera-runtime.active {
+            opacity: 1;
+        }
+
+        .hand-camera-runtime video,
+        .hand-camera-runtime canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .hand-camera-runtime video {
+            opacity: 0.08;
+            filter: saturate(0.8) contrast(0.9);
+        }
+
+        .hand-camera-runtime canvas {
+            z-index: 1;
+            opacity: 0.72;
+        }
+
+        .hand-camera-runtime span {
+            position: absolute;
+            left: 16px;
+            bottom: 16px;
+            z-index: 2;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, 0.52);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        header,
+        .tabs,
+        main,
+        .modal-backdrop,
+        .project-detail-drawer,
+        .folder-structure-panel {
+            position: relative;
+            z-index: 1;
         }
 
         .hand-pointer {
@@ -396,6 +488,11 @@
 
         .hand-pointer-two {
             --pointer-color: #1488c8;
+        }
+
+        .hand-dragging {
+            outline: 2px solid color-mix(in srgb, var(--accent) 78%, #ffffff);
+            outline-offset: 2px;
         }
 
         .tabs {
@@ -550,7 +647,7 @@
             margin-top: 14px;
             background: linear-gradient(135deg, var(--blue), color-mix(in srgb, var(--blue) 72%, var(--green)));
             border-color: var(--blue);
-            color: #fff;
+            color: #c60c0c;
             font-size: 16px;
             box-shadow: var(--shadow-soft);
         }
@@ -706,6 +803,46 @@
             font-weight: 600;
         }
 
+        .project-edit-wrap {
+            display: grid;
+            gap: 6px;
+        }
+
+        .project-edit-control {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .project-suggestion-inline {
+            min-height: 18px;
+            color: var(--muted);
+            font-size: 12px;
+            font-style: italic;
+            line-height: 1.35;
+        }
+
+        .project-suggestion-inline button {
+            height: auto;
+            min-height: 0;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            color: var(--accent);
+            font: inherit;
+            font-style: italic;
+            box-shadow: none;
+        }
+
+        .project-suggestion-picker {
+            width: 42px;
+            height: 46px;
+            padding: 0 8px;
+            border-radius: 8px;
+            font-weight: 800;
+        }
+
         .editable-preview-textarea {
             min-height: 50px;
             padding: 10px 12px;
@@ -741,6 +878,7 @@
             display: grid;
             grid-template-columns: 1fr auto;
             gap: 8px;
+            align-items: center;
         }
 
         .copy-folder-btn {
@@ -758,6 +896,14 @@
 
         .copy-folder-btn:hover {
             background: color-mix(in srgb, var(--blue) 12%, transparent);
+        }
+
+        .open-folder-inline-btn {
+            min-width: 82px;
+            height: 38px;
+            padding: 0 16px;
+            border-radius: 8px;
+            white-space: nowrap;
         }
 
         .folder-path-box {
@@ -908,12 +1054,8 @@
             width: 54px;
             height: 54px;
             border-radius: 12px;
-            display: grid;
-            place-items: center;
-            color: #fff;
-            background: linear-gradient(135deg, var(--blue), var(--green));
-            font-size: 26px;
-            font-weight: 800;
+            display: block;
+            object-fit: cover;
             box-shadow: var(--shadow-soft);
         }
 
@@ -951,6 +1093,20 @@
             margin-top: 14px;
         }
 
+        .checkbox-line {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 12px 0;
+            color: var(--text);
+            font-weight: 700;
+        }
+
+        .checkbox-line input {
+            width: 18px;
+            height: 18px;
+        }
+
         .update-log {
             white-space: pre-wrap;
             font-family: Consolas, "Courier New", monospace;
@@ -970,14 +1126,106 @@
             cursor: grabbing;
         }
 
-        .settings-card-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(150px, 1fr));
-            gap: 14px;
+        .settings-card-scroll {
+            position: relative;
             margin-bottom: 16px;
         }
 
+        .settings-card-grid {
+            display: flex;
+            gap: 14px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scroll-behavior: smooth;
+            scrollbar-width: none;
+            padding: 2px 34px 8px;
+            white-space: nowrap;
+        }
+
+        .settings-card-grid::-webkit-scrollbar {
+            display: none;
+        }
+
+        .settings-scroll-zone {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 2;
+            width: 46px;
+            height: 74px;
+            box-sizing: border-box;
+            padding: 0;
+            margin: 0;
+            border: 0;
+            background: color-mix(in srgb, var(--panel) 62%, transparent);
+            color: var(--blue);
+            display: grid;
+            place-items: center;
+            font-size: 24px;
+            line-height: 1;
+            font-weight: 900;
+            cursor: pointer;
+            user-select: none;
+            appearance: none;
+            -webkit-appearance: none;
+            backdrop-filter: blur(8px);
+            opacity: 0.76;
+            transition: opacity 120ms ease, background 120ms ease, box-shadow 120ms ease;
+        }
+
+        .settings-scroll-zone:hover,
+        .settings-scroll-zone:focus,
+        .settings-scroll-zone:active {
+            transform: translateY(-50%);
+            color: var(--blue);
+            opacity: 1;
+            background: color-mix(in srgb, var(--panel) 78%, transparent);
+            box-shadow: var(--shadow-soft);
+            outline: none;
+        }
+
+        .settings-scroll-zone::before {
+            content: "";
+            width: 30px;
+            height: 46px;
+            border: 1px solid color-mix(in srgb, var(--blue) 36%, var(--line));
+            border-radius: 12px;
+            background: var(--panel);
+            box-shadow: var(--shadow-soft);
+            position: absolute;
+            pointer-events: none;
+        }
+
+        .settings-scroll-zone::after {
+            position: relative;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .settings-scroll-zone.left {
+            left: 0;
+        }
+
+        .settings-scroll-zone.left::after {
+            content: "‹";
+        }
+
+        .settings-scroll-zone.right {
+            right: 0;
+        }
+
+        .settings-scroll-zone.right::after {
+            content: "›";
+        }
+
+        #startZaloAutoMoveBtn.zalo-running {
+            background: #0ddb44;
+            border-color: #2f3542;
+            color: #fff36a;
+        }
+
         .settings-card {
+            flex: 0 0 274px;
             min-height: 118px;
             border: 1px solid color-mix(in srgb, var(--blue) 36%, var(--line));
             border-radius: 12px;
@@ -1220,6 +1468,22 @@
             color: #000;
             cursor: context-menu;
             user-select: text;
+        }
+
+        .weekly-project-edit {
+            width: 100%;
+            min-height: 38px;
+            border: 0;
+            background: transparent;
+            text-align: center;
+            font-family: "Times New Roman", serif;
+            color: #000;
+            outline: none;
+        }
+
+        .weekly-project-edit:focus {
+            background: color-mix(in srgb, var(--field) 82%, transparent);
+            box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--orange) 70%, var(--line));
         }
 
         .weekly-progress-button {
@@ -1466,6 +1730,61 @@
             background: var(--panel-soft);
         }
 
+        .raw-input-context-menu {
+            position: fixed;
+            display: none;
+            z-index: 120;
+            min-width: 238px;
+            padding: 6px;
+            border: 1px solid color-mix(in srgb, var(--accent) 48%, var(--line));
+            border-radius: 8px;
+            background:
+                linear-gradient(135deg,
+                    color-mix(in srgb, var(--bg-accent) 20%, var(--panel)),
+                    color-mix(in srgb, var(--panel-soft) 74%, var(--panel)));
+            box-shadow: var(--shadow);
+            color: var(--text);
+        }
+
+        .raw-input-context-menu.open {
+            display: block;
+        }
+
+        .raw-input-context-menu button {
+            width: 100%;
+            height: 34px;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            gap: 24px;
+            padding: 0 12px;
+            border: 0;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text);
+            text-align: left;
+            box-shadow: none;
+        }
+
+        .raw-input-context-menu button:hover,
+        .raw-input-context-menu button:focus-visible {
+            background: color-mix(in srgb, var(--accent) 18%, var(--panel-soft));
+            color: var(--text);
+        }
+
+        .raw-input-context-menu button:disabled {
+            opacity: 0.45;
+            cursor: default;
+        }
+
+        .raw-input-context-menu kbd {
+            font-family: inherit;
+            color: var(--muted);
+            background: transparent;
+            border: 0;
+            padding: 0;
+        }
+
         .project-detail-drawer {
             position: fixed;
             top: 0;
@@ -1544,6 +1863,23 @@
             border-radius: 8px;
             background: var(--panel-soft);
             padding: 12px;
+        }
+
+        .detail-item.possible-duplicate {
+            border-color: color-mix(in srgb, var(--orange) 72%, var(--line));
+            background: color-mix(in srgb, var(--orange) 18%, var(--panel-soft));
+        }
+
+        .detail-duplicate-badge {
+            display: inline-flex;
+            align-items: center;
+            min-height: 22px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: color-mix(in srgb, var(--orange) 28%, var(--field));
+            color: var(--orange-strong);
+            font-size: 12px;
+            font-weight: 800;
         }
 
         .detail-item-head {
@@ -1833,11 +2169,12 @@
     </style>
 </head>
 <body>
+    <div id="toastStack" class="toast-stack" aria-live="polite" aria-atomic="false"></div>
     <header>
         <div class="brand">
-            <div class="brand-icon">D</div>
+            <img class="brand-icon" src="assets/daily-work-report-icon.png" alt="Daily Work Report">
             <div>Daily Work Report</div>
-            <span class="version-badge">v1.3.4</span>
+            <span class="version-badge">v1.4.0</span>
         </div>
         <div class="header-actions">
             <button id="weeklyReportBtn" title="Xuất báo cáo tuần">Báo cáo tuần</button>
@@ -2050,7 +2387,7 @@
             </div>
             <div class="modal-body">
                 <div class="about-hero">
-                    <div class="about-icon">D</div>
+                    <img class="about-icon" src="assets/daily-work-report-icon.png" alt="Daily Work Report">
                     <div>
                         <h2 id="aboutAppName" style="margin:0;">Daily Work Report</h2>
                         <div id="aboutVersion" class="about-version"></div>
@@ -2085,10 +2422,16 @@
                 <button id="closeSettingsBtn" class="icon-btn" title="Đóng" aria-label="Đóng">×</button>
             </div>
             <div class="modal-body">
-                <div class="settings-card-grid">
-                    <button class="settings-card active" data-settings-section="members">Danh sách thành viên</button>
-                    <button class="settings-card" data-settings-section="projects">Mã dự án</button>
-                    <button class="settings-card" data-settings-section="columns">Cột hiển thị báo cáo tuần</button>
+                <div class="settings-card-scroll">
+                    <button class="settings-scroll-zone left" data-settings-scroll="left" title="Cuộn sang trái" aria-label="Cuộn sang trái"></button>
+                    <div class="settings-card-grid" id="settingsCardGrid">
+                        <button class="settings-card active" data-settings-section="members">Danh sách thành viên</button>
+                        <button class="settings-card" data-settings-section="projects">Mã dự án</button>
+                        <button class="settings-card" data-settings-section="columns">Cột hiển thị báo cáo tuần</button>
+                        <button class="settings-card" data-settings-section="learning">AI học nhập liệu</button>
+                        <button class="settings-card" data-settings-section="zalo">Tự chuyển ảnh Zalo</button>
+                    </div>
+                    <button class="settings-scroll-zone right" data-settings-scroll="right" title="Cuộn sang phải" aria-label="Cuộn sang phải"></button>
                 </div>
 
                 <section id="settingsSectionMembers" class="settings-section active">
@@ -2120,6 +2463,56 @@
                     </div>
                     <div id="weeklyColumnList" class="member-list"></div>
                 </section>
+
+                <section id="settingsSectionLearning" class="settings-section">
+                    <h3>AI học nhập liệu</h3>
+                    <p class="muted">Bộ nhớ học cục bộ ghi lại các lần bạn sửa bảng chuẩn hóa để lần sau tự sửa lỗi tương tự. Dữ liệu chỉ lưu trên máy này.</p>
+                    <label class="checkbox-line">
+                        <input id="learningEnabled" type="checkbox">
+                        <span>Bật AI học từ thao tác sửa nhập liệu</span>
+                    </label>
+                    <div class="about-actions">
+                        <button id="clearLearningBtn">Xóa bộ nhớ học</button>
+                    </div>
+                    <div id="learningStats" class="about-box"></div>
+                </section>
+
+                <section id="settingsSectionZalo" class="settings-section">
+                    <h3>Tự chuyển ảnh Zalo</h3>
+                    <p class="muted">Khi bật, phần mềm sẽ chạy ngầm: ảnh mới tải từ Zalo bắt buộc chuyển sang thư mục File Explorer đang mở. Nếu không có thư mục Explorer đang mở, ảnh sẽ chưa được chuyển.</p>
+                    <label class="checkbox-line">
+                        <input id="zaloAutoMoveEnabled" type="checkbox">
+                        <span>Bật tự chuyển ảnh Zalo khi phần mềm đang mở</span>
+                    </label>
+                    <div class="field-row">
+                        <input id="zaloDownloadFolderInput" type="text" placeholder="Thư mục Zalo Received Files">
+                        <button id="chooseZaloFolderBtn">Chọn thư mục Zalo</button>
+                    </div>
+                    <div class="about-actions">
+                        <button id="startZaloAutoMoveBtn" class="primary">Bật ngay</button>
+                        <button id="findZaloFolderBtn">Tự tìm thư mục Zalo</button>
+                    </div>
+                    <div id="zaloAutoMoveStatus" class="about-box">Chưa bật tự chuyển ảnh Zalo.</div>
+                </section>
+            </div>
+        </section>
+    </div>
+
+    <div id="updatePromptModal" class="modal-backdrop">
+        <section class="modal" role="dialog" aria-modal="true" aria-labelledby="updatePromptTitle">
+            <div class="modal-header">
+                <h2 id="updatePromptTitle">Phát hiện phần mềm mới</h2>
+            </div>
+            <div class="modal-body">
+                <div class="about-box">
+                    <h3 id="updatePromptVersion">Có bản cập nhật mới</h3>
+                    <p id="updatePromptMessage" class="muted" style="margin:0;"></p>
+                </div>
+                <div class="about-actions">
+                    <button id="updateNowBtn" class="primary">Update ngay</button>
+                    <button id="updateLaterBtn">Để sau</button>
+                </div>
+                <div id="updatePromptLog" class="about-box" style="display:none; white-space:pre-wrap;"></div>
             </div>
         </section>
     </div>
@@ -2221,6 +2614,25 @@
         <button id="projectDetailMenuBtn" type="button">Detail</button>
     </div>
 
+    <div id="rawInputContextMenu" class="raw-input-context-menu" role="menu">
+        <button type="button" data-raw-input-action="clear" role="menuitem">
+            <span>Clear</span>
+            <kbd></kbd>
+        </button>
+        <button type="button" data-raw-input-action="copy" role="menuitem">
+            <span>Copy</span>
+            <kbd>Ctrl + C</kbd>
+        </button>
+        <button type="button" data-raw-input-action="paste" role="menuitem">
+            <span>Paste</span>
+            <kbd>Ctrl + V</kbd>
+        </button>
+        <button type="button" data-raw-input-action="cut" role="menuitem">
+            <span>Cut</span>
+            <kbd>Ctrl + X</kbd>
+        </button>
+    </div>
+
     <aside id="projectDetailDrawer" class="project-detail-drawer" aria-label="Chi tiết dự án">
         <div id="detailResizeHandle" class="detail-resize-handle"></div>
         <div class="detail-drawer-header">
@@ -2313,13 +2725,17 @@
             searchRows: [],
             selectedSearchIds: new Set(),
             pendingDeleteMode: null,
+            updatePromptDismissed: false,
+            pendingUpdateInfo: null,
             dataFile: '',
             sqliteFile: '',
             members: loadMembers(),
+            learningMemory: loadLearningMemory(),
             weeklyRows: [],
             weeklyRowsByRange: loadWeeklyRowsByRange(),
             weeklyRowsByProject: loadWeeklyRowsByProject(),
             currentWeeklyRangeKey: '',
+            zaloAutoMoveSettings: loadZaloAutoMoveSettings(),
             weeklyImages: [],
             weeklyImageGroups: [],
             weeklyProjects: loadWeeklyProjects(),
@@ -2342,14 +2758,18 @@
             handTrackingLastFrameAt: 0,
             handTrackingStream: null,
             handDetector: null,
+            handDrag: null,
+            handOpenResetStartedAt: 0,
             handPointers: [
-                { x: null, y: null, target: null, dwellStartedAt: 0, clickedTarget: null },
-                { x: null, y: null, target: null, dwellStartedAt: 0, clickedTarget: null }
+                { x: null, y: null, target: null, dwellStartedAt: 0, clickedTarget: null, lastUpdateAt: 0, lastTargetCheckAt: 0, lastTargetX: 0, lastTargetY: 0, pressing: false, lastClickAt: 0 },
+                { x: null, y: null, target: null, dwellStartedAt: 0, clickedTarget: null, lastUpdateAt: 0, lastTargetCheckAt: 0, lastTargetX: 0, lastTargetY: 0, pressing: false, lastClickAt: 0 }
             ]
         };
 
         const els = {
             rawInput: document.getElementById('rawInput'),
+            rawInputContextMenu: document.getElementById('rawInputContextMenu'),
+            toastStack: document.getElementById('toastStack'),
             rootFolder: document.getElementById('rootFolder'),
             chooseFolderBtn: document.getElementById('chooseFolderBtn'),
             acceptBtn: document.getElementById('acceptBtn'),
@@ -2383,9 +2803,16 @@
             aboutGithub: document.getElementById('aboutGithub'),
             updateAppBtn: document.getElementById('updateAppBtn'),
             updateLog: document.getElementById('updateLog'),
+            updatePromptModal: document.getElementById('updatePromptModal'),
+            updatePromptVersion: document.getElementById('updatePromptVersion'),
+            updatePromptMessage: document.getElementById('updatePromptMessage'),
+            updatePromptLog: document.getElementById('updatePromptLog'),
+            updateNowBtn: document.getElementById('updateNowBtn'),
+            updateLaterBtn: document.getElementById('updateLaterBtn'),
             settingsBtn: document.getElementById('settingsBtn'),
             settingsModal: document.getElementById('settingsModal'),
             closeSettingsBtn: document.getElementById('closeSettingsBtn'),
+            settingsCardGrid: document.getElementById('settingsCardGrid'),
             memberNameInput: document.getElementById('memberNameInput'),
             addMemberBtn: document.getElementById('addMemberBtn'),
             memberList: document.getElementById('memberList'),
@@ -2395,6 +2822,15 @@
             weeklyColumnInput: document.getElementById('weeklyColumnInput'),
             addWeeklyColumnBtn: document.getElementById('addWeeklyColumnBtn'),
             weeklyColumnList: document.getElementById('weeklyColumnList'),
+            learningEnabled: document.getElementById('learningEnabled'),
+            clearLearningBtn: document.getElementById('clearLearningBtn'),
+            learningStats: document.getElementById('learningStats'),
+            zaloAutoMoveEnabled: document.getElementById('zaloAutoMoveEnabled'),
+            zaloDownloadFolderInput: document.getElementById('zaloDownloadFolderInput'),
+            chooseZaloFolderBtn: document.getElementById('chooseZaloFolderBtn'),
+            startZaloAutoMoveBtn: document.getElementById('startZaloAutoMoveBtn'),
+            findZaloFolderBtn: document.getElementById('findZaloFolderBtn'),
+            zaloAutoMoveStatus: document.getElementById('zaloAutoMoveStatus'),
             reloadBtn: document.getElementById('reloadBtn'),
             searchInput: document.getElementById('searchInput'),
             excelFilter: document.getElementById('excelFilter'),
@@ -2450,6 +2886,20 @@
         if (state.weeklyOutputFolder) {
             els.weeklyOutputFolder.value = state.weeklyOutputFolder;
         }
+        renderLearningSettings();
+        renderZaloAutoMoveSettings();
+        if (state.zaloAutoMoveSettings.enabled) {
+            startZaloAutoMove(false);
+        }
+        setInterval(async () => {
+            if (!state.zaloAutoMoveSettings.enabled) return;
+            try {
+                const status = await ipcRenderer.invoke('get-zalo-auto-move-status');
+                updateZaloAutoMoveStatus(status);
+            } catch {
+                // Status polling is only informational.
+            }
+        }, 2500);
         applyTheme(localStorage.getItem('dailyWorkReportTheme') || 'light');
         applyFolderPinState();
         updateCurrentDateTime();
@@ -2480,7 +2930,16 @@
                 return;
             }
 
-            state.previewReports = sanitizePreviewReports(parseReport(raw));
+            state.previewReports = applyLearningToReports(sanitizePreviewReports(parseReport(raw)));
+            state.previewReports = state.previewReports.map((report) => ({
+                ...report,
+                ai_original: {
+                    ma_du_an: report.ma_du_an,
+                    noi_dung_cong_viec: [...(report.noi_dung_cong_viec || [])],
+                    trang_thai: [...(report.trang_thai || [])],
+                    nguoi_thuc_hien: [...(report.nguoi_thuc_hien || [])]
+                }
+            }));
             await validatePreviewProjectReferences();
             renderPreview();
             setStatus(`Đã chuẩn hóa ${state.previewReports.length} dự án. Kiểm tra lại rồi lưu.`);
@@ -2506,7 +2965,9 @@
                 state.dataFile = result.dataFile;
                 state.sqliteFile = result.sqliteFile || '';
                 state.previewReports = result.reports;
-                setStatus(`Đã lưu ${result.count} bản ghi và tạo folder thành công.`);
+                learnFromAcceptedReports(result.reports, 'save');
+                const skippedText = result.skippedDuplicates ? ` Bỏ qua ${result.skippedDuplicates} bản ghi trùng 100%.` : '';
+                setStatus(`Đã lưu ${result.count} bản ghi và tạo folder thành công.${skippedText}`);
                 els.rawInput.value = '';
                 renderPreview();
                 await loadReports();
@@ -2550,6 +3011,8 @@
             if (event.target === els.deleteConfirmModal) closeDeleteConfirm();
         });
         els.confirmDeleteBtn.addEventListener('click', confirmDeleteReports);
+        els.rawInput.addEventListener('contextmenu', showRawInputContextMenu);
+        els.rawInputContextMenu.addEventListener('click', handleRawInputContextAction);
         els.folderPinBtn.addEventListener('click', () => {
             state.folderPinned = !state.folderPinned;
             localStorage.setItem('dailyWorkReportFolderPinned', String(state.folderPinned));
@@ -2613,9 +3076,13 @@
             if (event.target === els.imageViewer) closeImageViewer();
         });
         document.addEventListener('click', hideProjectContextMenu);
+        document.addEventListener('click', (event) => {
+            if (!event.target.closest('#rawInputContextMenu')) hideRawInputContextMenu();
+        });
         document.addEventListener('mousemove', handleGlobalMouseMove);
         document.addEventListener('mouseup', stopGlobalResize);
         document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') hideRawInputContextMenu();
             if (!els.imageViewer.classList.contains('open')) return;
             if (event.key === 'Escape') closeImageViewer();
             if (event.key === 'ArrowLeft') moveDetailImage(-1);
@@ -2632,6 +3099,11 @@
             }
         });
         els.updateAppBtn.addEventListener('click', updateAppFromGithub);
+        els.updateNowBtn.addEventListener('click', updateNowFromPrompt);
+        els.updateLaterBtn.addEventListener('click', () => {
+            state.updatePromptDismissed = true;
+            els.updatePromptModal.classList.remove('open');
+        });
 
         els.settingsBtn.addEventListener('click', () => {
             renderMemberList();
@@ -2666,15 +3138,80 @@
         els.weeklyColumnInput.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') addWeeklyColumnFromInput();
         });
+        els.learningEnabled.addEventListener('change', () => {
+            state.learningMemory.enabled = els.learningEnabled.checked;
+            saveLearningMemory();
+            renderLearningSettings();
+        });
+        els.clearLearningBtn.addEventListener('click', () => {
+            state.learningMemory = createDefaultLearningMemory(state.learningMemory.enabled);
+            saveLearningMemory();
+            renderLearningSettings();
+            showToast('Daily Work Report', ['Đã xóa bộ nhớ học nhập liệu.']);
+        });
+        els.zaloAutoMoveEnabled.addEventListener('change', () => {
+            if (els.zaloAutoMoveEnabled.checked) {
+                startZaloAutoMove();
+            } else {
+                stopZaloAutoMove();
+            }
+        });
+        els.zaloDownloadFolderInput.addEventListener('change', () => {
+            saveZaloAutoMoveSettingsFromInputs();
+            if (els.zaloAutoMoveEnabled.checked) startZaloAutoMove(false);
+        });
+        els.chooseZaloFolderBtn.addEventListener('click', chooseZaloDownloadFolder);
+        els.findZaloFolderBtn.addEventListener('click', findDefaultZaloDownloadFolder);
+        els.startZaloAutoMoveBtn.addEventListener('click', () => {
+            if (state.zaloAutoMoveSettings.enabled) {
+                stopZaloAutoMove();
+            } else {
+                startZaloAutoMove();
+            }
+        });
         document.querySelectorAll('[data-settings-section]').forEach((button) => {
             button.addEventListener('click', () => showSettingsSection(button.dataset.settingsSection));
         });
+        document.querySelectorAll('[data-settings-scroll]').forEach((zone) => {
+            zone.addEventListener('pointerenter', () => startSettingsCardScroll(zone.dataset.settingsScroll, zone));
+            zone.addEventListener('pointerleave', (event) => {
+                const next = event.relatedTarget;
+                if (next && zone.contains(next)) return;
+                stopSettingsCardScroll();
+            });
+            zone.addEventListener('click', () => scrollSettingsCards(zone.dataset.settingsScroll, 220));
+        });
+        document.addEventListener('pointermove', (event) => {
+            state.lastPointer = { x: event.clientX, y: event.clientY };
+        });
         els.weeklyPreviewWrap.addEventListener('wheel', handleWeeklyZoomWheel, { passive: false });
         applyWeeklyZoom();
+        ipcRenderer.on('zalo-image-moved', (_event, payload) => {
+            showToast('Daily Work Report', ['Đã chuyển']);
+        });
 
         function setStatus(message, isError = false) {
             els.inputStatus.textContent = message;
             els.inputStatus.classList.toggle('error', isError);
+        }
+
+        function showToast(title, lines = [], timeoutMs = 5200) {
+            if (!els.toastStack) return;
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            const safeLines = Array.isArray(lines) ? lines : [String(lines || '')];
+            toast.innerHTML = `
+                <strong>${escapeHtml(title || 'Thông báo')}</strong>
+                ${safeLines.filter(Boolean).map((line) => `<div title="${escapeHtml(line)}">${escapeHtml(line)}</div>`).join('')}
+            `;
+            els.toastStack.appendChild(toast);
+            const removeToast = () => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(10px)';
+                setTimeout(() => toast.remove(), 160);
+            };
+            toast.addEventListener('click', removeToast);
+            setTimeout(removeToast, timeoutMs);
         }
 
         function handAssetUrl(fileName) {
@@ -2704,8 +3241,9 @@
                 const stream = await navigator.mediaDevices.getUserMedia({
                     audio: false,
                     video: {
-                        width: { ideal: 640 },
-                        height: { ideal: 480 },
+                        width: { ideal: 480, max: 640 },
+                        height: { ideal: 360, max: 480 },
+                        frameRate: { ideal: 30, max: 30 },
                         facingMode: 'user'
                     }
                 });
@@ -2717,9 +3255,10 @@
                     state.handDetector = new Hands({ locateFile: handAssetUrl });
                     state.handDetector.setOptions({
                         maxNumHands: 2,
-                        modelComplexity: 1,
-                        minDetectionConfidence: 0.45,
-                        minTrackingConfidence: 0.45
+                        modelComplexity: 0,
+                        minDetectionConfidence: 0.5,
+                        minTrackingConfidence: 0.55,
+                        selfieMode: true
                     });
                     state.handDetector.onResults(handleHandTrackingResults);
                 }
@@ -2727,6 +3266,7 @@
                 state.handTrackingActive = true;
                 state.handTrackingBusy = false;
                 state.handTrackingLastFrameAt = 0;
+                els.handCameraRuntime.classList.add('active');
                 els.handTrackingBtn.classList.add('active');
                 els.handTrackingBtn.title = 'Tắt Hand Tracking';
                 els.handTrackingStatus.textContent = 'Đang nhận diện tay';
@@ -2750,6 +3290,9 @@
                 state.handTrackingStream.getTracks().forEach((track) => track.stop());
             }
             state.handTrackingStream = null;
+            endHandDrag();
+            state.handOpenResetStartedAt = 0;
+            els.handCameraRuntime.classList.remove('active');
             els.handCameraVideo.pause();
             els.handCameraVideo.srcObject = null;
             const context = els.handCameraCanvas.getContext('2d');
@@ -2762,7 +3305,7 @@
 
         async function runHandTrackingFrame(timestamp) {
             if (!state.handTrackingActive) return;
-            if (!state.handTrackingBusy && timestamp - state.handTrackingLastFrameAt >= 70 && els.handCameraVideo.readyState >= 2) {
+            if (!state.handTrackingBusy && timestamp - state.handTrackingLastFrameAt >= 45 && els.handCameraVideo.readyState >= 2) {
                 state.handTrackingBusy = true;
                 state.handTrackingLastFrameAt = timestamp;
                 try {
@@ -2781,23 +3324,74 @@
 
         function handleHandTrackingResults(results) {
             const hands = results.multiHandLandmarks || [];
+            drawHandTrackingOverlay(hands);
             if (!hands.length) {
                 hideAllHandPointers();
+                endHandDrag();
                 els.handTrackingStatus.textContent = 'Chưa nhận diện được tay';
                 return;
             }
             const now = performance.now();
             hands.slice(0, 2).forEach((landmarks, index) => {
-                updateHandPointer(index, landmarks[8], now);
+                updateHandPointer(index, landmarks, now);
             });
             for (let index = hands.length; index < 2; index += 1) {
                 hideHandPointer(index);
             }
+            handleTwoOpenHandsReset(hands, now);
             els.handTrackingStatus.textContent = `Đang nhận diện ${Math.min(hands.length, 2)} tay`;
         }
 
+        function drawHandTrackingOverlay(hands) {
+            const canvas = els.handCameraCanvas;
+            const rect = canvas.getBoundingClientRect();
+            const width = Math.max(1, Math.floor(rect.width * window.devicePixelRatio));
+            const height = Math.max(1, Math.floor(rect.height * window.devicePixelRatio));
+            if (canvas.width !== width || canvas.height !== height) {
+                canvas.width = width;
+                canvas.height = height;
+            }
+            const context = canvas.getContext('2d');
+            context.clearRect(0, 0, width, height);
+            context.save();
+            context.scale(window.devicePixelRatio, window.devicePixelRatio);
+            const drawWidth = rect.width;
+            const drawHeight = rect.height;
+            const connections = [
+                [0, 1], [1, 2], [2, 3], [3, 4],
+                [0, 5], [5, 6], [6, 7], [7, 8],
+                [0, 9], [9, 10], [10, 11], [11, 12],
+                [0, 13], [13, 14], [14, 15], [15, 16],
+                [0, 17], [17, 18], [18, 19], [19, 20],
+                [5, 9], [9, 13], [13, 17]
+            ];
+            hands.slice(0, 2).forEach((landmarks, handIndex) => {
+                const color = handIndex === 0 ? '#2af06f' : '#36b7ff';
+                context.lineWidth = 1.5;
+                context.strokeStyle = color;
+                context.globalAlpha = 0.62;
+                connections.forEach(([from, to]) => {
+                    const a = landmarks[from];
+                    const b = landmarks[to];
+                    if (!a || !b) return;
+                    context.beginPath();
+                    context.moveTo(a.x * drawWidth, a.y * drawHeight);
+                    context.lineTo(b.x * drawWidth, b.y * drawHeight);
+                    context.stroke();
+                });
+                landmarks.forEach((point, pointIndex) => {
+                    context.beginPath();
+                    context.fillStyle = pointIndex === 8 ? '#ffdf3d' : color;
+                    context.arc(point.x * drawWidth, point.y * drawHeight, pointIndex === 8 ? 3.6 : 2.2, 0, Math.PI * 2);
+                    context.fill();
+                });
+                context.globalAlpha = 1;
+            });
+            context.restore();
+        }
+
         function mapHandPointToScreen(point) {
-            const normalizedX = Math.min(1, Math.max(0, ((1 - point.x) - 0.08) / 0.84));
+            const normalizedX = Math.min(1, Math.max(0, (point.x - 0.08) / 0.84));
             const normalizedY = Math.min(1, Math.max(0, (point.y - 0.08) / 0.84));
             return {
                 x: normalizedX * window.innerWidth,
@@ -2805,17 +3399,35 @@
             };
         }
 
-        function updateHandPointer(index, fingerTip, now) {
+        function updateHandPointer(index, landmarks, now) {
             const pointerState = state.handPointers[index];
             const pointerElement = els.handPointers[index];
+            const fingerTip = landmarks[8];
             const mapped = mapHandPointToScreen(fingerTip);
-            pointerState.x = pointerState.x === null ? mapped.x : pointerState.x * 0.68 + mapped.x * 0.32;
-            pointerState.y = pointerState.y === null ? mapped.y : pointerState.y * 0.68 + mapped.y * 0.32;
+            if (pointerState.x === null || pointerState.y === null) {
+                pointerState.x = mapped.x;
+                pointerState.y = mapped.y;
+            } else {
+                const distance = Math.hypot(mapped.x - pointerState.x, mapped.y - pointerState.y);
+                const deltaMs = Math.max(16, now - (pointerState.lastUpdateAt || now));
+                const speedBoost = Math.min(0.74, distance / Math.max(140, deltaMs * 4));
+                const alpha = Math.min(0.72, Math.max(0.22, 0.26 + speedBoost));
+                pointerState.x += (mapped.x - pointerState.x) * alpha;
+                pointerState.y += (mapped.y - pointerState.y) * alpha;
+            }
+            pointerState.lastUpdateAt = now;
             pointerElement.style.left = `${pointerState.x}px`;
             pointerElement.style.top = `${pointerState.y}px`;
             pointerElement.classList.add('visible');
 
-            const target = findHandSelectableTarget(pointerState.x, pointerState.y);
+            const targetCheckDistance = Math.hypot(pointerState.x - pointerState.lastTargetX, pointerState.y - pointerState.lastTargetY);
+            const shouldCheckTarget = !pointerState.target || targetCheckDistance > 10 || now - pointerState.lastTargetCheckAt > 90;
+            const target = shouldCheckTarget ? findHandSelectableTarget(pointerState.x, pointerState.y) : pointerState.target;
+            if (shouldCheckTarget) {
+                pointerState.lastTargetCheckAt = now;
+                pointerState.lastTargetX = pointerState.x;
+                pointerState.lastTargetY = pointerState.y;
+            }
             if (target !== pointerState.target) {
                 pointerState.target = target;
                 pointerState.dwellStartedAt = now;
@@ -2823,15 +3435,12 @@
             }
             if (!target) {
                 pointerElement.style.setProperty('--dwell-angle', '0deg');
+                pointerState.pressing = false;
                 return;
             }
 
-            const progress = Math.min(1, Math.max(0, (now - pointerState.dwellStartedAt) / HAND_DWELL_MS));
-            pointerElement.style.setProperty('--dwell-angle', `${Math.round(progress * 360)}deg`);
-            if (progress >= 1 && pointerState.clickedTarget !== target) {
-                pointerState.clickedTarget = target;
-                activateHandTarget(target);
-            }
+            pointerElement.style.setProperty('--dwell-angle', '0deg');
+            handleHandGestureMouse(index, landmarks, pointerState, target);
         }
 
         function findHandSelectableTarget(x, y) {
@@ -2851,6 +3460,131 @@
             target.click();
         }
 
+        function handGestureState(landmarks) {
+            const fingerTips = [8, 12, 16, 20];
+            const fingerPips = [6, 10, 14, 18];
+            const folded = fingerTips.filter((tip, index) => landmarks[tip].y > landmarks[fingerPips[index]].y + 0.015).length;
+            const extended = fingerTips.filter((tip, index) => landmarks[tip].y < landmarks[fingerPips[index]].y - 0.02).length;
+            const thumbOpen = Math.abs(landmarks[4].x - landmarks[2].x) > 0.055;
+            const indexExtended = landmarks[8].y < landmarks[6].y - 0.035;
+            const middleFolded = landmarks[12].y > landmarks[10].y + 0.005;
+            const ringFolded = landmarks[16].y > landmarks[14].y + 0.005;
+            const pinkyFolded = landmarks[20].y > landmarks[18].y + 0.005;
+            const pointing = indexExtended && middleFolded && ringFolded && pinkyFolded;
+            const indexPressDistance = Math.hypot(landmarks[8].x - landmarks[5].x, landmarks[8].y - landmarks[5].y);
+            return {
+                fist: folded >= 3,
+                openPalm: extended >= 4 && thumbOpen,
+                pointing,
+                press: pointing || indexPressDistance < 0.105
+            };
+        }
+
+        function handleHandGestureMouse(index, landmarks, pointerState, target) {
+            const gesture = handGestureState(landmarks);
+            if (gesture.fist) {
+                pointerState.pressing = false;
+                if (!state.handDrag && target) {
+                    state.handDrag = {
+                        index,
+                        target,
+                        startedAt: performance.now()
+                    };
+                    dispatchSyntheticMouse(target, 'mousedown', pointerState.x, pointerState.y);
+                    target.classList.add('hand-dragging');
+                } else if (state.handDrag && state.handDrag.index === index) {
+                    dispatchSyntheticMouse(state.handDrag.target, 'mousemove', pointerState.x, pointerState.y);
+                    document.dispatchEvent(new MouseEvent('mousemove', {
+                        bubbles: true,
+                        clientX: pointerState.x,
+                        clientY: pointerState.y
+                    }));
+                }
+                pointerState.clickedTarget = target;
+                return;
+            }
+
+            if (state.handDrag && state.handDrag.index === index) {
+                dispatchSyntheticMouse(state.handDrag.target, 'mouseup', pointerState.x, pointerState.y);
+                document.dispatchEvent(new MouseEvent('mouseup', {
+                    bubbles: true,
+                    clientX: pointerState.x,
+                    clientY: pointerState.y
+                }));
+                state.handDrag.target.classList.remove('hand-dragging');
+                state.handDrag = null;
+            }
+
+            if (gesture.press && target && !pointerState.pressing && performance.now() - pointerState.lastClickAt > 420) {
+                pointerState.pressing = true;
+                pointerState.lastClickAt = performance.now();
+                pointerState.clickedTarget = target;
+                pulseHandPointer(index);
+                activateHandTarget(target);
+                return;
+            }
+
+            if (!gesture.press) {
+                pointerState.pressing = false;
+            }
+        }
+
+        function pulseHandPointer(index) {
+            const pointerElement = els.handPointers[index];
+            pointerElement.animate([
+                { transform: 'translate(-50%, -50%) scale(1)' },
+                { transform: 'translate(-50%, -50%) scale(0.72)' },
+                { transform: 'translate(-50%, -50%) scale(1)' }
+            ], {
+                duration: 180,
+                easing: 'ease-out'
+            });
+        }
+
+        function dispatchSyntheticMouse(target, type, x, y) {
+            if (!target) return;
+            target.dispatchEvent(new MouseEvent(type, {
+                bubbles: true,
+                cancelable: true,
+                view: window,
+                clientX: x,
+                clientY: y,
+                buttons: type === 'mouseup' ? 0 : 1,
+                button: 0
+            }));
+        }
+
+        function endHandDrag() {
+            if (!state.handDrag) return;
+            state.handDrag.target.classList.remove('hand-dragging');
+            state.handDrag = null;
+        }
+
+        function handleTwoOpenHandsReset(hands, now) {
+            if (hands.length < 2 || !hands.slice(0, 2).every((landmarks) => handGestureState(landmarks).openPalm)) {
+                state.handOpenResetStartedAt = 0;
+                return;
+            }
+            if (!state.handOpenResetStartedAt) {
+                state.handOpenResetStartedAt = now;
+                return;
+            }
+            if (now - state.handOpenResetStartedAt < 650) return;
+            resetHandControlledView();
+            state.handOpenResetStartedAt = now + 1800;
+        }
+
+        function resetHandControlledView() {
+            endHandDrag();
+            state.weeklyZoom = 1;
+            localStorage.setItem('dailyWorkReportWeeklyZoom', '1');
+            applyWeeklyZoom();
+            if (els.projectDetailDrawer.classList.contains('open')) {
+                document.documentElement.style.setProperty('--detail-width', '420px');
+            }
+            showToast('Daily Work Report', ['Đã reset hiển thị mặc định.']);
+        }
+
         function hideHandPointer(index) {
             const pointerState = state.handPointers[index];
             const pointerElement = els.handPointers[index];
@@ -2859,6 +3593,14 @@
             pointerState.target = null;
             pointerState.dwellStartedAt = 0;
             pointerState.clickedTarget = null;
+            pointerState.x = null;
+            pointerState.y = null;
+            pointerState.lastUpdateAt = 0;
+            pointerState.lastTargetCheckAt = 0;
+            pointerState.lastTargetX = 0;
+            pointerState.lastTargetY = 0;
+            pointerState.pressing = false;
+            pointerState.lastClickAt = 0;
         }
 
         function hideAllHandPointers() {
@@ -2926,6 +3668,46 @@
             }
         }
 
+        async function checkForAppUpdateOnStartup() {
+            if (state.updatePromptDismissed) return;
+            try {
+                const info = await ipcRenderer.invoke('check-app-update-from-github');
+                if (!info || !info.hasUpdate || state.updatePromptDismissed) return;
+                state.pendingUpdateInfo = info;
+                els.updatePromptVersion.textContent = `Có bản mới v${info.latestVersion}`;
+                els.updatePromptMessage.textContent = `Phiên bản hiện tại: v${info.currentVersion}. Bản mới: v${info.latestVersion}${info.assetName ? ` (${info.assetName})` : ''}.`;
+                els.updatePromptLog.style.display = 'none';
+                els.updatePromptLog.textContent = '';
+                els.updateNowBtn.disabled = false;
+                els.updateLaterBtn.disabled = false;
+                els.updatePromptModal.classList.add('open');
+            } catch (error) {
+                console.warn('Không kiểm tra được bản cập nhật:', error);
+            }
+        }
+
+        async function updateNowFromPrompt() {
+            els.updateNowBtn.disabled = true;
+            els.updateLaterBtn.disabled = true;
+            els.updatePromptLog.style.display = 'block';
+            els.updatePromptLog.textContent = 'Đang tải và cài đặt bản cập nhật...';
+            try {
+                const result = await ipcRenderer.invoke('update-app-from-github');
+                els.updatePromptLog.textContent = [
+                    result.message || 'Đã tải bản cập nhật.',
+                    result.downloadedFile ? `File: ${result.downloadedFile}` : '',
+                    result.releaseUrl ? `Release: ${result.releaseUrl}` : ''
+                ].filter(Boolean).join('\n');
+                if (!result.installerStarted) {
+                    els.updateLaterBtn.disabled = false;
+                }
+            } catch (error) {
+                els.updatePromptLog.textContent = error.message || 'Không thể cập nhật từ GitHub.';
+                els.updateNowBtn.disabled = false;
+                els.updateLaterBtn.disabled = false;
+            }
+        }
+
         function showSettingsSection(sectionName) {
             document.querySelectorAll('[data-settings-section]').forEach((button) => {
                 button.classList.toggle('active', button.dataset.settingsSection === sectionName);
@@ -2933,6 +3715,45 @@
             document.querySelectorAll('.settings-section').forEach((section) => section.classList.remove('active'));
             const target = document.getElementById(`settingsSection${sectionName.charAt(0).toUpperCase()}${sectionName.slice(1)}`);
             if (target) target.classList.add('active');
+            if (sectionName === 'learning') renderLearningSettings();
+        }
+
+        function scrollSettingsCards(direction, amount = 26) {
+            if (!els.settingsCardGrid) return;
+            const sign = direction === 'left' ? -1 : 1;
+            els.settingsCardGrid.scrollLeft += sign * amount;
+        }
+
+        function startSettingsCardScroll(direction, zone) {
+            stopSettingsCardScroll();
+            state.settingsCardScrollDirection = direction;
+            state.settingsCardScrollZone = zone;
+            const step = () => {
+                if (!state.settingsCardScrollDirection) return;
+                if (state.lastPointer && state.settingsCardScrollZone) {
+                    const rect = state.settingsCardScrollZone.getBoundingClientRect();
+                    const inside = state.lastPointer.x >= rect.left
+                        && state.lastPointer.x <= rect.right
+                        && state.lastPointer.y >= rect.top
+                        && state.lastPointer.y <= rect.bottom;
+                    if (!inside) {
+                        stopSettingsCardScroll();
+                        return;
+                    }
+                }
+                scrollSettingsCards(state.settingsCardScrollDirection, 7);
+                state.settingsCardScrollTimer = requestAnimationFrame(step);
+            };
+            step();
+        }
+
+        function stopSettingsCardScroll() {
+            if (state.settingsCardScrollTimer) {
+                cancelAnimationFrame(state.settingsCardScrollTimer);
+                state.settingsCardScrollTimer = null;
+            }
+            state.settingsCardScrollDirection = '';
+            state.settingsCardScrollZone = null;
         }
 
         function applyFolderPinState() {
@@ -3015,14 +3836,13 @@
         }
 
         async function validatePreviewProjectReferences() {
-            const projects = state.previewReports.map((report) => report.ma_du_an).filter(Boolean);
+            const projects = state.previewReports.map(projectLookupText).filter(Boolean);
             if (!projects.length) return;
             try {
                 const references = await ipcRenderer.invoke('lookup-machine-reference', { projects });
-                const referenceMap = new Map((references || []).map((item) => [normalizeProjectKey(item.project), item]));
-                state.previewReports.forEach((report) => {
+                state.previewReports.forEach((report, index) => {
                     const warnings = (report.warning || []).filter((item) => !/file tham khảo|thamkhao|tham khảo|gợi ý mã/i.test(item));
-                    const info = referenceMap.get(normalizeProjectKey(report.ma_du_an));
+                    const info = (references || [])[index];
                     report.reference_missing = Boolean(info && !info.found);
                     report.reference_suggestions = info && Array.isArray(info.suggestions) ? info.suggestions : [];
                     report.warning = report.reference_missing
@@ -3032,6 +3852,15 @@
             } catch (error) {
                 console.error('Không kiểm tra được mã dự án với file tham khảo:', error);
             }
+        }
+
+        function projectLookupText(report) {
+            const project = String(report && report.ma_du_an || '').trim();
+            if (!project) return '';
+            if (/^CHUA_XAC_DINH/i.test(project)) {
+                return `${project} ${report.raw_text || ''}`;
+            }
+            return project;
         }
 
         function sanitizePreviewReports(reports) {
@@ -3284,7 +4113,7 @@
 
         function extractProjectsFromLine(line) {
             const projects = [];
-            const explicitProject = /\b(AUT[A-Z]?|MEC)\s*:?\s*([0-9]+(?:[A-Z][0-9]+)?)(?=[\s,.;:(]|$)/gi;
+            const explicitProject = /\b(AUT[A-Z]?|MEC)\s*:?\s*([0-9]+(?:[A-Z][0-9]+)?)(?=[\s,+.;:(]|$)/gi;
             let match;
 
             while ((match = explicitProject.exec(line)) !== null) {
@@ -3306,7 +4135,7 @@
             let remaining = text;
 
             while (true) {
-                const match = remaining.match(/^\s*,\s*([0-9]+(?:[A-Z][0-9]+)?)(?=[\s,.;:]|$)/i);
+                const match = remaining.match(/^\s*[,＋+]\s*([0-9]+(?:[A-Z][0-9]+)?)(?=[\s,+.;:]|$)/i);
                 if (!match) break;
 
                 const expanded = expandProjectContinuation(baseCode, match[1].toUpperCase());
@@ -3812,18 +4641,10 @@
                 const copyFolderPath = report.folder_nguoi && report.folder_nguoi.length
                     ? report.folder_nguoi.join('; ')
                     : buildPreviewFolderPath(folderPath);
+                const openFolderPath = report.folder_nguoi && report.folder_nguoi.length
+                    ? report.folder_nguoi[0]
+                    : (state.rootFolder ? buildPreviewFolderPath(folderPath) : '');
                 const warnings = report.warning || [];
-                const suggestions = Array.isArray(report.reference_suggestions) ? report.reference_suggestions : [];
-                const suggestionHtml = report.reference_missing && suggestions.length
-                    ? `
-                        <div class="field-row" style="margin-top:8px">
-                            <select data-preview-project-suggestion="${index}">
-                                <option value="">Chọn mã dự án gợi ý</option>
-                                ${suggestions.map((item) => `<option value="${escapeHtml(item.project)}">${escapeHtml(item.project)}${item.ten_may ? ` - ${escapeHtml(item.ten_may)}` : ''}</option>`).join('')}
-                            </select>
-                        </div>
-                    `
-                    : '';
 
                 return `
                     <article class="report-card ${warnings.length ? 'warning' : ''}">
@@ -3836,7 +4657,7 @@
                             </label>
                         </div>
                         <div class="report-grid">
-                            ${editablePreviewFieldHtml('Mã dự án', report.ma_du_an, index, 'ma_du_an', 'input')}
+                            ${projectPreviewFieldHtml(report, index)}
                             ${editablePreviewFieldHtml('Nội dung công việc', listToTextareaValue(report.noi_dung_cong_viec), index, 'noi_dung_cong_viec', 'textarea')}
                             ${editablePreviewFieldHtml('Thời gian', listToTextareaValue(report.thoi_gian), index, 'thoi_gian', 'textarea')}
                             ${fieldHtml('Người thực hiện', peopleEditorHtml(report, index))}
@@ -3849,11 +4670,11 @@
                                         <span>${escapeHtml(folderPath)}</span>
                                         <button class="copy-folder-btn" data-copy-folder="${escapeHtml(copyFolderPath)}" title="Copy đường dẫn" aria-label="Copy đường dẫn">⎘</button>
                                     </div>
-                                    <!-- <button data-open-folder="${escapeHtml(report.folder_ngay || '')}" ${report.folder_ngay ? '' : 'disabled'}>Mở</button> -->
+                                    <button class="open-folder-inline-btn" data-open-folder="${escapeHtml(openFolderPath)}" ${openFolderPath ? '' : 'disabled'}>Mở</button>
                                 </div>
                             </div>
                         </div>
-                        ${warnings.length ? `<div class="warning-text">${warnings.map(escapeHtml).join(' ')}${suggestionHtml}</div>` : ''}
+                        ${warnings.length ? `<div class="warning-text">${warnings.map(escapeHtml).join(' ')}</div>` : ''}
                     </article>
                 `;
             }).join('');
@@ -3887,6 +4708,9 @@
             document.querySelectorAll('[data-preview-project-suggestion]').forEach((select) => {
                 select.addEventListener('change', () => applyPreviewProjectSuggestion(Number(select.dataset.previewProjectSuggestion), select.value));
             });
+            document.querySelectorAll('[data-preview-project-suggestion-click]').forEach((button) => {
+                button.addEventListener('click', () => applyPreviewProjectSuggestion(Number(button.dataset.previewProjectSuggestionClick), button.dataset.project));
+            });
 
             document.querySelectorAll('[data-preview-edit-field]').forEach((input) => {
                 input.addEventListener('input', syncPreviewEditableField);
@@ -3901,10 +4725,16 @@
 
                     if (!selectedName) return;
 
+                    const previousPerson = state.previewReports[reportIndex].nguoi_thuc_hien[personIndex];
+                    const previousName = previousPerson && (previousPerson.displayName || String(previousPerson));
+                    rememberLearning('person', previousName, selectedName);
                     state.previewReports[reportIndex].nguoi_thuc_hien[personIndex] = {
                         displayName: selectedName,
                         folderName: toFolderName(selectedName)
                     };
+                    if (state.previewReports[reportIndex].ai_original) {
+                        state.previewReports[reportIndex].ai_original.nguoi_thuc_hien = [...state.previewReports[reportIndex].nguoi_thuc_hien];
+                    }
                     state.previewReports[reportIndex].folder_nguoi = [];
                     state.previewReports[reportIndex].folder_nhom_nguoi = '';
                     renderPreview();
@@ -3927,6 +4757,41 @@
             const normalized = String(folderPath || '').replace(/[\\/]+/g, '\\');
             if (!state.rootFolder) return normalized;
             return `${state.rootFolder.replace(/[\\/]+$/g, '')}\\${normalized}`;
+        }
+
+        function projectPreviewFieldHtml(report, reportIndex) {
+            const suggestions = Array.isArray(report.reference_suggestions) ? report.reference_suggestions : [];
+            const firstSuggestion = suggestions[0];
+            const suggestionText = firstSuggestion
+                ? `Ý của bạn là ${firstSuggestion.project}${firstSuggestion.ten_may ? ` - ${firstSuggestion.ten_may}` : ''}?`
+                : (report.reference_missing ? 'Chưa tìm thấy mã dự án phù hợp trong file tham khảo.' : '');
+            const picker = suggestions.length
+                ? `
+                    <select class="project-suggestion-picker" data-preview-project-suggestion="${reportIndex}" title="Chọn mã dự án gợi ý">
+                        <option value="">▾</option>
+                        ${suggestions.map((item, suggestionIndex) => `
+                            <option value="${escapeHtml(item.project)}">
+                                ${suggestionIndex === 0 ? '★ ' : ''}${escapeHtml(item.project)}${item.ten_may ? ` - ${escapeHtml(item.ten_may)}` : ''}
+                            </option>
+                        `).join('')}
+                    </select>
+                `
+                : '<button class="project-suggestion-picker" type="button" disabled>▾</button>';
+
+            return `
+                <div class="project-edit-wrap">
+                    <label>Mã dự án</label>
+                    <div class="project-edit-control">
+                        <input class="editable-preview-input" type="text" value="${escapeHtml(report.ma_du_an || '')}" data-preview-edit-field="ma_du_an" data-preview-edit-index="${reportIndex}">
+                        ${picker}
+                    </div>
+                    <div class="project-suggestion-inline">
+                        ${firstSuggestion
+                            ? `<button type="button" data-preview-project-suggestion-click="${reportIndex}" data-project="${escapeHtml(firstSuggestion.project)}">${escapeHtml(suggestionText)}</button>`
+                            : escapeHtml(suggestionText)}
+                    </div>
+                </div>
+            `;
         }
 
         function editablePreviewFieldHtml(label, value, reportIndex, field, type) {
@@ -3955,8 +4820,12 @@
 
             if (field === 'ma_du_an') {
                 const project = normalizeProjectCode(event.target.value) || event.target.value.trim();
+                if (event.type === 'change') {
+                    rememberLearning('project', (report.ai_original && report.ai_original.ma_du_an) || report.ma_du_an, project);
+                }
                 report.ma_du_an = project;
                 report.id = `${report.ngay_thuc_hien || 'unknown'}_${project}_${String(reportIndex + 1).padStart(3, '0')}`;
+                if (report.ai_original) report.ai_original.ma_du_an = project;
                 const title = event.target.closest('.report-card')?.querySelector('h3');
                 if (title) title.textContent = project;
                 if (event.type === 'change') {
@@ -3966,7 +4835,16 @@
             }
 
             if (field === 'noi_dung_cong_viec' || field === 'trang_thai' || field === 'thoi_gian') {
-                report[field] = textareaToPreviewList(event.target.value);
+                const nextItems = textareaToPreviewList(event.target.value);
+                if (event.type === 'change' && (field === 'noi_dung_cong_viec' || field === 'trang_thai')) {
+                    const originalItems = (report.ai_original && report.ai_original[field]) || report[field] || [];
+                    const max = Math.min(originalItems.length, nextItems.length);
+                    for (let index = 0; index < max; index += 1) {
+                        rememberLearning('field', originalItems[index], nextItems[index], field);
+                    }
+                    if (report.ai_original) report.ai_original[field] = [...nextItems];
+                }
+                report[field] = nextItems;
                 return;
             }
 
@@ -4028,6 +4906,184 @@
             const selectedCount = state.previewReports.filter((report) => report.selectedForExcel).length;
             els.excelBtn.classList.toggle('visible', selectedCount > 0);
             els.excelBtn.textContent = `Thêm vào Excel (${selectedCount})`;
+        }
+
+        function createDefaultLearningMemory(enabled = true) {
+            return {
+                enabled,
+                projectAliases: {},
+                personAliases: {},
+                fieldCorrections: {
+                    noi_dung_cong_viec: {},
+                    trang_thai: {}
+                },
+                learnedCount: 0,
+                updatedAt: ''
+            };
+        }
+
+        function loadLearningMemory() {
+            try {
+                const parsed = JSON.parse(localStorage.getItem('dailyWorkReportLearningMemory') || '{}');
+                const defaults = createDefaultLearningMemory(parsed.enabled !== false);
+                return {
+                    ...defaults,
+                    ...parsed,
+                    projectAliases: parsed.projectAliases || {},
+                    personAliases: parsed.personAliases || {},
+                    fieldCorrections: {
+                        ...defaults.fieldCorrections,
+                        ...(parsed.fieldCorrections || {})
+                    }
+                };
+            } catch (_error) {
+                return createDefaultLearningMemory(true);
+            }
+        }
+
+        function saveLearningMemory() {
+            state.learningMemory.updatedAt = new Date().toISOString();
+            localStorage.setItem('dailyWorkReportLearningMemory', JSON.stringify(state.learningMemory));
+        }
+
+        function renderLearningSettings() {
+            if (!els.learningEnabled || !els.learningStats) return;
+            const memory = state.learningMemory || createDefaultLearningMemory(true);
+            els.learningEnabled.checked = memory.enabled !== false;
+            const projectCount = Object.keys(memory.projectAliases || {}).length;
+            const personCount = Object.keys(memory.personAliases || {}).length;
+            const contentCount = Object.keys((memory.fieldCorrections || {}).noi_dung_cong_viec || {}).length;
+            const statusCount = Object.keys((memory.fieldCorrections || {}).trang_thai || {}).length;
+            els.learningStats.innerHTML = `
+                <strong>Đã học:</strong> ${Number(memory.learnedCount) || 0} lần sửa<br>
+                Mã dự án: ${projectCount} | Người thực hiện: ${personCount} | Nội dung: ${contentCount} | Trạng thái: ${statusCount}
+            `;
+        }
+
+        function learningKey(value) {
+            return removeVietnameseMarks(String(value || ''))
+                .toUpperCase()
+                .replace(/[^A-Z0-9%]+/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function rememberLearning(kind, before, after, field = '') {
+            if (!state.learningMemory || state.learningMemory.enabled === false) return;
+            const beforeKey = learningKey(before);
+            const afterValue = String(after || '').trim();
+            if (!beforeKey || !afterValue || learningKey(afterValue) === beforeKey) return;
+
+            if (kind === 'project') {
+                state.learningMemory.projectAliases[beforeKey] = normalizeProjectCode(afterValue) || afterValue;
+            } else if (kind === 'person') {
+                state.learningMemory.personAliases[beforeKey] = titleCaseVietnamese(cleanPersonName(afterValue));
+            } else if (kind === 'field' && field) {
+                if (!state.learningMemory.fieldCorrections[field]) state.learningMemory.fieldCorrections[field] = {};
+                state.learningMemory.fieldCorrections[field][beforeKey] = afterValue;
+            }
+            state.learningMemory.learnedCount = (Number(state.learningMemory.learnedCount) || 0) + 1;
+            saveLearningMemory();
+        }
+
+        function learnFromAcceptedReports(reports, source = 'accepted') {
+            if (!state.learningMemory || state.learningMemory.enabled === false) return;
+            let learned = 0;
+            (reports || []).forEach((report) => {
+                const project = normalizeProjectCode(report.ma_du_an);
+                if (project && !/^CHUA_XAC_DINH/i.test(project)) {
+                    if (learnProjectAlias(project, project)) learned += 1;
+                    extractProjectLearningCandidates(report.raw_text || '')
+                        .forEach((candidate) => {
+                            if (projectSimilarityScore(normalizeProjectKey(candidate), normalizeProjectKey(project)) >= 760) {
+                                if (learnProjectAlias(candidate, project)) learned += 1;
+                            }
+                        });
+                }
+
+                (report.nguoi_thuc_hien || []).forEach((person) => {
+                    const name = titleCaseVietnamese(cleanPersonName(person.displayName || person.name || String(person || '')));
+                    if (name && learnPersonAlias(name, name)) learned += 1;
+                });
+            });
+
+            if (learned) {
+                state.learningMemory.learnedCount = (Number(state.learningMemory.learnedCount) || 0) + learned;
+                state.learningMemory.lastAutoLearnSource = source;
+                saveLearningMemory();
+                renderLearningSettings();
+            }
+        }
+
+        function learnProjectAlias(before, after) {
+            const beforeKey = learningKey(before);
+            const afterValue = normalizeProjectCode(after);
+            if (!beforeKey || !afterValue) return false;
+            if (state.learningMemory.projectAliases[beforeKey] === afterValue) return false;
+            state.learningMemory.projectAliases[beforeKey] = afterValue;
+            return true;
+        }
+
+        function learnPersonAlias(before, after) {
+            const beforeKey = learningKey(before);
+            const afterValue = titleCaseVietnamese(cleanPersonName(after));
+            if (!beforeKey || !afterValue) return false;
+            if (state.learningMemory.personAliases[beforeKey] === afterValue) return false;
+            state.learningMemory.personAliases[beforeKey] = afterValue;
+            return true;
+        }
+
+        function extractProjectLearningCandidates(text) {
+            const raw = removeVietnameseMarks(String(text || '')).toUpperCase();
+            const candidates = new Set();
+            const explicit = /\b(?:AUT[A-Z]?|MEC)\s*[:\-]?\s*[A-Z0-9]{4,12}\b/g;
+            let match;
+            while ((match = explicit.exec(raw)) !== null) {
+                candidates.add(normalizeProjectCode(match[0]));
+            }
+            const group = /\b(AUT[A-Z]?|MEC)\s*[:：]\s*([A-Z0-9,\s.+\-]{4,80})/g;
+            while ((match = group.exec(raw)) !== null) {
+                const prefix = normalizeProjectCode(match[1]);
+                String(match[2] || '')
+                    .split(/[,;.\s+]+/)
+                    .map(normalizeProjectCode)
+                    .filter((part) => part.length >= 2 && part.length <= 12)
+                    .forEach((part) => candidates.add(`${prefix}${part}`));
+            }
+            return [...candidates].filter(Boolean);
+        }
+
+        function applyLearningToReports(reports) {
+            if (!state.learningMemory || state.learningMemory.enabled === false) return reports || [];
+            return (reports || []).map((report) => {
+                const learnedProject = findLearnedProject(report);
+                const nextReport = learnedProject ? { ...report, ma_du_an: learnedProject } : { ...report };
+                nextReport.noi_dung_cong_viec = applyFieldLearningList('noi_dung_cong_viec', nextReport.noi_dung_cong_viec);
+                nextReport.trang_thai = applyFieldLearningList('trang_thai', nextReport.trang_thai);
+                nextReport.nguoi_thuc_hien = (nextReport.nguoi_thuc_hien || []).map((person) => {
+                    const currentName = person.displayName || String(person || '');
+                    const learnedName = state.learningMemory.personAliases[learningKey(currentName)];
+                    if (!learnedName) return person;
+                    return { displayName: learnedName, folderName: toFolderName(learnedName) };
+                });
+                return nextReport;
+            });
+        }
+
+        function findLearnedProject(report) {
+            const direct = state.learningMemory.projectAliases[learningKey(report.ma_du_an)];
+            if (direct) return direct;
+            const candidates = extractProjectLearningCandidates(`${report.ma_du_an || ''}\n${report.raw_text || ''}`);
+            for (const candidate of candidates) {
+                const learned = state.learningMemory.projectAliases[learningKey(candidate)];
+                if (learned) return learned;
+            }
+            return '';
+        }
+
+        function applyFieldLearningList(field, items) {
+            const corrections = (state.learningMemory.fieldCorrections || {})[field] || {};
+            return (Array.isArray(items) ? items : [items].filter(Boolean)).map((item) => corrections[learningKey(item)] || item);
         }
 
         function loadMembers() {
@@ -4109,6 +5165,121 @@
 
         function saveWeeklyProjectExclusions() {
             localStorage.setItem('dailyWorkReportWeeklyProjectExclusions', JSON.stringify(state.weeklyProjectExclusions));
+        }
+
+        function loadZaloAutoMoveSettings() {
+            try {
+                const parsed = JSON.parse(localStorage.getItem('dailyWorkReportZaloAutoMove') || '{}');
+                return {
+                    enabled: Boolean(parsed.enabled),
+                    sourceFolder: parsed.sourceFolder || '',
+                    fallbackFolder: '',
+                    useActiveExplorer: true
+                };
+            } catch {
+                return {
+                    enabled: false,
+                    sourceFolder: '',
+                    fallbackFolder: '',
+                    useActiveExplorer: true
+                };
+            }
+        }
+
+        function saveZaloAutoMoveSettings() {
+            localStorage.setItem('dailyWorkReportZaloAutoMove', JSON.stringify(state.zaloAutoMoveSettings));
+        }
+
+        function saveZaloAutoMoveSettingsFromInputs() {
+            state.zaloAutoMoveSettings = {
+                enabled: Boolean(els.zaloAutoMoveEnabled.checked),
+                sourceFolder: els.zaloDownloadFolderInput.value.trim(),
+                fallbackFolder: '',
+                useActiveExplorer: true
+            };
+            saveZaloAutoMoveSettings();
+        }
+
+        function renderZaloAutoMoveSettings() {
+            els.zaloAutoMoveEnabled.checked = Boolean(state.zaloAutoMoveSettings.enabled);
+            els.zaloDownloadFolderInput.value = state.zaloAutoMoveSettings.sourceFolder || '';
+            updateZaloToggleButton();
+            updateZaloAutoMoveStatus('Chưa bật tự chuyển ảnh Zalo.');
+        }
+
+        function updateZaloToggleButton() {
+            const running = Boolean(state.zaloAutoMoveSettings.enabled);
+            els.startZaloAutoMoveBtn.textContent = running ? 'Đang bật' : 'Đang tắt';
+            els.startZaloAutoMoveBtn.classList.toggle('zalo-running', running);
+        }
+
+        function updateZaloAutoMoveStatus(statusOrMessage, isError = false) {
+            const status = typeof statusOrMessage === 'object' && statusOrMessage
+                ? statusOrMessage
+                : { lastMessage: String(statusOrMessage || '') };
+            const parts = [];
+            if (status.enabled) parts.push('Đang chạy ngầm');
+            if (status.lastMessage) parts.push(status.lastMessage);
+            if (status.sourceFolder) parts.push(`Zalo: ${status.sourceFolder}`);
+            if (status.lastDestination) parts.push(`Đích gần nhất: ${status.lastDestination}`);
+            if (Array.isArray(status.openExplorerFolders) && status.openExplorerFolders.length) {
+                parts.push(`Explorer đang mở: ${status.openExplorerFolders.join(' | ')}`);
+            }
+            if (status.movedCount) parts.push(`Đã chuyển: ${status.movedCount} ảnh`);
+            if (status.lastError) parts.push(`Lỗi: ${status.lastError}`);
+            els.zaloAutoMoveStatus.textContent = parts.join('\n') || 'Chưa bật tự chuyển ảnh Zalo.';
+            els.zaloAutoMoveStatus.classList.toggle('error', Boolean(isError || status.lastError));
+        }
+
+        async function chooseZaloDownloadFolder() {
+            const folder = await ipcRenderer.invoke('choose-zalo-download-folder');
+            if (!folder) return;
+            els.zaloDownloadFolderInput.value = folder;
+            saveZaloAutoMoveSettingsFromInputs();
+            if (els.zaloAutoMoveEnabled.checked) await startZaloAutoMove(false);
+        }
+
+        async function findDefaultZaloDownloadFolder() {
+            const folder = await ipcRenderer.invoke('find-default-zalo-download-folder');
+            if (!folder) {
+                updateZaloAutoMoveStatus('Không tự tìm thấy thư mục Zalo Received Files. Hãy chọn thủ công.', true);
+                return;
+            }
+            els.zaloDownloadFolderInput.value = folder;
+            saveZaloAutoMoveSettingsFromInputs();
+            updateZaloAutoMoveStatus(`Đã tìm thấy thư mục Zalo: ${folder}`);
+            if (els.zaloAutoMoveEnabled.checked) await startZaloAutoMove(false);
+        }
+
+        async function startZaloAutoMove(updateCheckbox = true) {
+            saveZaloAutoMoveSettingsFromInputs();
+            try {
+                const status = await ipcRenderer.invoke('start-zalo-auto-move', {
+                    sourceFolder: state.zaloAutoMoveSettings.sourceFolder,
+                    fallbackFolder: '',
+                    useActiveExplorer: true
+                });
+                state.zaloAutoMoveSettings.enabled = true;
+                if (updateCheckbox) els.zaloAutoMoveEnabled.checked = true;
+                saveZaloAutoMoveSettings();
+                updateZaloToggleButton();
+                updateZaloAutoMoveStatus(status);
+            } catch (error) {
+                state.zaloAutoMoveSettings.enabled = false;
+                els.zaloAutoMoveEnabled.checked = false;
+                saveZaloAutoMoveSettings();
+                updateZaloToggleButton();
+                updateZaloAutoMoveStatus(error.message || 'Không bật được tự chuyển ảnh Zalo.', true);
+            }
+        }
+
+        async function stopZaloAutoMove() {
+            const status = await ipcRenderer.invoke('stop-zalo-auto-move');
+            state.zaloAutoMoveSettings.enabled = false;
+            els.zaloAutoMoveEnabled.checked = false;
+            saveZaloAutoMoveSettings();
+            updateZaloToggleButton();
+            updateZaloAutoMoveStatus(status);
         }
 
         function normalizeWeeklyRowForStorage(row) {
@@ -4762,6 +5933,15 @@
             document.querySelectorAll('[data-project-suggestion-index]').forEach((select) => {
                 select.addEventListener('change', () => applyProjectSuggestion(Number(select.dataset.projectSuggestionIndex), select.value));
             });
+            document.querySelectorAll('[data-weekly-project-edit]').forEach((input) => {
+                input.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        event.currentTarget.blur();
+                    }
+                });
+                input.addEventListener('change', () => updateWeeklyPreviewProject(Number(input.dataset.weeklyProjectEdit), input.value));
+            });
             document.querySelectorAll('[data-weekly-progress-open]').forEach((button) => {
                 button.addEventListener('click', openWeeklyProgressMenu);
             });
@@ -4822,7 +6002,11 @@
                 `;
             }
             if (column.id === 'du_an') {
-                return `<td><span class="${row.du_an ? 'weekly-project-input ' : ''}weekly-project-label" data-project="${escapeHtml(row.du_an)}">${escapeHtml(row.du_an)}</span></td>`;
+                return `
+                    <td>
+                        <input class="weekly-project-edit" type="text" value="${escapeHtml(row.du_an || '')}" data-weekly-project-edit="${index}" data-project="${escapeHtml(row.du_an || '')}" aria-label="Sửa mã dự án">
+                    </td>
+                `;
             }
             if (column.id === 'ten_may' || column.id === 'ghi_chu') {
                 const value = row[column.id] || '';
@@ -5047,6 +6231,9 @@
             const oldProject = row.du_an || row.project_full || '';
             const oldKey = normalizeProjectKey(oldProject);
             const projectKey = normalizeProjectKey(normalizedProject);
+            if (oldKey && oldKey !== projectKey) {
+                state.weeklyRowsByProject.delete(oldKey);
+            }
 
             state.weeklyRows.forEach((weeklyRow, rowIndex) => {
                 if (oldKey && normalizeProjectKey(weeklyRow.du_an || weeklyRow.project_full) !== oldKey) return;
@@ -5089,6 +6276,26 @@
             renderWeeklyPreview();
         }
 
+        async function updateWeeklyPreviewProject(index, value) {
+            const row = state.weeklyRows[index];
+            const normalizedProject = normalizeProjectCode(value);
+            if (!row || !normalizedProject) {
+                renderWeeklyPreview();
+                return;
+            }
+
+            const currentProject = row.du_an || row.project_full || '';
+            if (normalizeProjectKey(currentProject) === normalizeProjectKey(normalizedProject)) {
+                row.du_an = normalizedProject;
+                row.project_full = normalizedProject;
+                cacheCurrentWeeklyRows();
+                renderWeeklyPreview();
+                return;
+            }
+
+            await applyProjectSuggestion(index, normalizedProject);
+        }
+
         function autoResizeWeeklyTextarea(textarea) {
             textarea.style.height = 'auto';
             textarea.style.height = `${Math.max(64, textarea.scrollHeight)}px`;
@@ -5109,6 +6316,79 @@
             tableRow.style.height = `${row.row_height}px`;
             cacheCurrentWeeklyRows();
             scheduleWeeklyFrameUpdate();
+        }
+
+        function showRawInputContextMenu(event) {
+            event.preventDefault();
+            hideProjectContextMenu();
+            const hasText = Boolean(els.rawInput.value);
+            const hasSelection = els.rawInput.selectionStart !== els.rawInput.selectionEnd;
+            els.rawInputContextMenu.querySelector('[data-raw-input-action="clear"]').disabled = !hasText;
+            els.rawInputContextMenu.querySelector('[data-raw-input-action="copy"]').disabled = !hasText && !hasSelection;
+            els.rawInputContextMenu.querySelector('[data-raw-input-action="cut"]').disabled = !hasText && !hasSelection;
+
+            const menuWidth = 238;
+            const menuHeight = 148;
+            const left = Math.min(event.clientX, window.innerWidth - menuWidth - 10);
+            const top = Math.min(event.clientY, window.innerHeight - menuHeight - 10);
+            els.rawInputContextMenu.style.left = `${Math.max(8, left)}px`;
+            els.rawInputContextMenu.style.top = `${Math.max(8, top)}px`;
+            els.rawInputContextMenu.classList.add('open');
+        }
+
+        function hideRawInputContextMenu() {
+            els.rawInputContextMenu.classList.remove('open');
+        }
+
+        function handleRawInputContextAction(event) {
+            const button = event.target.closest('[data-raw-input-action]');
+            if (!button || button.disabled) return;
+            event.preventDefault();
+            event.stopPropagation();
+
+            const action = button.dataset.rawInputAction;
+            if (action === 'clear') {
+                els.rawInput.value = '';
+            } else if (action === 'copy') {
+                clipboard.writeText(getRawInputSelectedOrAllText());
+            } else if (action === 'cut') {
+                clipboard.writeText(getRawInputSelectedOrAllText());
+                replaceRawInputSelectedOrAllText('');
+            } else if (action === 'paste') {
+                replaceRawInputSelection(clipboard.readText() || '');
+            }
+
+            els.rawInput.dispatchEvent(new Event('input', { bubbles: true }));
+            els.rawInput.focus();
+            hideRawInputContextMenu();
+        }
+
+        function getRawInputSelectedOrAllText() {
+            const start = els.rawInput.selectionStart;
+            const end = els.rawInput.selectionEnd;
+            if (start !== end) return els.rawInput.value.slice(start, end);
+            return els.rawInput.value;
+        }
+
+        function replaceRawInputSelectedOrAllText(text) {
+            const start = els.rawInput.selectionStart;
+            const end = els.rawInput.selectionEnd;
+            if (start !== end) {
+                replaceRawInputSelection(text);
+                return;
+            }
+            els.rawInput.value = text;
+            els.rawInput.setSelectionRange(text.length, text.length);
+        }
+
+        function replaceRawInputSelection(text) {
+            const start = els.rawInput.selectionStart;
+            const end = els.rawInput.selectionEnd;
+            const before = els.rawInput.value.slice(0, start);
+            const after = els.rawInput.value.slice(end);
+            els.rawInput.value = `${before}${text}${after}`;
+            const cursor = start + text.length;
+            els.rawInput.setSelectionRange(cursor, cursor);
         }
 
         function handleProjectContextMenu(event) {
@@ -5209,14 +6489,24 @@
         async function loadProjectDetail() {
             if (!state.detailProject) return;
             els.projectDetailList.innerHTML = '<div class="empty">Đang tải dữ liệu...</div>';
-            const result = await ipcRenderer.invoke('query-project-detail', { project: state.detailProject });
+            const result = await ipcRenderer.invoke('query-reports', {});
             const from = els.detailDateFrom.value || '0000-00-00';
             const to = els.detailDateTo.value || '9999-99-99';
             const projectKey = normalizeProjectKey(state.detailProject);
             const reports = (result.reports || [])
-                .filter((report) => normalizeProjectKey(report.ma_du_an) === projectKey)
                 .filter((report) => !report.ngay_thuc_hien || (report.ngay_thuc_hien >= from && report.ngay_thuc_hien <= to))
-                .sort((a, b) => String(a.ngay_thuc_hien || '').localeCompare(String(b.ngay_thuc_hien || '')));
+                .map((report) => {
+                    const reportKey = normalizeProjectKey(report.ma_du_an);
+                    const exact = reportKey === projectKey;
+                    const score = exact ? 9999 : projectSimilarityScore(projectKey, reportKey);
+                    return { ...report, detail_match_exact: exact, detail_match_score: score };
+                })
+                .filter((report) => report.detail_match_exact || report.detail_match_score >= 780)
+                .sort((a, b) => {
+                    if (a.detail_match_exact !== b.detail_match_exact) return a.detail_match_exact ? -1 : 1;
+                    if (b.detail_match_score !== a.detail_match_score) return b.detail_match_score - a.detail_match_score;
+                    return String(a.ngay_thuc_hien || '').localeCompare(String(b.ngay_thuc_hien || ''));
+                });
             const reportsWithImages = await Promise.all(reports.map(async (report) => ({
                 ...report,
                 detail_images: await ipcRenderer.invoke('list-report-images', getReportFolders(report))
@@ -5228,6 +6518,116 @@
             return removeVietnameseMarks(String(value || '')).toUpperCase().replace(/[^A-Z0-9]/g, '');
         }
 
+        function projectSimilarityScore(a, b) {
+            if (!a || !b) return 0;
+            if (a === b) return 9999;
+            const prefixA = (a.match(/^[A-Z]+/) || [''])[0];
+            const prefixB = (b.match(/^[A-Z]+/) || [''])[0];
+            const digitA = a.replace(/^[A-Z]+/, '');
+            const digitB = b.replace(/^[A-Z]+/, '');
+            const compactA = projectComparableCore(a);
+            const compactB = projectComparableCore(b);
+            const contains = a.includes(b) || b.includes(a) ? 80 : 0;
+            const coreContains = compactA && compactB && (compactA.includes(compactB) || compactB.includes(compactA)) ? 180 : 0;
+            const coreExact = compactA && compactB && compactA === compactB ? 520 : 0;
+            const coreVariantExact = !coreExact ? projectCoreVariantExactScore(compactA, compactB) : 0;
+            const samePrefix = prefixA && prefixA === prefixB ? 70 : 0;
+            const crossKnownPrefix = prefixA && prefixB && prefixA !== prefixB && isKnownProjectPrefix(prefixA) && isKnownProjectPrefix(prefixB) ? 35 : 0;
+            const distanceScore = Math.max(0, 80 - levenshteinDistance(a, b) * 10);
+            const coreDistance = compactA && compactB ? projectCoreDistance(compactA, compactB) : 99;
+            const coreDistanceScore = Math.max(0, 220 - coreDistance * 36);
+            const lengthPenalty = Math.abs(String(compactA).length - String(compactB).length) * 8;
+            return samePrefix
+                + crossKnownPrefix
+                + coreExact
+                + coreVariantExact
+                + commonPrefixLength(a, b) * 8
+                + commonPrefixLength(digitA, digitB) * 16
+                + commonPrefixLength(compactA, compactB) * 22
+                + commonSuffixLength(compactA, compactB) * 18
+                + contains
+                + coreContains
+                + distanceScore
+                + coreDistanceScore
+                - lengthPenalty;
+        }
+
+        function commonPrefixLength(a, b) {
+            let index = 0;
+            while (index < a.length && index < b.length && a[index] === b[index]) index += 1;
+            return index;
+        }
+
+        function commonSuffixLength(a, b) {
+            let count = 0;
+            while (count < a.length && count < b.length && a[a.length - 1 - count] === b[b.length - 1 - count]) count += 1;
+            return count;
+        }
+
+        function isKnownProjectPrefix(prefix) {
+            return /^(?:AUT[A-Z]?|MEC)$/.test(String(prefix || '').toUpperCase());
+        }
+
+        function projectComparableCore(project) {
+            const text = String(project || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+            const withoutPrefix = text.replace(/^(?:AUT[A-Z]?|MEC)/, '');
+            const digits = withoutPrefix.replace(/[^0-9]/g, '');
+            return digits.length >= 4 ? digits : (withoutPrefix || text);
+        }
+
+        function projectCoreVariantExactScore(a, b) {
+            if (!a || !b) return 0;
+            return Math.max(projectCoreDeletionScore(a, b), projectCoreDeletionScore(b, a));
+        }
+
+        function projectCoreDeletionScore(longer, target) {
+            if (!longer || !target || longer.length <= target.length) return 0;
+            let best = 0;
+            for (let index = 0; index < longer.length; index += 1) {
+                const variant = `${longer.slice(0, index)}${longer.slice(index + 1)}`;
+                if (variant === target) best = Math.max(best, longer[index] === '0' ? 620 : 360);
+            }
+            return best;
+        }
+
+        function projectCoreDistance(a, b) {
+            const variantsA = projectCoreVariants(a);
+            const variantsB = projectCoreVariants(b);
+            let best = levenshteinDistance(a, b);
+            variantsA.forEach((variant) => {
+                best = Math.min(best, levenshteinDistance(variant, b));
+            });
+            variantsB.forEach((variant) => {
+                best = Math.min(best, levenshteinDistance(a, variant));
+            });
+            return best;
+        }
+
+        function projectCoreVariants(core) {
+            const text = String(core || '');
+            const variants = new Set([text]);
+            for (let index = 0; index < text.length; index += 1) {
+                variants.add(`${text.slice(0, index)}${text.slice(index + 1)}`);
+            }
+            return variants;
+        }
+
+        function levenshteinDistance(a, b) {
+            const previous = Array.from({ length: b.length + 1 }, (_, index) => index);
+            for (let i = 1; i <= a.length; i += 1) {
+                const current = [i];
+                for (let j = 1; j <= b.length; j += 1) {
+                    current[j] = Math.min(
+                        previous[j] + 1,
+                        current[j - 1] + 1,
+                        previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
+                    );
+                }
+                for (let j = 0; j < current.length; j += 1) previous[j] = current[j];
+            }
+            return previous[b.length];
+        }
+
         function renderProjectDetail(reports) {
             state.detailImages = [];
             state.detailImageIndex = 0;
@@ -5237,12 +6637,15 @@
             }
 
             els.projectDetailList.innerHTML = reports.map((report) => `
-                <article class="detail-item">
+                <article class="detail-item ${report.detail_match_exact ? '' : 'possible-duplicate'}">
                     <div class="detail-item-head">
                         <span>${escapeHtml(report.ngay_thuc_hien || 'Chưa có ngày')}</span>
                         <span>Người thực hiện: ${escapeHtml(formatPeopleForDetail(report.nguoi_thuc_hien) || 'Chưa xác định')}</span>
                     </div>
-                    <h4>${escapeHtml(report.ma_du_an || state.detailProject)}</h4>
+                    <h4>
+                        ${escapeHtml(report.ma_du_an || state.detailProject)}
+                        ${report.detail_match_exact ? '' : `<span class="detail-duplicate-badge">Có khả năng trùng cao</span>`}
+                    </h4>
                     ${renderDetailList('Nội dung công việc', report.noi_dung_cong_viec)}
                     ${renderDetailList('Thời gian', report.thoi_gian)}
                     ${renderDetailList('Trạng thái', report.trang_thai)}
@@ -5738,6 +7141,7 @@
             state.allReports = result.reports;
             state.dataFile = result.dataFile;
             state.sqliteFile = result.sqliteFile || '';
+            learnFromAcceptedReports(result.reports, 'history');
             renderSearch();
             renderFolderStructure();
             updateCurrentDateTime();
@@ -6191,6 +7595,7 @@
         }
 
         loadReports();
+        setTimeout(checkForAppUpdateOnStartup, 1600);
     </script>
 </body>
 </html>

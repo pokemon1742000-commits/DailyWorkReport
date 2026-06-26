@@ -1,354 +1,288 @@
-# Dữ liệu mình hiểu về phần nhập liệu
+# Tổng hợp dữ liệu và các phần đã sửa
 
-## 1. Mục đích của phần nhập liệu
+File này ghi lại cách phần mềm hiểu dữ liệu nhập vào, các quy tắc bóc tách, và những phần đã sửa trong quá trình phát triển.
 
-Phần nhập liệu dùng để người dùng copy nội dung báo cáo công việc hằng ngày từ bên ngoài vào một vùng text lớn. Nội dung có thể đúng form, sai form, thiếu mục, viết hoa hoặc viết thường lẫn lộn, có dấu hoặc không dấu, có ký tự đặc biệt, có một hoặc nhiều dự án trong cùng một báo cáo.
+## 1. Mục tiêu phần mềm
 
-Sau khi bấm `Accept / Xác nhận`, phần mềm cần bóc tách nội dung thô thành các bản ghi chuẩn hóa theo từng mã dự án.
+Phần mềm dùng để nhập báo cáo công việc hằng ngày dạng copy/paste tự do, sau đó tự bóc tách thành dữ liệu chuẩn:
 
-## 2. Các trường dữ liệu cần bóc tách
+- Mã dự án
+- Nội dung công việc
+- Thời gian
+- Người thực hiện
+- Trạng thái
+- Ngày thực hiện
+- Thư mục ảnh/tài liệu
 
-| Trường | Ý nghĩa | Ví dụ |
-| --- | --- | --- |
-| Mã dự án | Mã máy hoặc mã dự án cần báo cáo(Ưu tiên text có bắt đầu bằng) | `AUTM...`, `MEC...`, `AUTS...` |
-| Nội dung công việc | Công việc đã, đang hoặc sẽ thực hiện | `Bọc lại dây tín hiệu và nguồn kết nối máy lazer` |
-| Thời Gian | Công việc được thực hiện trong thời gian nào (thường là text thời gian dạng xx:xx - xx:xx hoặc xxhxx - xxhxx ) | `8:15 - 18:30`, `8h15 - 18h30`,`...` |
-| Người thực hiện | Danh sách người làm việc | `Tân, Nguyễn Quang Hiếu` |
-| Trạng thái | Tiến độ, kết quả hoặc vấn đề đang xử lý (ưu tiên text có chữ)| `Hoàn thành`, `30%`, `đang chờ`,`xử lý`,`đang hoàn thiện`, `đang`, `đã`,`xong`,`%`,`chưa xong`,.... |
-| Ngày thực hiện | Ngày báo cáo | `2026-06-11` |
-| Thư mục ảnh | Đường dẫn folder ảnh/tài liệu tự động tạo | `2026June11/BuiHuuSy_NguyenVanHung` |
+Dữ liệu sau khi chuẩn hóa được dùng để:
 
-## 3. Form đầu vào mong muốn
+- Tạo folder ảnh/tài liệu theo ngày và người thực hiện.
+- Lưu SQLite để tìm kiếm và tổng hợp.
+- Render bảng chuẩn hóa để sửa nhanh trước khi lưu.
+- Xuất báo cáo tuần Excel.
+- Thêm dữ liệu vào file Excel setup máy cho khách hàng.
 
-Form chuẩn thường có dạng:
+## 2. Các phần đã sửa chính
 
-```text
-1. Mã dự án: AUTM..... hoặc AUTM..... hoặc MEC......
-2. Nội dung công việc: bọc lại dây và bọc dây tín hiệu
-3. Người thực hiện: Bùi Hữu Sỹ, Tân, ...
-4. Trạng thái: đã xong máy AUTM......., đang làm máy AUTM....., Hoàn thành, ..%, đang ..., đã ...., chưa ...., đang chờ .....
-5. Ngày 11/06/2026
-```
-## 4. Quy tắc nhận diện mã dự án
+### 2.1. Bóc tách mã dự án
 
-Mã dự án thường có tiền tố:
+Đã sửa để nhận diện mã dự án tốt hơn:
 
-- `MEC`
-- `AUTM`
-- `AUTS`
-- Các tiền tố tương tự, có thể viết hoa hoặc viết thường lẫn lộn.
+- Không phân biệt chữ hoa/chữ thường: `mec`, `Mec`, `MEC`, `autm`, `Autm`, `AUTM`.
+- Nhận mã có khoảng trắng: `Mec 2601043` -> `MEC2601043`.
+- Nhận mã có dấu `:`: `AUTM:2602E8, 2602E9` -> `AUTM2602E8`, `AUTM2602E9`.
+- Nhận mã rút gọn cùng prefix: `MEC2601044,45` -> `MEC2601044`, `MEC2601045`.
+- Không sinh mã ảo không có trong input, ví dụ không được tự tạo `AUTM262602`.
+- Một block có nhiều mã dự án phải render đủ từng dự án, không chỉ lấy dự án đầu tiên.
 
-Sau tiền tố mã dự án thường là: 
+### 2.2. Bóc tách theo số thứ tự 1-5
 
-`20`
-`21`
-`22`
-`23`
-`24`
-`25`
-`26`
-`27`
-`28`
-`29`
-`30`
+Đã sửa để ưu tiên số thứ tự làm key khi form nhập liệu phức tạp:
 
-Sau ký tự trên sẽ thường là:
-
-`01`
-`02`
-`03`
-`04`
-`05`
-`06`
-`07`
-`08`
-`09`
-`10`
-`11`
-`12`
-
-Cuối cùng là 2 hậu tố sau cùng đối với tiền tố AUTM, AUTS và 3 hậu tố cuối cùng đối với tiền tố MEC ví dụ:
-
-`E9`
-`E6`
-`A5`
-`A8`
-`010`
-`05`
-`11`
-
-Cần tự động chuẩn hóa:
-
-| Đầu vào | Kết quả đúng |
+| STT | Ý nghĩa |
 | --- | --- |
-| `Autm2602e7` | `AUTM2602E7` |
-| `mec2510010` | `MEC2510010` |
-| `Mec 2601043` | `MEC2601043` |
-| `AUTM:2602E8, 2602E9` | `AUTM2602E8`, `AUTM2602E9` |
-| `MEC2601044,45` | `MEC2601044`, `MEC2601045` |
+| 1 | Mã dự án |
+| 2 | Nội dung công việc |
+| 3 | Người thực hiện |
+| 4 | Trạng thái |
+| 5 | Ngày thực hiện |
 
-Không được tạo mã dự án ảo không có trong input. Ví dụ input chỉ có:
+Các dạng `4:` cũng được nhận như `4.` hoặc `4)`.
 
-```text
-AUTM:2602E8, 2602E9.
-MEC2601045.
-```
-Input tham khảo mã dự án trong file thamkhao.xlsm
+Nếu có nhiều block `1-4` rồi ngày nằm ở cuối, ngày cuối cùng được dùng chung cho các block trước đó.
 
-Thì chỉ được sinh:
+### 2.3. Bóc tách thời gian
 
-- `AUTM2602E8`
-- `AUTM2602E9`
-- `MEC2601045`
+Đã sửa lỗi mất số đầu thời gian:
 
-Không được sinh thêm các mã sai như `AUTM262602`, `MEC262602`.(sai do 2 ký tự AUTM26xx02/MEC26xx02, xx không được khác 01->12)
+- Sai cũ: `8:15 - 18:30` bị thành `:15 - 18:30`.
+- Đúng mới: giữ nguyên `8:15 - 18:30`.
 
-## 5. Quy tắc tách nhiều dự án
+Đã sửa lỗi thời gian của block sau bị gộp nhầm vào block trước. Ví dụ:
 
-Nếu một báo cáo có nhiều mã dự án, phần mềm cần chia thành nhiều vùng chuẩn hóa, mỗi vùng ứng với một dự án.
+- `MEC2601042`, `MEC2601043`: thời gian `9:00 - 15:30`
+- `AUTM260217`: thời gian `15:30 - 16:30`
 
-Ví dụ:
+Không được gộp hai mốc thời gian này vào cùng một dự án.
 
-```text
-1. Mã dự án: AUTM2602E8, AUTM2602E9, MEC2601045
-2. Nội dung công việc: bọc lại dây và bọc dây tín hiệu
-3. Người thực hiện: Bùi Hữu Sỹ, E Hùng Lắp Ráp, Tân A7
-4. Tình trạng:
-Máy AUTM2602E9 đang làm chưa xong.
-Đã bọc xong dây máy AUTM2602E8.
-Đang bọc lại dây máy MEC2601045.
-5. Ngày 11/06/2026
-```
+### 2.4. Nội dung công việc
 
-Cần tạo 3 bản ghi:
+Nội dung công việc thường nằm ở mục `2`, nhưng cũng có thể lấy thêm từ mục trạng thái nếu trong trạng thái có mô tả công việc.
 
-| Mã dự án | Nội dung công việc | Trạng thái |
-| --- | --- | --- |
-| `AUTM2602E8` | `Bọc lại dây và bọc dây tín hiệu` | `Đã bọc xong dây máy` |
-| `AUTM2602E9` | `Bọc lại dây và bọc dây tín hiệu` | `đang làm chưa xong` |
-| `MEC2601045` | `Bọc lại dây và bọc dây tín hiệu` | `Đang bọc lại dây` |
-
-Nếu trạng thái không nói rõ dự án nào, có thể gán trạng thái chung cho các dự án hoặc để cảnh báo `Chưa có trạng thái riêng cho dự án này`.
-
-## 6. Quy tắc dùng số thứ tự làm key
-
-Khi input phức tạp hoặc sai form, cần ưu tiên đọc theo số thứ tự:
-
-| Số thứ tự | Ý nghĩa ưu tiên |
-| --- | --- |
-| `1` | Mã dự án |
-| `2` | Nội dung công việc |
-| `3` | Người thực hiện |
-| `4` | Trạng thái |
-| `5` | Ngày thực hiện |
-
-Ví dụ:
-
-```text
-1. Dự án: Mec 2601043(pcb transfer)
-2. Đấu tủ điện (08:30-16:45)
-3. Người thực hiện: nguyễn hùng, quang hưng
-4. Trạng thái: 60%
-1. Dự án: Mec 2601042(pcb transfer)
-2. Đấu tủ điện (08:30-16:45)
-3. Người thực hiện: nguyễn hùng, nam
-4. Trạng thái: 50%
-5. Ngày17/06/2026
-```
-
-Cần tách ra 2 dự án riêng:
-
-- `MEC2601043`, nội dung `Đấu tủ điện`, trạng thái `60%`, thời gian `8:30 - 16:45`, ngày thực hiện `17/06/2026`
-- `MEC2601042`, nội dung `Đấu tủ điện`, trạng thái `50%`, thời gian `8:30 - 16:45`, ngày thực hiện `17/06/2026`
-
-## 7. Quy tắc nhận diện nội dung công việc
-
-Nội dung công việc thường nằm ở mục `2`
-
-Nội dung công việc là các dòng:
-
-- Không phải những từ ngữ đặc biệt đã được (`AUTM...`, `MEC...`, `AUTS...`,`8:15 - 18:30`, `8h15 - 18h30`,`Tân, Nguyễn Quang Hiếu`,....)
-- Không phải mã dự án
-- Không phải tên người
-- Không phải ngày tháng
-- Không phải trạng thái thuần túy 
-- Là hành động hoặc công việc cần làm/đã làm
-- Không có text `Trạng Thái`
-Ví dụ:
-
-```text
-2. - lắp các cụm camera và các vị trí còn thiếu
-- đã căn chỉnh xong cụm xe trước LD, đang chỉnh cụm hút tray LD
-```
-
-Nội dung công việc nên lấy:
-
-- `Lắp các cụm camera và các vị trí còn thiếu`
-- `Căn chỉnh cụm xe trước LD`
-- `Chỉnh cụm hút tray LD`
-
-Khi lấy nội dung từ trạng thái, cần bỏ bớt các từ chỉ trạng thái:
+Khi lấy nội dung từ trạng thái, phần mềm bỏ các từ báo trạng thái như:
 
 - `đang`
 - `đã`
 - `sẽ`
-- `hoàn thành`
 - `xong`
-- `chưa`
-- `%`
-
-Nhưng không được bỏ cả câu nếu trong câu có text: `nội dung công việc`,`Nội dung`,`nội dung`, `ND`, ....
-- Không chứa text `Trạng Thái`
-## 8. Quy tắc nhận diện trạng thái
-
-Trạng thái thường có các dấu hiệu:
-
-- `đang xử lý`
-- `đang làm`
-- `đã xong`
 - `hoàn thành`
-- `xx%`
-- `đang chờ`
-- `chưa hoàn thành`
-- `chờ thiết kế điện xử lý`
-- `chưa chạy được chương trình mới`
+- `%`
+- `chưa`
 
-Trạng thái không chỉ ghi mỗi `hoàn thành`, mà cần ghi rõ cái gì hoàn thành nếu có nhiều dự án và nhiều đầu mục công việc.
+Nhưng không được bỏ toàn bộ câu nếu câu có nội dung công việc thật.
 
-Ví dụ:
+Nội dung công việc không được chứa text nhãn như:
 
-```text
-Bắn panel và gá thiết bị tủ chính và tủ phụ - hoàn thành
-Đấu tủ chính -30%
-```
+- `trạng thái`
+- `thực trạng`
+- `tình trạng`
 
-Kết quả:
+### 2.5. Trạng thái
 
-| Nội dung công việc | Trạng thái |
-| --- | --- |
-| `Bắn panel và gá thiết bị tủ chính và tủ phụ` | `Bắn panel và gá thiết bị tủ chính và tủ phụ hoàn thành` |
-| `Đấu tủ chính` | `Đấu tủ chính 30%` |
+Trạng thái không chỉ ghi mỗi `hoàn thành` hoặc `%`, mà cần giữ ngữ cảnh:
 
-- Không chứa text `Trạng Thái`
+- `Bắn panel và gá thiết bị tủ chính và tủ phụ - hoàn thành`
+  -> trạng thái: `Bắn panel và gá thiết bị tủ chính và tủ phụ hoàn thành`
+- `Đấu tủ chính -30%`
+  -> trạng thái: `Đấu tủ chính 30%`
 
-## 9. Quy tắc nhận diện người thực hiện
+Nếu trạng thái chỉ là `100%` và block có một nội dung công việc, phần mềm ghép thành:
 
-Người thực hiện có thể có nhiều người, ngăn cách bằng:
+`<nội dung công việc> 100%`
 
-- Dấu phẩy
-- Chữ `và`
-- Xuống dòng
-- Ký tự tag `@`
+### 2.6. Người thực hiện
 
-Cần xóa ký tự đặc biệt trong tên:
+Đã sửa để làm sạch tên người:
 
-| Đầu vào | Kết quả |
-| --- | --- |
-| `Tân, @Nguyễn Quang Hiếu` | `Tân, Nguyễn Quang Hiếu` |
-| `@E Hùng Lắp Ráp và @Tân a7` | `E Hùng Lắp Ráp, Tân A7` |
-| `- Hoàng Bá Thuần` | `Hoàng Bá Thuần` |
-
-Danh sách thành viên trong cài đặt được dùng để tham chiếu tên. Nếu tên nhập gần đúng với thành viên, cho phép người dùng chọn tên đúng.
+- Bỏ `@`
+- Bỏ dấu `-` đầu dòng
+- Bỏ ký tự đặc biệt không cần thiết
+- Chuẩn hóa viết hoa tên
 
 Ví dụ:
 
-- Input: `Tân A7`
-- Danh sách thành viên có: `Nguyễn Bá Tân`
-- Gợi ý chọn: `Nguyễn Bá Tân`
+- `Tân, @Nguyễn Quang Hiếu` -> `Tân, Nguyễn Quang Hiếu`
+- `@E Hùng Lắp Ráp và @Tân a7` -> `E Hùng Lắp Ráp, Tân A7`
 
-Sau khi chọn, tên người và tên folder phải cập nhật theo tên đã sửa.
+Danh sách thành viên trong cài đặt được dùng để gợi ý tên gần đúng. Chỉ hiện tên có độ trùng nhiều, không hiện toàn bộ danh sách.
 
-## 10. Quy tắc nhận diện ngày thực hiện
+### 2.7. Folder ảnh/tài liệu
 
-Ngày có thể viết nhiều dạng:
+Đã sửa:
 
-| Đầu vào | Kết quả |
-| --- | --- |
-| `11/6/2026` | `2026-06-11` |
-| `11/06/2026` | `2026-06-11` |
-| `thứ Năm ngày 11 tháng 06 năm 2026` | `2026-06-11` |
-| `Ngày17/06/2026` | `2026-06-17` |
+- Nhiều người cùng làm một báo cáo chỉ tạo một folder chung.
+- Folder ngày dạng `YYYYMonthDD`, ví dụ `2026June11`.
+- Folder người bỏ dấu tiếng Việt và bỏ ký tự đặc biệt.
+- Thư mục gốc đã chọn được ghi nhớ.
+- Khi mở app, ô nhập báo cáo được clear.
+- Bảng cấu trúc thư mục hiển thị theo đúng thư mục gốc đã chọn.
+- Cấu trúc thư mục có thể đóng/mở bằng mũi tam giác.
+- Có icon ghim để cố định/ẩn bảng cấu trúc thư mục.
+- Có nút copy đường dẫn trong folder-row.
 
-Nếu nhiều dự án trong cùng một block và ngày chỉ xuất hiện ở cuối, ngày đó dùng chung cho các dự án phía trên.
+### 2.8. SQLite và tìm kiếm
 
-## 11. Thư mục được tạo sau khi xác nhận
+Đã sửa:
 
-Người dùng chọn một thư mục gốc để lưu ảnh/tài liệu.
+- Lưu dữ liệu vào SQLite.
+- Mỗi bản ghi mới có index tăng dần, không ghi đè bản ghi cũ cùng mã dự án.
+- Tìm kiếm theo mã dự án, ngày, người thực hiện, nội dung, trạng thái, thời gian.
+- Khi xóa ở trang tìm kiếm, xóa cả SQLite và JSON.
+- Có popup xác nhận trước khi xóa.
+- Xóa ô tìm kiếm không tự hiện lại toàn bộ dữ liệu ngoài ý muốn.
+- Tìm kiếm theo ngày đã được sửa.
 
-Sau khi xác nhận, phần mềm tạo cấu trúc:
+### 2.9. Bảng chuẩn hóa
+
+Đã sửa:
+
+- Cho phép sửa nhanh mã dự án, nội dung công việc, trạng thái.
+- Người thực hiện có thể chọn lại theo danh sách thành viên.
+- Nếu mã dự án không có trong file tham khảo, STT được bôi vàng.
+- Có gợi ý mã dự án gần giống.
+- Sau khi sửa mã, tên máy và ghi chú được cập nhật theo file tham khảo.
+- Nhấn chuột phải vào bất kỳ cột nào của một hàng đều mở Detail đúng dự án đó.
+- Detail phải dùng đúng mã dự án đã sửa, không dùng mã gần giống sai.
+
+### 2.10. Báo cáo tuần
+
+Đã sửa và bổ sung:
+
+- Thêm trang báo cáo tuần.
+- Chọn khoảng ngày từ ngày đến ngày.
+- Không cho phép ngày đến nhỏ hơn ngày bắt đầu.
+- Bảng xem trước giống Excel.
+- Có thể kéo rộng cột, kéo cao hàng.
+- Ctrl + cuộn chuột để zoom bảng.
+- Dữ liệu trong bảng báo cáo tuần được giữ lại sau khi tắt phần mềm.
+- Khi đổi khoảng ngày, chỉ hiện dự án thuộc khoảng ngày đó.
+- Text đã nhập cho dự án trong khoảng ngày cũ được giữ lại khi quay lại đúng khoảng ngày đó.
+- Nếu khoảng ngày không có dự án thì không hiển thị dự án cũ.
+- Nếu ô Excel trống khi xuất thì ghi `N/A`.
+
+Hạng mục báo cáo tuần hiện tại:
+
+1. `Lắp máy mới`
+2. `Chỉnh máy`
+3. `Lắp đặt tại line`
+4. `Sửa máy`
+5. `Hỗ trợ`
+
+Màu hạng mục:
+
+- `Lắp máy mới`: xanh dương
+- `Chỉnh máy`: vàng
+- `Lắp đặt tại line`: cam
+- `Sửa máy`: đỏ
+- `Hỗ trợ`: xám
+
+### 2.11. Tiến độ công việc trong báo cáo tuần
+
+Đã thêm menu chọn tiến độ dạng menu con:
+
+- `%` mở menu phần trăm khi rê chuột vào.
+- Cho phép nhập số phần trăm.
+- Có các mức `5%`, `10%`, ..., `100%`.
+- Có trạng thái:
+  - `Hoàn thành`
+  - `Đang thực hiện`
+  - `Bắt đầu làm.`
+  - `Tạm dừng`
+  - `Đang xử lý`
+  - `Hoàn thiện`
+  - `Chờ`
+
+### 2.12. Xuất báo cáo tuần Excel
+
+Đã sửa:
+
+- Tạo file Excel mới theo format yêu cầu.
+- Có logo Meiko Automation.
+- Tiêu đề đỏ, font Times New Roman.
+- Hình ảnh chi tiết nằm trong cùng một sheet.
+- Nhóm ảnh theo dự án.
+- Ảnh chưa phân nhóm nằm phía trên.
+- Nhóm không có ảnh thì không xuất.
+- Nếu file trùng tên thì tự tạo tên mới phù hợp.
+
+### 2.13. Thêm vào Excel setup
+
+Nút `Thêm vào Excel setup` dùng để ghi dữ liệu từ bảng báo cáo tuần vào file:
+
+`Theo dõi setup máy cho khách hàng.xlsx`
+
+Quy tắc hiện tại:
+
+- Thêm vào cùng một file Excel, không tạo file mới mỗi lần.
+- Nếu file chưa có thì tạo từ template nội bộ trong `reference_files`.
+- Nếu file đang mở trong Microsoft Excel, vẫn có thể ghi bằng cơ chế Excel COM.
+- Thêm logo `meiko-automation-logo.png` nếu file chưa có logo.
+- Đổi tên cột `Khó khăn sự cố` thành `Nội Dung`.
+- Thêm cột `Ghi chú` để ghi tên máy.
+- Mã dự án ghi vào cột `Mã thiết bị`.
+- Loại máy lấy từ file tham khảo theo mã dự án.
+- Tên máy ghi vào cột `Ghi chú`.
+- Ngày làm lấy từ Detail/ngày thực hiện của báo cáo, không lấy ngày chọn tuần.
+- Nếu một dự án có nhiều ngày làm thì có nhiều dòng trong cùng nhóm dự án.
+- Nếu dự án đã có trong file setup thì chèn thêm dòng vào đúng nhóm dự án đó.
+- STT dựa trên số mã máy hiển thị, mỗi dự án một STT.
+- Với tag `Sửa máy`: tìm đúng mã dự án và nhập nội dung từ detail vào cột `Nội Dung`.
+- Với tag `Lắp đặt tại line`: ghi nội dung cố định:
 
 ```text
-<Thư mục gốc>/
-  2026June11/
-    BuiHuuSy_NguyenVanHung_NguyenBaTan/
+1. Lắp đặt tại line
+2. Hiệu chỉnh máy
 ```
 
-Quy tắc:
+- Nếu một dự án có hai lần `Lắp đặt tại line`, chỉ lấy một lần đầu.
+- Tag `Lắp máy mới` bị bỏ qua, không thêm vào Excel setup.
 
-- Folder ngày có dạng `YYYYMonthDD`, ví dụ `2026June11`.
-- Nếu folder ngày đã tồn tại thì không tạo trùng.
-- Nếu nhiều người cùng làm chung một báo cáo thì chỉ tạo 1 folder chung cho nhóm người.
-- Tên folder người bỏ dấu tiếng Việt và bỏ ký tự đặc biệt.
-- Nếu không có ngày thì có thể dùng `UnknownDate`.
-- Nếu không có người thì có thể dùng `ChuaXacDinh` hoặc `Chung`.
+### 2.14. File tham khảo máy
 
-## 12. Dữ liệu lưu trữ
+File tham khảo dùng sheet `Danh sách máy`.
 
-Sau khi xác nhận hoặc tạo folder, dữ liệu chuẩn hóa được lưu vào:
+Theo mã dự án:
 
-- SQLite: phục vụ tìm kiếm và tổng hợp theo các trường
+- Cột `MKACの管理  コード Số quản lý MKAC` dùng để tìm mã dự án.
+- Cột `設備  Type` dùng để lấy tên/loại máy theo yêu cầu.
 
-Mỗi bản ghi SQLite cần có index riêng tăng dần, không ghi đè bản ghi cũ cùng mã dự án.
+Dữ liệu này dùng cho:
 
-Cần có thể query theo:
+- Cột `Tên máy` trong báo cáo tuần.
+- Cột `Ghi chú` trong báo cáo tuần.
+- Cột `Loại máy` và `Ghi chú` khi thêm vào Excel setup.
 
-- Mã dự án
-- Ngày thực hiện
-- Người thực hiện
-- Nội dung công việc
-- Trạng thái
-- Thời gian
-- Thư mục ảnh
+### 2.15. Update phần mềm
 
-## 13. Tìm kiếm
+Đã sửa:
 
-Trang tìm kiếm cần cho phép tìm theo tất cả nội dung đã lưu.
+- Có nút thông tin `i` cạnh cài đặt.
+- Popup thông tin hiển thị tên phần mềm, version, changelog, GitHub.
+- Nút Update lấy bản mới từ GitHub Releases.
+- Bản `v1.3.4` đã được commit, build NSIS installer và upload GitHub Release.
 
-Ví dụ tìm `AUTM2602E8` thì hiện:
+Release hiện tại:
 
-- Toàn bộ nội dung công việc của `AUTM2602E8`
-- Trạng thái
-- Người thực hiện
-- Ngày thực hiện
-- Thời gian
-- Thư mục ảnh tương ứng
+`v1.3.4`
 
-Có thể xóa từng bản ghi hoặc xóa tất cả, nhưng phải hiện popup xác nhận trước khi xóa. Khi xóa phải xóa đồng thời trong SQLite.
+## 3. Nguyên tắc quan trọng
 
-## 14. Bảng chuẩn hóa sau khi nhập
-
-Sau khi nhấn `Accept / Xác nhận`, phần mềm render bảng chuẩn hóa. Mỗi dự án là một vùng riêng.
-
-Người dùng được phép sửa nhanh các trường:
-
-- Mã dự án
-- Nội dung công việc
-- Trạng thái
-- Người thực hiện nếu cần chọn lại theo danh sách thành viên
-
-Nếu mã dự án không có trong file tham khảo `Thamkhao.xlsm`, cần cảnh báo:
-
-- Bôi vàng ô STT
-- Có tam giác gợi ý mã dự án gần đúng
-- Khi chọn mã đúng thì cập nhật lại mã, tên máy, ghi chú và bỏ cảnh báo
-
-## 15. Nguyên tắc quan trọng
-
-- Không được sinh mã dự án ảo không có trong input.
-- Nếu sai form, phải ưu tiên tách theo số thứ tự 1-5.
-- Nếu không tách được bằng số thứ tự, mới dùng các dấu hiệu nội dung/trạng thái/người/ngày để suy luận.
-- Thời gian làm việc như `8:15 - 18:30` phải giữ đủ số, không được cắt mất thành `:15 - 18:30`.
-- Trạng thái phải giữ đủ ý nghĩa, không chỉ lấy mỗi từ `hoàn thành`.
-- Tên người phải được làm sạch ký tự đặc biệt.
-- Dữ liệu mới cùng dự án không được ghi đè dữ liệu cũ.
-- Mỗi lần mở app, nội dung báo cáo trong ô nhập nên được clear, nhưng thư mục lưu gần nhất cần được ghi nhớ.
+- Không sinh mã dự án ảo.
+- Ưu tiên tách theo số thứ tự 1-5 nếu input có form đánh số.
+- Nếu có nhiều block dự án, phải tách từng block từ trên xuống dưới.
+- Nếu thiếu ngày ở block trước nhưng ngày nằm cuối input, dùng ngày cuối cho các block trước.
+- Không để nội dung công việc hoặc trạng thái chứa text nhãn `trạng thái`.
+- Không cắt mất thời gian.
+- Không ghi đè bản ghi SQLite cũ.
+- Bảng báo cáo tuần phải giữ text người dùng đã nhập theo đúng khoảng ngày.
+- Excel setup chỉ lấy `Lắp đặt tại line` và `Sửa máy`, bỏ qua `Lắp máy mới`.

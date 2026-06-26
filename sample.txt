@@ -1,54 +1,227 @@
-* Ví dụ 1: 
-1 mã dự án : AUTM:2602E8, 2602E9. MEC2601045.
+# Sample nhập liệu và kết quả mong muốn
+
+File này gom các ví dụ người dùng đã đưa và kết quả phần mềm cần trả về sau khi bóc tách.
+
+---
+
+## Ví dụ 1: Nhiều dự án trong cùng một báo cáo
+
+### Input
+
+```text
+1 mã dự án : AUTM:2602E8, 2602E9.
+MEC2601045.
+
 2 nội dung công việc : bọc lại dây và bọc dây tín hiệu và nguồn kết nối máy lazer.
+
 3 người thực hiện : Bùi Hữu Sỹ hỗ trợ anh em lắp ráp điện và @E Hùng Lắp Ráp và @Tân a7 .
+
 4 tình trạng: máy 2602E9 đã tháo ra bọc thêm dây kết nối tín hiệu và emg đang làm chưa xong ngày hôm qua.
+
 Đã bọc xong dây kết nối ld và ul và lazer máy 2602E8.
+
 Đang bọc lại thêm dây kết nối emg và tín hiệu máy MEC 2601045.
+
 5 thứ Năm ngày 11 tháng 06 năm 2026.
-* Kết quả mong muốn ví dụ 1:
-Mã dự án: AUTM2602E8, AUTM2602E9, MEC2601045
-Nội dung công việc: Bọc lại dây và bọc dây tín hiệu và nguồn kết nối máy lazer
-Trạng thái: - (Trong phần hiển thị mã máy máy AUTM2602E9) Đã tháo ra bọc thêm dây kết nối tín hiệu và EMG đang làm chưa xong ngày hôm qua
-- (Trong phần hiển thị mã máy MEC2601045) Đang bọc lại thêm dây kết nối EMG và tín hiệu
-- (Trong phần hiển thị mã máy máy AUTM2602E8) Đã bọc xong dây kết nối ld và ul và lazer
-Người thực hiện: Bùi Hữu Sỹ, Em Hùng Lắp Ráp, Tân A70
-Ngày thực hiện: 2026-06-11
-* Ví dụ 2:
-1. Nội dung CV:
-- Giới hạn jack hàn secvo MEC2507011
-- Test cam cũng tk điện line mạ vàng
-2. Trạng thái:
-- Giới hạn jack hàn secvo MEC2507011 80%
-- Test cam cũng tk điện line mạ vàng chưa hoàn thành (chờ tk điện sử lý)
-3. Thực hiện:
-- Lộc milo
-4. Ngày thực hiện:
-11/6/2026
-* Kết quả mong muốn ví dụ 2:
-Mã dự án: MEC2507011
-Nội dung công việc: Giới hạn jack hàn servo, Test cam cũng tk điện line mạ vàng
-Trạng thái: Giới hạn jack hàn secvo MEC2507011 80%, est cam cũng tk điện line mạ vàng chưa hoàn thành
-Người thực hiện: Lộc Milo
-Ngày thực hiện: 2026-06-11
-* Ví dụ 3:
+```
+
+### Kết quả mong muốn
+
+| Mã dự án | Nội dung công việc | Trạng thái | Người thực hiện | Ngày | Thời gian |
+| --- | --- | --- | --- | --- | --- |
+| AUTM2602E8 | Bọc lại dây và bọc dây tín hiệu và nguồn kết nối máy lazer | Đã bọc xong dây kết nối ld và ul và lazer máy 2602E8 | Bùi Hữu Sỹ, E Hùng Lắp Ráp, Tân A7 | 2026-06-11 | |
+| AUTM2602E9 | Bọc lại dây và bọc dây tín hiệu và nguồn kết nối máy lazer | Máy 2602E9 đã tháo ra bọc thêm dây kết nối tín hiệu và emg đang làm chưa xong ngày hôm qua | Bùi Hữu Sỹ, E Hùng Lắp Ráp, Tân A7 | 2026-06-11 | |
+| MEC2601045 | Bọc lại dây và bọc dây tín hiệu và nguồn kết nối máy lazer | Đang bọc lại thêm dây kết nối emg và tín hiệu máy MEC2601045 | Bùi Hữu Sỹ, E Hùng Lắp Ráp, Tân A7 | 2026-06-11 | |
+
+Ghi chú: không được sinh thêm mã ảo như `AUTM262602` hoặc `MEC262602`.
+
+---
+
+## Ví dụ 2: Có thời gian ở mục nội dung
+
+### Input
+
+```text
 1. Autm2602e7
+
 2. Nội dung: 8:15 - 18:30
+
 - Căn chỉnh máy laser
-- thử nghiệm I/O cum uld
+
+- thử nghiệm 1/0 cum uld
+
 3. Thực hiện: Tân, @Nguyễn Quang Hiếu
+
 4. Thực trạng:
+
 - dã test xong 1/0
--căn chỉnh xong cụm load
+
+- căn chỉnh xong cụm load
+
 căn chỉnh xong cụm xe, LU, Tf cum uld
+
 5. Ngày 11/6/2026
-* Kết quả mong muốn ví dụ 3:
-Mã dự án: AUTM2602E7
-Nội dung công việc: Căn chỉnh máy laser, Căn chỉnh cụm Load, Căn chỉnh xe, LU, TF cụm ULD, Thử nghiệm I/O cụm uld, 8:15 - 18:30
-Trạng thái: - Đã test xong I/O, Căn chỉnh xong cụm load, Căn chỉnh xong cụm xe, LU, Tf cum uld
-Người thực hiện: Tân, Nguyễn Quang Hiếu 
-Ngày thực hiện: 2026-06-11
-* Ví dụ 4:
+```
+
+### Kết quả mong muốn
+
+| Mã dự án | Nội dung công việc | Trạng thái | Người thực hiện | Ngày | Thời gian |
+| --- | --- | --- | --- | --- | --- |
+| AUTM2602E7 | Căn chỉnh máy laser; Thử nghiệm 1/0 cụm uld | Đã test xong 1/0; Căn chỉnh xong cụm load; Căn chỉnh xong cụm xe, LU, Tf cụm uld | Tân, Nguyễn Quang Hiếu | 2026-06-11 | 8:15 - 18:30 |
+
+Ghi chú: thời gian phải giữ đủ `8:15`, không được thành `:15`.
+
+---
+
+## Ví dụ 3: Dự án nằm trong nội dung/trạng thái
+
+### Input
+
+```text
+1. Nội dung CV:
+
+-Hàn giới hạn jack secvo MEC2507011
+
+- Test cam cũng tk điện line mạ vàng
+
+2. Trạng thái:
+
+-Hàn jack giới hạn secvo MEC2507011 80%
+
+- Test cam cũng tk điện line mạ vàng chưa hoàn thành (chờ tk điện sử lý)
+
+3. Thực hiện:
+
+- Lộc milo
+
+4. Ngày thực hiện:
+
+11/6/2026
+```
+
+### Kết quả mong muốn
+
+| Mã dự án | Nội dung công việc | Trạng thái | Người thực hiện | Ngày |
+| --- | --- | --- | --- | --- |
+| MEC2507011 | Hàn giới hạn jack secvo MEC2507011; Test cam cũng tk điện line mạ vàng | Hàn jack giới hạn secvo MEC2507011 80%; Test cam cũng tk điện line mạ vàng chưa hoàn thành (chờ tk điện sử lý) | Lộc Milo | 2026-06-11 |
+
+Ghi chú: không được mất đoạn `(chờ tk điện sử lý)`.
+
+---
+
+## Ví dụ 4: Mã dự án rút gọn sau dấu phẩy
+
+### Input
+
+```text
+1. Mã dự án: AUTM260234,35
+
+2. Nội dung công việc: Siết lại ốc và thay trĩ cụm quay máy làm mát(8:00-17:45)
+
+3. Người thực hiện:Nam @Phí Hưởng @Lương Cường sáng
+
+4. Trạng thái:hoàn thành máy autm260234,Máy autm260235 thay xong ốc giữ trục
+
+5.Ngày:11/06/2026
+```
+
+### Kết quả mong muốn
+
+| Mã dự án | Nội dung công việc | Trạng thái | Người thực hiện | Ngày | Thời gian |
+| --- | --- | --- | --- | --- | --- |
+| AUTM260234 | Siết lại ốc và thay trĩ cụm quay máy làm mát | Hoàn thành máy AUTM260234 | Nam, Phí Hưởng, Lương Cường | 2026-06-11 | 8:00 - 17:45 |
+| AUTM260235 | Siết lại ốc và thay trĩ cụm quay máy làm mát | Máy AUTM260235 thay xong ốc giữ trục | Nam, Phí Hưởng, Lương Cường | 2026-06-11 | 8:00 - 17:45 |
+
+---
+
+## Ví dụ 5: Dòng trạng thái dùng để suy ra nội dung công việc
+
+### Input
+
+```text
+1. Mec2507010
+
+2. - lắp các cụm camera và các vị trí còn thiếu
+
+-đã căn chỉnh xong cụm xe trước LD, đang chỉnh cụm hút tray LD
+
+3. Người thực hiện: Chung
+
+4. Ngày 11/6/2026
+```
+
+### Kết quả mong muốn
+
+| Mã dự án | Nội dung công việc | Trạng thái | Người thực hiện | Ngày |
+| --- | --- | --- | --- | --- |
+| MEC2507010 | Lắp các cụm camera và các vị trí còn thiếu; Căn chỉnh cụm xe trước LD; Chỉnh cụm hút tray LD | Đã căn chỉnh xong cụm xe trước LD, đang chỉnh cụm hút tray LD | Chung | 2026-06-11 |
+
+Ghi chú: nội dung lấy thêm từ trạng thái nhưng bỏ bớt `đã`, `đang`.
+
+---
+
+## Ví dụ 6: Trạng thái gắn với từng nội dung
+
+### Input
+
+```text
+1. Mã dự án: AUTM260217
+
+Bắn panel và gá thiết bị tủ chính và tủ phụ -
+
+hoàn thành
+
+Đấu tủ chính -30%
+
+3. Thực hiện:
+
+Đăng Khoa
+
+@Nguyễn Quý Trường
+
+4. Ngày 11/06/2026
+```
+
+### Kết quả mong muốn
+
+| Mã dự án | Nội dung công việc | Trạng thái | Người thực hiện | Ngày |
+| --- | --- | --- | --- | --- |
+| AUTM260217 | Bắn panel và gá thiết bị tủ chính và tủ phụ; Đấu tủ chính | Bắn panel và gá thiết bị tủ chính và tủ phụ hoàn thành; Đấu tủ chính 30% | Đăng Khoa, Nguyễn Quý Trường | 2026-06-11 |
+
+Ghi chú: không được lọc tên người vào nội dung/trạng thái.
+
+---
+
+## Ví dụ 7: Mã dự án trong câu và nội dung sau dấu hai chấm
+
+### Input
+
+```text
+1. Công việc 08:15-12:00
+
+Dự án MEC2601044,45: Checksheet + dán cảnh
+
+báo an toàn
+
+2. Người thực hiện: Thắng
+
+3. Ngày 11/06/2026
+```
+
+### Kết quả mong muốn
+
+| Mã dự án | Nội dung công việc | Trạng thái | Người thực hiện | Ngày | Thời gian |
+| --- | --- | --- | --- | --- | --- |
+| MEC2601044 | Checksheet; Dán cảnh báo an toàn | Chưa xác định | Thắng | 2026-06-11 | 08:15 - 12:00 |
+| MEC2601045 | Checksheet; Dán cảnh báo an toàn | Chưa xác định | Thắng | 2026-06-11 | 08:15 - 12:00 |
+
+---
+
+## Ví dụ 8: Nội dung có tiến độ trong ngoặc
+
+### Input
+
+```text
 1. Mã dự án: mec2510010,AUTM260217
 2. Nội dung công việc:
 làm rắc nối máy PKG(tiến độ 99%)
@@ -57,73 +230,177 @@ BẮN PANEL(tiến độ: hoàn thành)
 Thời gian:(08:30-18:30)
 4. Thực hiện: Nguyễn Hùng
 5. Ngày 11/06/2026
-* Kết quả mong muốn ví dụ 4:
-Mã dự án: MEC2510010, AUTM260217
-Nội dung công việc: Làm jack kết nối máy PKG, Bắn Panel, Đấu mạch lực tủ phụ, 08:30-18:30
-Trạng thái: Làm jack nối máy PKG 99%, Bắn panel : Hoàn thành, đấu mạch lực tủ phụ 30%
-Người thực hiện: Nguyễn Hùng
-Ngày thực hiện: 2026-06-11
-* Ví dụ 5:
-Dự án MEC2501010
-1. Nội dung CV:
-- Layout điện khí cụm fix xe
-2. Trạng thái:
--Hoàn thành
-3. Thực hiện:
+```
+
+### Kết quả mong muốn
+
+| Mã dự án | Nội dung công việc | Trạng thái | Người thực hiện | Ngày | Thời gian |
+| --- | --- | --- | --- | --- | --- |
+| MEC2510010 | Làm rắc nối máy PKG; Bắn panel; Đấu mạch lực tủ phụ | Làm rắc nối máy PKG 99%; Bắn panel hoàn thành; Đấu mạch lực tủ phụ 30% | Nguyễn Hùng | 2026-06-11 | 08:30 - 18:30 |
+| AUTM260217 | Làm rắc nối máy PKG; Bắn panel; Đấu mạch lực tủ phụ | Làm rắc nối máy PKG 99%; Bắn panel hoàn thành; Đấu mạch lực tủ phụ 30% | Nguyễn Hùng | 2026-06-11 | 08:30 - 18:30 |
+
+Ghi chú: không đưa dòng `Thời gian:` vào nội dung công việc.
+
+---
+
+## Ví dụ 9: Dự án có khoảng trắng và nhiều block
+
+### Input
+
+```text
+1.Dự án:Mec 2601043(pcb transfer)
+2.Đấu tủ điện (08:30-16:45)
+3. Người thực hiện: nguyễn hùng , quang hưng
+4. Trạng thái: 60%
+1. Dự án :Mec 2601042(pcb transfer)
+2.Đấu tủ điện (08:30-16:45)
+3. Người thực hiện: nguyễn hùng, nam
+4. Trạng thái: 50%
+5. Ngày17/06/2026
+```
+
+### Kết quả mong muốn
+
+| Mã dự án | Nội dung công việc | Trạng thái | Người thực hiện | Ngày | Thời gian |
+| --- | --- | --- | --- | --- | --- |
+| MEC2601043 | Đấu tủ điện | Đấu tủ điện 60% | Nguyễn Hùng, Quang Hưng | 2026-06-17 | 08:30 - 16:45 |
+| MEC2601042 | Đấu tủ điện | Đấu tủ điện 50% | Nguyễn Hùng, Nam | 2026-06-17 | 08:30 - 16:45 |
+
+---
+
+## Ví dụ 10: Nhiều block thiếu người/ngày ở giữa
+
+### Input
+
+```text
+1. Mec2507010 ( 8h-15h )
+2. - chạy auto cùng thiết kế điện
+- đóng cover
+3. Trạng thái: chương trình cũ đã chạy được nhưng chưa chạy được chương trình mới
+..............
+1. Mec2510010 ( 15h-16h30 )
+2. lắp nốt cụm băng tải do thiếu dây beo, căng beo, doubeushit
+3. Trạng thái: hoàn thành
+......
+1. Mec2507011 ( 16h30-18h )
+2. Lắp cover xích để bên điện luồn dây
+3. Trạng thái: hoàn thành
+4. Người thực hiện: chung
+5. Ngày 17/6/2026
+```
+
+### Kết quả mong muốn
+
+| Mã dự án | Nội dung công việc | Trạng thái | Người thực hiện | Ngày | Thời gian |
+| --- | --- | --- | --- | --- | --- |
+| MEC2507010 | Chạy auto cùng thiết kế điện; Đóng cover | Chương trình cũ đã chạy được nhưng chưa chạy được chương trình mới | Chung | 2026-06-17 | 8h - 15h |
+| MEC2510010 | Lắp nốt cụm băng tải do thiếu dây beo, căng beo, doubeushit | Hoàn thành | Chung | 2026-06-17 | 15h - 16h30 |
+| MEC2507011 | Lắp cover xích để bên điện luồn dây | Hoàn thành | Chung | 2026-06-17 | 16h30 - 18h |
+
+Ghi chú: nếu block trước thiếu người/ngày nhưng block cuối có người/ngày chung thì dùng chung.
+
+---
+
+## Ví dụ 11: Hai dự án chung thời gian, dự án sau thời gian khác
+
+### Input
+
+```text
+1. MEC2601042, MEC2601043
+2. Nội dung: 9:00-15:30
+- Đấu HMI 2 máy
+3. Thực hiện : Tân
+4: thực trạng: 100%
+5.
+1. Autm260217
+2. Nội dung: 15:30-16:30
+- Hỗ trợ test I/0
+3. Thực hiện:Tân
+4. Thực trạng: chưa test được do chương trình chưa chạy được.
+5. Ngày 24/06/2026
+```
+
+### Kết quả mong muốn
+
+| Mã dự án | Nội dung công việc | Trạng thái | Người thực hiện | Ngày | Thời gian |
+| --- | --- | --- | --- | --- | --- |
+| MEC2601042 | Đấu HMI 2 máy | Đấu HMI 2 máy 100% | Tân | 2026-06-24 | 9:00 - 15:30 |
+| MEC2601043 | Đấu HMI 2 máy | Đấu HMI 2 máy 100% | Tân | 2026-06-24 | 9:00 - 15:30 |
+| AUTM260217 | Hỗ trợ test I/0 | Chưa test được do chương trình chưa chạy được | Tân | 2026-06-24 | 15:30 - 16:30 |
+
+Ghi chú: không được chỉ hiện 2/3 dự án. Không được gộp thời gian `15:30 - 16:30` vào hai dự án MEC.
+
+---
+
+## Ví dụ 12: Excel setup - tag Lắp đặt tại line và Sửa máy
+
+### Dữ liệu bảng báo cáo tuần
+
+| STT | Hạng mục | Mã dự án |
+| --- | --- | --- |
+| 1 | Lắp đặt tại line | AUTM260217 |
+| 2 | Sửa máy | MEC2511009 |
+| 3 | Lắp đặt tại line | MEC2510010 |
+| 4 | Lắp đặt tại line | MEC2507011 |
+
+### Kết quả khi nhấn Thêm vào Excel setup
+
+- Chỉ lấy `Lắp đặt tại line` và `Sửa máy`.
+- Bỏ qua `Lắp máy mới`.
+- `Lắp đặt tại line` ghi nội dung cố định:
+
+```text
+1. Lắp đặt tại line
+2. Hiệu chỉnh máy
+```
+
+- `Sửa máy` lấy nội dung đúng theo detail/ngày của mã dự án.
+- Nếu một dự án có nhiều ngày làm thì tạo nhiều dòng trong cùng nhóm mã dự án.
+- Nếu dự án đã có trong file Excel setup thì chèn thêm vào nhóm dự án đó.
+- Nếu cùng một dự án có hai dòng `Lắp đặt tại line`, chỉ lấy một lần đầu.
+- File Excel setup có thể đang mở, phần mềm vẫn ghi được.
+
+---
+
+## Ví dụ 13: Báo cáo tuần giữ dữ liệu đã nhập
+
+### Tình huống
+
+- Chọn ngày `2026-06-16` đến `2026-06-18`, có 4 dự án.
+- Người dùng nhập text thủ công vào bảng báo cáo tuần.
+- Chọn sang khoảng ngày khác không có các dự án đó.
+- Quay lại `2026-06-16` đến `2026-06-18`.
+
+### Kết quả mong muốn
+
+- Chỉ hiện dự án thuộc khoảng ngày đang chọn.
+- Text đã nhập trước đó vẫn còn khi quay lại đúng khoảng ngày.
+- Nếu khoảng ngày không có dự án thì không hiện lại dự án cũ.
+
+---
+
+## Ví dụ 14: Tên người có ký tự đặc biệt
+
+### Input
+
+```text
+3. Thực hiện: Tân, @Nguyễn Quang Hiếu
+```
+
+### Kết quả mong muốn
+
+```text
+Tân, Nguyễn Quang Hiếu
+```
+
+### Input khác
+
+```text
 - Hoàng Bá Thuần
-4. Ngày thực hiện:
-11/6/2026
-* Kết quả mong muốn ví dụ 5:
-Mã dự án: MEC2501010
-Nội dung công việc: Layout điện khí cụm fix xe
-Trạng thái: Hoàn thành
-Người thực hiện: Hoàng Bá Thuần
-Ngày thực hiện: 2026-06-11
-* Ví dụ 6:
-1. Mec2507010
-2. - lắp các cụm camera và các vị trí còn thiếu
-- đã căn chỉnh xong cụm xe trước LD, đang chỉnh cụm hút tray LD
-3. Người thực hiện: Chung
-4. Ngày 11/6/2026
-* Kết quả mong muốn ví dụ 6:
-Mã dự án: MEC2507010
-Nội dung công việc: Lắp các cụm camera và các vị trí còn thiếu, Căn chỉnh cụm xe trước LD, căn chỉnh cụm hút tray LD
-Trạng thái: Căn chỉnh xong cụm xe trước LD, căn chỉnh cụm hút tray LD chưa hoàn thành
-Người thực hiện: Chung
-Ngày thực hiện: 2026-06-11
-* Ví dụ 7:
-1. Mã dự án: mec2510010
-đấu tủ điện
-(8h15-18h30)
-3. Thực hiện: Sơn
-4. Ngày 11/06/2026
-* Kết quả mong muốn ví dụ 7:
-Mã dự án: MEC2510010
-Nội dung công việc: Đấu tủ điện, 8:15 - 18:30
-Trạng thái: Chưa hoàn thiện
-Người thực hiện: Sơn
-Ngày thực hiện: 2026-06-11
-* Ví dụ 8:
-1. Mã dự án: AUTM260217
-Bắn panel và gá thiết bị tủ chính và tủ phụ - hoàn thành
-đấu tủ chính -30%
-3. Thực hiện:
-Đăng Khoa @Nguyễn Quý Trường
-4. Ngày 11/06/2026
-* Kết quả mong muốn ví dụ 8:
-Mã dự án: AUTM260217
-Nội dung công việc: Bắn panel và gá thiết bị tủ chính và tủ phụ, đấu tủ chính
-Trạng thái: Bắn panel và gá thiết bị tủ chính và tủ phụ hoàn thành, đấu tủ chính 30%
-Người thực hiện: Đăng Khoa, Nguyễn Quý Trường
-Ngày thực hiện: 2026-06-11
-* Ví dụ 9: 
-1. Công việc 08:15-12:00
-Dự án MEC2601044,45: Checksheet + dán cảnh báo an toàn
-2. Người thực hiện: Thắng
-3. Ngày 11/06/2026
-* Kết quả mong muốn: 
-Mã dự án: MEC2601044, MEC2601045
-Nội dung công việc: Checksheet, dán cảnh báo an toàn
-Trạng thái: Chưa xác định
-Người thực hiện: Thắng
-Ngày thực hiện: 2026-06-11
+```
+
+### Kết quả mong muốn
+
+```text
+Hoàng Bá Thuần
+```
