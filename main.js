@@ -262,6 +262,57 @@ function compareVersions(left, right) {
     return 0;
 }
 
+function psQuote(value) {
+    return `'${String(value || '').replace(/'/g, "''")}'`;
+}
+
+function vbsQuote(value) {
+    return `"${String(value || '').replace(/"/g, '""')}"`;
+}
+
+function createUpdateInstallLauncher(installerFile, latestVersion) {
+    const updatesDir = path.dirname(installerFile);
+    const token = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const ps1Path = path.join(updatesDir, `install-daily-work-report-${latestVersion || 'latest'}-${token}.ps1`);
+    const vbsPath = path.join(updatesDir, `install-daily-work-report-${latestVersion || 'latest'}-${token}.vbs`);
+    const currentPid = process.pid;
+    const currentExe = process.execPath;
+    const ps1 = `
+$ErrorActionPreference = 'SilentlyContinue'
+$installer = ${psQuote(installerFile)}
+$currentExe = ${psQuote(currentExe)}
+$currentPid = ${currentPid}
+try {
+    Wait-Process -Id $currentPid -Timeout 60
+} catch {}
+Start-Sleep -Milliseconds 600
+if (Test-Path -LiteralPath $installer) {
+    try {
+        $process = Start-Process -FilePath $installer -ArgumentList '/S' -Verb RunAs -Wait -PassThru
+    } catch {
+        $process = Start-Process -FilePath $installer -ArgumentList '/S' -Wait -PassThru
+    }
+}
+Start-Sleep -Seconds 2
+if (Test-Path -LiteralPath $currentExe) {
+    Start-Process -FilePath $currentExe | Out-Null
+}
+Start-Sleep -Seconds 2
+Remove-Item -LiteralPath ${psQuote(ps1Path)} -Force
+Remove-Item -LiteralPath ${psQuote(vbsPath)} -Force
+`;
+    const vbs = `
+Option Explicit
+Dim shell, command
+Set shell = CreateObject("WScript.Shell")
+command = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File " & ${vbsQuote(ps1Path)}
+shell.Run command, 0, False
+`;
+    fs.writeFileSync(ps1Path, ps1, 'utf8');
+    fs.writeFileSync(vbsPath, vbs, 'utf8');
+    return { ps1Path, vbsPath };
+}
+
 async function updateFromGithubRelease() {
     const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
     const currentVersion = normalizeVersion(pkg.version || app.getVersion() || '0.0.0');
@@ -293,14 +344,16 @@ async function updateFromGithubRelease() {
     await downloadFile(asset.browser_download_url, destinationFile);
     const assetType = /\.zip$/i.test(asset.name || '') ? 'zip' : 'exe';
     let installerStarted = false;
+    let installLauncher = null;
     if (assetType === 'exe') {
-        spawn(destinationFile, [], {
+        installLauncher = createUpdateInstallLauncher(destinationFile, latestVersion || 'latest');
+        spawn('wscript.exe', [installLauncher.vbsPath], {
             detached: true,
             stdio: 'ignore',
             windowsHide: true
         }).unref();
         installerStarted = true;
-        setTimeout(() => app.quit(), 1200);
+        setTimeout(() => app.quit(), 500);
     } else {
         shell.showItemInFolder(destinationFile);
     }
@@ -313,10 +366,11 @@ async function updateFromGithubRelease() {
         latestVersion,
         releaseUrl: release.html_url || GITHUB_REPO_URL,
         downloadedFile: destinationFile,
+        installLauncher: installLauncher && installLauncher.vbsPath || '',
         assetName: asset.name,
         message: assetType === 'zip'
             ? `Da tai goi win-unpacked ${latestVersion || ''} ve: ${destinationFile}. Hay giai nen va chay Daily Work Report.exe.`
-            : `Da tai ban cap nhat ${latestVersion || ''} ve: ${destinationFile}. Dang mo trinh cai dat va dong phan mem hien tai.`
+            : `Da tai ban cap nhat ${latestVersion || ''} ve: ${destinationFile}. Phan mem se dong, tu cai dat va mo lai sau khi cai xong.`
     };
 }
 
@@ -2429,6 +2483,7 @@ ipcMain.handle('get-app-info', async () => {
         version: pkg.version || '1.0.0',
         description: pkg.description || 'Phần mềm chuẩn hóa báo cáo công việc hằng ngày, quản lý dữ liệu SQLite, thư mục ảnh/tài liệu và xuất báo cáo tuần Excel.',
         latestUpdate: [
+            'Ban 1.5.3: sua updater de tu dong dong app, cai dat silent va mo lai phan mem sau khi cap nhat.',
             'Ban 1.5.2: sua badge version tren tieu de de tu dong doc dung version tu package.json.',
             'Ban 1.5.1: sua loi ban chay Administrator khong doc duoc thu muc File Explorer dang mo.',
             'Ban 1.5.0: them che do chay quyen Administrator cho ban build Windows va hien thi thu muc dich anh Zalo.',
