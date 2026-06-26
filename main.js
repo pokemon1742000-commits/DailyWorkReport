@@ -111,6 +111,41 @@ function execFileText(command, args, options = {}) {
     });
 }
 
+function wait(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function parseExplorerFolderLines(output) {
+    const folders = String(output || '')
+        .trim()
+        .split(/\r?\n/)
+        .map((folder) => folder.trim())
+        .filter(Boolean);
+    let detectedActiveFolder = '';
+    const cleanedFolders = folders
+        .map((folder) => {
+            const active = folder.startsWith('__ACTIVE__|');
+            const cleanFolder = active ? folder.replace(/^__ACTIVE__\|/, '') : folder;
+            if (active) detectedActiveFolder = cleanFolder;
+            return cleanFolder;
+        })
+        .filter((folder, index, list) => (
+            folder
+            && list.findIndex((item) => path.resolve(item).toLowerCase() === path.resolve(folder).toLowerCase()) === index
+            && fs.existsSync(folder)
+            && fs.statSync(folder).isDirectory()
+        ));
+    if (detectedActiveFolder && cleanedFolders.some((folder) => path.resolve(folder).toLowerCase() === path.resolve(detectedActiveFolder).toLowerCase())) {
+        zaloAutoMoveState.activeExplorerFolder = detectedActiveFolder;
+    } else if (
+        zaloAutoMoveState.activeExplorerFolder
+        && !cleanedFolders.some((folder) => path.resolve(folder).toLowerCase() === path.resolve(zaloAutoMoveState.activeExplorerFolder).toLowerCase())
+    ) {
+        zaloAutoMoveState.activeExplorerFolder = '';
+    }
+    return cleanedFolders;
+}
+
 async function getGitInfo() {
     try {
         const inside = await execFileText('git', ['rev-parse', '--is-inside-work-tree']);
@@ -1342,9 +1377,7 @@ function notifyZaloImageMoved(payload) {
     }
 }
 
-async function getOpenExplorerFolders() {
-    if (process.platform !== 'win32') return [];
-    const script = String.raw`
+const EXPLORER_FOLDER_PROBE_SCRIPT = String.raw`
 $signature = @"
 using System;
 using System.Runtime.InteropServices;
@@ -1373,38 +1406,73 @@ $items | Sort-Object @{ Expression = 'Active'; Descending = $true }, Path | ForE
     if ($_.Active) { "__ACTIVE__|$($_.Path)" } else { $_.Path }
 }
 `;
+
+async function runExplorerFolderProbeThroughShell() {
+    const token = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const tempDir = app.getPath('temp');
+    const ps1Path = path.join(tempDir, `daily-work-report-explorer-probe-${token}.ps1`);
+    const vbsPath = path.join(tempDir, `daily-work-report-explorer-probe-${token}.vbs`);
+    const outputPath = path.join(tempDir, `daily-work-report-explorer-probe-${token}.txt`);
+    const ps1 = `
+param([string]$OutputFile)
+${EXPLORER_FOLDER_PROBE_SCRIPT}
+$lines = @($items | Sort-Object @{ Expression = 'Active'; Descending = $true }, Path | ForEach-Object {
+    if ($_.Active) { "__ACTIVE__|$($_.Path)" } else { $_.Path }
+})
+$encoding = New-Object System.Text.UTF8Encoding $false
+[System.IO.File]::WriteAllLines($OutputFile, [string[]]$lines, $encoding)
+`;
+    const vbs = `
+Option Explicit
+Function Q(value)
+    Q = Chr(34) & Replace(value, Chr(34), Chr(34) & Chr(34)) & Chr(34)
+End Function
+Dim shell, command
+Set shell = CreateObject("WScript.Shell")
+command = "powershell.exe -NoProfile -ExecutionPolicy Bypass -STA -File " & Q("${ps1Path.replace(/\\/g, '\\\\')}") & " " & Q("${outputPath.replace(/\\/g, '\\\\')}")
+shell.Run command, 0, True
+`;
     try {
-        const result = await execFileText('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', script], { timeout: 4000 });
-        const folders = result.stdout
-            .trim()
-            .split(/\r?\n/)
-            .map((folder) => folder.trim())
-            .filter(Boolean);
-        let detectedActiveFolder = '';
-        const cleanedFolders = folders
-            .map((folder) => {
-                const active = folder.startsWith('__ACTIVE__|');
-                const cleanFolder = active ? folder.replace(/^__ACTIVE__\|/, '') : folder;
-                if (active) detectedActiveFolder = cleanFolder;
-                return cleanFolder;
-            })
-            .filter((folder, index, list) => (
-                folder
-                && list.findIndex((item) => path.resolve(item).toLowerCase() === path.resolve(folder).toLowerCase()) === index
-                && fs.existsSync(folder)
-                && fs.statSync(folder).isDirectory()
-            ));
-        if (detectedActiveFolder && cleanedFolders.some((folder) => path.resolve(folder).toLowerCase() === path.resolve(detectedActiveFolder).toLowerCase())) {
-            zaloAutoMoveState.activeExplorerFolder = detectedActiveFolder;
-        } else if (
-            zaloAutoMoveState.activeExplorerFolder
-            && !cleanedFolders.some((folder) => path.resolve(folder).toLowerCase() === path.resolve(zaloAutoMoveState.activeExplorerFolder).toLowerCase())
-        ) {
-            zaloAutoMoveState.activeExplorerFolder = '';
+        fs.writeFileSync(ps1Path, ps1, 'utf8');
+        fs.writeFileSync(vbsPath, vbs, 'utf8');
+        spawn('explorer.exe', [vbsPath], {
+            detached: true,
+            stdio: 'ignore',
+            windowsHide: true
+        }).unref();
+        const startedAt = Date.now();
+        while (Date.now() - startedAt < 2200) {
+            if (fs.existsSync(outputPath)) {
+                const output = fs.readFileSync(outputPath, 'utf8');
+                return output;
+            }
+            await wait(80);
         }
-        return cleanedFolders;
     } catch {
-        return [];
+        // Fall back to the direct probe result.
+    } finally {
+        setTimeout(() => {
+            [ps1Path, vbsPath, outputPath].forEach((filePath) => {
+                try {
+                    fs.rmSync(filePath, { force: true });
+                } catch {}
+            });
+        }, 5000);
+    }
+    return '';
+}
+
+async function getOpenExplorerFolders() {
+    if (process.platform !== 'win32') return [];
+    try {
+        const result = await execFileText('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-STA', '-Command', EXPLORER_FOLDER_PROBE_SCRIPT], { timeout: 4000 });
+        const directFolders = parseExplorerFolderLines(result.stdout);
+        if (directFolders.length) return directFolders;
+        const brokerOutput = await runExplorerFolderProbeThroughShell();
+        return parseExplorerFolderLines(brokerOutput);
+    } catch {
+        const brokerOutput = await runExplorerFolderProbeThroughShell();
+        return parseExplorerFolderLines(brokerOutput);
     }
 }
 
