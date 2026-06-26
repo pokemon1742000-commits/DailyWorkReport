@@ -2429,6 +2429,9 @@ ipcMain.handle('get-app-info', async () => {
         version: pkg.version || '1.0.0',
         description: pkg.description || 'Phần mềm chuẩn hóa báo cáo công việc hằng ngày, quản lý dữ liệu SQLite, thư mục ảnh/tài liệu và xuất báo cáo tuần Excel.',
         latestUpdate: [
+            'Ban 1.5.2: sua badge version tren tieu de de tu dong doc dung version tu package.json.',
+            'Ban 1.5.1: sua loi ban chay Administrator khong doc duoc thu muc File Explorer dang mo.',
+            'Ban 1.5.0: them che do chay quyen Administrator cho ban build Windows va hien thi thu muc dich anh Zalo.',
             'Ban 1.4.0: them popup phat hien phien ban moi tren GitHub, nut Update ngay/De sau va cai tien AI hoc nhap lieu, hand tracking.',
             'Ban 1.3.4: cap nhat hang muc bao cao tuan, giu noi dung da nhap, sua xuat Excel setup lay Lap dat tai line/Sua may va ho tro ghi khi file Excel dang mo.',
             'Ban 1.3.3: bo sung xuat Excel setup theo file noi bo, ghi them vao dung nhom ma thiet bi, loc lap moi trung va cai thien bao cao tuan.',

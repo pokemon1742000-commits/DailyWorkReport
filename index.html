@@ -2204,7 +2204,7 @@
         <div class="brand">
             <img class="brand-icon" src="assets/daily-work-report-icon.png" alt="Daily Work Report">
             <div>Daily Work Report</div>
-            <span class="version-badge">v1.4.0</span>
+            <span id="appVersionBadge" class="version-badge">v...</span>
         </div>
         <div class="header-actions">
             <button id="weeklyReportBtn" title="Xuất báo cáo tuần">Báo cáo tuần</button>
@@ -2801,6 +2801,7 @@
         };
 
         const els = {
+            appVersionBadge: document.getElementById('appVersionBadge'),
             rawInput: document.getElementById('rawInput'),
             rawInputContextMenu: document.getElementById('rawInputContextMenu'),
             toastStack: document.getElementById('toastStack'),
@@ -2922,6 +2923,7 @@
         if (state.weeklyOutputFolder) {
             els.weeklyOutputFolder.value = state.weeklyOutputFolder;
         }
+        refreshAppInfo();
         renderLearningSettings();
         renderZaloAutoMoveSettings();
         if (state.zaloAutoMoveSettings.enabled) {
@@ -3652,6 +3654,18 @@
             document.getElementById(tabId).classList.add('active');
             if (tabId === 'searchPage') {
                 renderSearch();
+            }
+        }
+
+        async function refreshAppInfo() {
+            try {
+                const info = await ipcRenderer.invoke('get-app-info');
+                els.appVersionBadge.textContent = `v${info.version || '1.0.0'}`;
+                els.appVersionBadge.title = info.commit
+                    ? `Daily Work Report v${info.version || '1.0.0'} | ${info.commit}`
+                    : `Daily Work Report v${info.version || '1.0.0'}`;
+            } catch {
+                els.appVersionBadge.textContent = 'v?';
             }
         }
 
