@@ -663,6 +663,17 @@
             transform: translateY(-1px);
         }
 
+        button:disabled,
+        button:disabled:hover {
+            cursor: not-allowed;
+            transform: none;
+            opacity: 0.55;
+            color: #777;
+            border-color: #c9c9c9;
+            background: #e5e7eb;
+            box-shadow: none;
+        }
+
         input:focus,
         select:focus,
         textarea:focus,
@@ -2286,7 +2297,7 @@
                         <h2>Bảng chuẩn hóa</h2>
                         <div class="summary">
                             <span class="pill" id="totalPill">Tổng: 0</span>
-                            <button id="saveBtn">Tạo Folder</button>
+                            <button id="saveBtn">Lưu</button>
                             <button id="clearPreviewBtn">Clear</button>
                             <button id="excelBtn" class="excel-action">Thêm vào Excel</button>
                         </div>
@@ -2965,6 +2976,7 @@
         applyFolderPinState();
         updateCurrentDateTime();
         renderFolderStructure();
+        updateSaveButton();
         setInterval(updateCurrentDateTime, 1000);
 
         document.querySelectorAll('.tab').forEach((tab) => {
@@ -2980,6 +2992,7 @@
                 els.rootFolder.value = folder;
                 localStorage.setItem('dailyWorkReportRootFolder', folder);
                 setStatus(`Đã chọn thư mục: ${folder}`);
+                updateSaveButton();
                 renderFolderStructure();
             }
         });
@@ -3014,6 +3027,12 @@
 
             if (!state.rootFolder) {
                 setStatus('Vui lòng chọn thư mục trước khi lưu.', true);
+                return;
+            }
+
+            if (hasInvalidPreviewProject()) {
+                updateSaveButton();
+                setStatus('Còn mã dự án chưa xác định hoặc không có trong file tham khảo. Hãy sửa/chọn mã đúng trước khi lưu.', true);
                 return;
             }
 
@@ -4715,32 +4734,36 @@
             if (!state.previewReports.length) {
                 els.previewList.innerHTML = '<div class="empty">Chưa có dữ liệu preview.</div>';
                 updateExcelButton();
+                updateSaveButton();
                 return;
             }
 
             els.previewList.innerHTML = state.previewReports.map((report, index) => {
-                const groupFolderName = report.nguoi_thuc_hien.map((person) => person.folderName).join('_');
-                const folderPath = report.folder_nguoi && report.folder_nguoi.length
-                    ? report.folder_nguoi.join('; ')
-                    : `${report.folder_ngay_name}/${groupFolderName}`;
-                const copyFolderPath = report.folder_nguoi && report.folder_nguoi.length
-                    ? report.folder_nguoi.join('; ')
-                    : buildPreviewFolderPath(folderPath);
-                const openFolderPath = report.folder_nguoi && report.folder_nguoi.length
-                    ? report.folder_nguoi[0]
-                    : (state.rootFolder ? buildPreviewFolderPath(folderPath) : '');
-                const warnings = report.warning || [];
                 const isReferenceMissing = report.reference_missing || /^CHUA_XAC_DINH/i.test(String(report.ma_du_an || ''));
+                const groupFolderName = report.nguoi_thuc_hien.map((person) => person.folderName).join('_');
+                const folderPath = isReferenceMissing
+                    ? 'Chưa tạo thư mục do mã dự án chưa hợp lệ'
+                    : (report.folder_nguoi && report.folder_nguoi.length
+                        ? report.folder_nguoi.join('; ')
+                        : `${report.folder_ngay_name}/${groupFolderName}`);
+                const copyFolderPath = isReferenceMissing
+                    ? ''
+                    : (report.folder_nguoi && report.folder_nguoi.length
+                        ? report.folder_nguoi.join('; ')
+                        : buildPreviewFolderPath(folderPath));
+                const openFolderPath = isReferenceMissing
+                    ? ''
+                    : (report.folder_nguoi && report.folder_nguoi.length
+                        ? report.folder_nguoi[0]
+                        : (state.rootFolder ? buildPreviewFolderPath(folderPath) : ''));
+                const warnings = report.warning || [];
 
                 return `
                     <article class="report-card ${warnings.length ? 'warning' : ''} ${isReferenceMissing ? 'reference-missing' : ''}">
                         <div class="card-top">
                             <div class="index-badge ${isReferenceMissing ? 'reference-warning' : ''}">${String(index + 1).padStart(2, '0')}</div>
                             <h3>${escapeHtml(report.ma_du_an)}</h3>
-                            <label class="checkline">
-                                <input type="checkbox" data-excel-index="${index}" ${report.selectedForExcel ? 'checked' : ''}>
-                                Chọn Excel
-                            </label>
+                            <span></span>
                         </div>
                         <div class="report-grid">
                             ${projectPreviewFieldHtml(report, index)}
@@ -4764,13 +4787,6 @@
                     </article>
                 `;
             }).join('');
-
-            document.querySelectorAll('[data-excel-index]').forEach((checkbox) => {
-                checkbox.addEventListener('change', () => {
-                    state.previewReports[Number(checkbox.dataset.excelIndex)].selectedForExcel = checkbox.checked;
-                    updateExcelButton();
-                });
-            });
 
             document.querySelectorAll('[data-open-folder]').forEach((button) => {
                 button.addEventListener('click', () => {
@@ -4828,6 +4844,7 @@
             });
 
             updateExcelButton();
+            updateSaveButton();
         }
 
         function fieldHtml(label, value) {
@@ -4914,6 +4931,7 @@
                 if (report.ai_original) report.ai_original.ma_du_an = project;
                 const title = event.target.closest('.report-card')?.querySelector('h3');
                 if (title) title.textContent = project;
+                updateSaveButton();
                 if (event.type === 'change') {
                     validatePreviewProjectReferences().then(renderPreview);
                 }
@@ -4992,6 +5010,23 @@
             const selectedCount = state.previewReports.filter((report) => report.selectedForExcel).length;
             els.excelBtn.classList.toggle('visible', selectedCount > 0);
             els.excelBtn.textContent = `Thêm vào Excel (${selectedCount})`;
+        }
+
+        function hasInvalidPreviewProject() {
+            return state.previewReports.some((report) => (
+                !normalizeProjectKey(report.ma_du_an)
+                || /^CHUA_XAC_DINH/i.test(String(report.ma_du_an || ''))
+                || report.reference_missing
+            ));
+        }
+
+        function updateSaveButton() {
+            const hasPreview = state.previewReports.length > 0;
+            const blocked = hasPreview && hasInvalidPreviewProject();
+            els.saveBtn.disabled = !hasPreview || !state.rootFolder || blocked;
+            els.saveBtn.title = blocked
+                ? 'Còn mã dự án chưa xác định hoặc không có trong file tham khảo. Hãy sửa/chọn mã đúng trước khi lưu.'
+                : (!state.rootFolder ? 'Chọn thư mục lưu ảnh / tài liệu trước khi lưu.' : 'Lưu dữ liệu và tạo thư mục ảnh.');
         }
 
         function createDefaultLearningMemory(enabled = true) {

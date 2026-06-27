@@ -757,6 +757,11 @@ function reportDuplicateFingerprint(report) {
     ].join('||');
 }
 
+function isInvalidReportProject(report) {
+    const project = normalizeProjectCode(report && report.ma_du_an);
+    return !project || /^CHUA_XAC_DINH/.test(project);
+}
+
 function sanitizeFolderName(value) {
     return String(value || '')
         .normalize('NFD')
@@ -2875,8 +2880,13 @@ ipcMain.handle('save-reports', async (_event, payload) => {
     const batchFingerprints = new Set();
     const uniqueReports = [];
     let skippedDuplicates = 0;
+    let skippedInvalidProjects = 0;
 
     reports.forEach((report) => {
+        if (isInvalidReportProject(report)) {
+            skippedInvalidProjects += 1;
+            return;
+        }
         const fingerprint = reportDuplicateFingerprint(report);
         if (existingFingerprints.has(fingerprint) || batchFingerprints.has(fingerprint)) {
             skippedDuplicates += 1;
@@ -2919,6 +2929,7 @@ ipcMain.handle('save-reports', async (_event, payload) => {
     return {
         count: savedReports.length,
         skippedDuplicates,
+        skippedInvalidProjects,
         dataFile,
         sqliteFile,
         reports: savedReports
