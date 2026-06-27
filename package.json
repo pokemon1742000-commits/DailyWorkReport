@@ -1,6 +1,6 @@
 {
   "name": "daily_work_report",
-  "version": "1.5.7",
+  "version": "1.5.8",
   "description": "Phần mềm chuẩn hóa báo cáo công việc hằng ngày, quản lý SQLite, thư mục ảnh/tài liệu và xuất báo cáo tuần Excel.",
   "main": "main.js",
   "scripts": {

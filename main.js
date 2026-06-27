@@ -27,7 +27,7 @@ const zaloAutoMoveState = {
     sourceFolder: '',
     fallbackFolder: '',
     useActiveExplorer: true,
-    seen: new Set(),
+    seen: new Map(),
     pending: new Map(),
     watcher: null,
     pollRequested: false,
@@ -1555,6 +1555,50 @@ function moveFileSafe(sourceFile, destinationFolder) {
     return target;
 }
 
+async function moveFileWithConflictChoice(sourceFile, destinationFolder) {
+    fs.mkdirSync(destinationFolder, { recursive: true });
+    const fileName = path.basename(sourceFile);
+    const target = path.join(destinationFolder, fileName);
+    if (!fs.existsSync(target)) {
+        return { movedTo: moveFileSafe(sourceFile, destinationFolder), skipped: false };
+    }
+
+    const focusedWindow = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0] || null;
+    const options = {
+        type: 'question',
+        title: 'Daily Work Report',
+        message: `Thư mục đích đã có file "${fileName}".`,
+        detail: `Bạn muốn thay thế file cũ, giữ cả hai file, hay hủy chuyển ảnh này?\n\nThư mục đích:\n${destinationFolder}`,
+        buttons: ['Thay thế', 'Giữ cả hai', 'Hủy'],
+        defaultId: 1,
+        cancelId: 2,
+        noLink: true
+    };
+    const result = focusedWindow
+        ? await dialog.showMessageBox(focusedWindow, options)
+        : await dialog.showMessageBox(options);
+
+    if (result.response === 2) {
+        return { movedTo: '', skipped: true };
+    }
+
+    if (result.response === 0) {
+        try {
+            fs.rmSync(target, { force: true });
+        } catch {}
+        try {
+            fs.renameSync(sourceFile, target);
+        } catch (error) {
+            if (error.code !== 'EXDEV') throw error;
+            fs.copyFileSync(sourceFile, target);
+            fs.unlinkSync(sourceFile);
+        }
+        return { movedTo: target, skipped: false };
+    }
+
+    return { movedTo: moveFileSafe(sourceFile, destinationFolder), skipped: false };
+}
+
 function notifyRenderer(channel, payload) {
     BrowserWindow.getAllWindows().forEach((window) => {
         if (!window.isDestroyed()) {
@@ -1744,7 +1788,7 @@ function requestZaloPoll(delayMs = 0) {
 }
 
 function seedZaloSeenFiles(sourceFolder) {
-    zaloAutoMoveState.seen = new Set();
+    zaloAutoMoveState.seen = new Map();
     zaloAutoMoveState.pending = new Map();
     if (!sourceFolder || !fs.existsSync(sourceFolder)) return;
     const now = Date.now();
@@ -1753,7 +1797,11 @@ function seedZaloSeenFiles(sourceFolder) {
         if (!isZaloImageFile(filePath)) return;
         const stat = fs.statSync(filePath);
         if (now - stat.mtimeMs > 15000) {
-            zaloAutoMoveState.seen.add(path.resolve(filePath));
+            zaloAutoMoveState.seen.set(path.resolve(filePath), {
+                size: stat.size,
+                mtimeMs: stat.mtimeMs,
+                markedAt: now
+            });
         } else {
             zaloAutoMoveState.pending.set(path.resolve(filePath), {
                 size: stat.size,
@@ -1762,6 +1810,10 @@ function seedZaloSeenFiles(sourceFolder) {
             });
         }
     });
+}
+
+function isSameZaloFileSignature(left, right) {
+    return Boolean(left && right && left.size === right.size && left.mtimeMs === right.mtimeMs);
 }
 
 async function refreshZaloExplorerCache() {
@@ -1800,26 +1852,45 @@ async function pollZaloDownloadFolder() {
         }
 
         const now = Date.now();
-        fs.readdirSync(sourceFolder).forEach((fileName) => {
+        const fileNames = fs.readdirSync(sourceFolder);
+        for (const fileName of fileNames) {
             const filePath = path.join(sourceFolder, fileName);
             const key = path.resolve(filePath);
-            if (zaloAutoMoveState.seen.has(key) || !isZaloImageFile(filePath)) return;
+            if (!isZaloImageFile(filePath)) continue;
 
-            const stat = fs.statSync(filePath);
+            let stat;
+            try {
+                stat = fs.statSync(filePath);
+            } catch {
+                continue;
+            }
+            const seen = zaloAutoMoveState.seen.get(key);
+            if (isSameZaloFileSignature(seen, stat)) continue;
+            if (seen) zaloAutoMoveState.seen.delete(key);
+
             const pending = zaloAutoMoveState.pending.get(key);
             if (!pending || pending.size !== stat.size || pending.mtimeMs !== stat.mtimeMs) {
                 zaloAutoMoveState.pending.set(key, { size: stat.size, mtimeMs: stat.mtimeMs, firstSeenAt: now });
-                return;
+                continue;
             }
-            if (now - pending.firstSeenAt < 250 || stat.size <= 0) return;
+            if (now - pending.firstSeenAt < 250 || stat.size <= 0) continue;
             if (!destination || !fs.existsSync(destination)) {
                 zaloAutoMoveState.lastError = 'Chưa xác định được thư mục Explorer đang mở. Hãy mở thư mục ảnh đích trong File Explorer rồi tải ảnh Zalo.';
-                return;
+                continue;
             }
 
-            const movedTo = moveFileSafe(filePath, destination);
-            zaloAutoMoveState.seen.add(key);
+            const moveResult = await moveFileWithConflictChoice(filePath, destination);
+            zaloAutoMoveState.seen.set(key, {
+                size: stat.size,
+                mtimeMs: stat.mtimeMs,
+                markedAt: now
+            });
             zaloAutoMoveState.pending.delete(key);
+            if (moveResult.skipped) {
+                zaloAutoMoveState.lastMessage = `Đã hủy chuyển ${fileName}`;
+                continue;
+            }
+            const movedTo = moveResult.movedTo;
             zaloAutoMoveState.movedCount += 1;
             zaloAutoMoveState.lastDestination = destination;
             zaloAutoMoveState.lastError = '';
@@ -1830,7 +1901,7 @@ async function pollZaloDownloadFolder() {
                 to: movedTo,
                 destination
             });
-        });
+        }
     } catch (error) {
         zaloAutoMoveState.lastError = error.message || String(error);
     } finally {

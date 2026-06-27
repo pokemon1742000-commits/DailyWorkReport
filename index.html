@@ -750,6 +750,24 @@
             border-left-color: var(--amber);
         }
 
+        .report-card.reference-missing {
+            border-color: #ef4444;
+            border-left-color: #dc2626;
+            background: color-mix(in srgb, #fee2e2 72%, var(--panel));
+        }
+
+        .report-card.reference-missing .project-edit-control {
+            padding: 4px;
+            border: 2px solid #ef0000;
+            border-radius: 10px;
+            background: color-mix(in srgb, #fee2e2 55%, transparent);
+        }
+
+        .report-card.reference-missing .project-edit-control .editable-preview-input,
+        .report-card.reference-missing .project-suggestion-picker {
+            border-color: #ef4444;
+        }
+
         .card-top {
             display: grid;
             grid-template-columns: auto 1fr auto;
@@ -772,9 +790,9 @@
         }
 
         .index-badge.reference-warning {
-            background: #fff36a;
-            color: #322400;
-            border: 1px solid #d28b00;
+            background: #dc2626;
+            color: #fff;
+            border: 1px solid #991b1b;
         }
 
         .checkline {
@@ -4712,11 +4730,12 @@
                     ? report.folder_nguoi[0]
                     : (state.rootFolder ? buildPreviewFolderPath(folderPath) : '');
                 const warnings = report.warning || [];
+                const isReferenceMissing = report.reference_missing || /^CHUA_XAC_DINH/i.test(String(report.ma_du_an || ''));
 
                 return `
-                    <article class="report-card ${warnings.length ? 'warning' : ''}">
+                    <article class="report-card ${warnings.length ? 'warning' : ''} ${isReferenceMissing ? 'reference-missing' : ''}">
                         <div class="card-top">
-                            <div class="index-badge ${report.reference_missing ? 'reference-warning' : ''}">${String(index + 1).padStart(2, '0')}</div>
+                            <div class="index-badge ${isReferenceMissing ? 'reference-warning' : ''}">${String(index + 1).padStart(2, '0')}</div>
                             <h3>${escapeHtml(report.ma_du_an)}</h3>
                             <label class="checkline">
                                 <input type="checkbox" data-excel-index="${index}" ${report.selectedForExcel ? 'checked' : ''}>
@@ -7485,14 +7504,23 @@
                 state.savedReports = state.allReports;
             }
 
-            let rows = state.savedReports.filter((report) => {
+            const projectSearch = getProjectSearchInfo(rawQuery, dateQuery);
+            let rows = state.savedReports.map((report) => ({
+                report,
+                projectScore: projectSearch.active ? getProjectSearchScore(report, projectSearch) : 0
+            })).filter(({ report, projectScore }) => {
                 const blob = removeVietnameseMarks(JSON.stringify(report)).toLowerCase();
-                const matchQuery = !query || blob.includes(query);
+                const matchQuery = !query || (projectSearch.active ? projectScore > 0 : blob.includes(query));
                 const matchExcel = filter === 'all'
                     || (filter === 'exported' && report.excel_exported)
                     || (filter === 'not_exported' && !report.excel_exported);
                 return matchQuery && matchExcel;
-            });
+            }).sort((a, b) => {
+                if (projectSearch.active && b.projectScore !== a.projectScore) {
+                    return b.projectScore - a.projectScore;
+                }
+                return String(b.report.ngay_thuc_hien || '').localeCompare(String(a.report.ngay_thuc_hien || ''));
+            }).map(({ report }) => report);
             state.searchRows = rows;
             state.selectedSearchIds = new Set([...state.selectedSearchIds].filter((id) => rows.some((report) => report.id === id)));
 
@@ -7613,6 +7641,51 @@
                 clearTimeout(timer);
                 timer = setTimeout(() => fn(...args), delay);
             };
+        }
+
+        function getProjectSearchInfo(rawQuery, dateQuery) {
+            if (!rawQuery || dateQuery) return { active: false };
+            const text = String(rawQuery || '').trim();
+            const queryKey = normalizeProjectKey(text);
+            if (!queryKey || /^20\d{2}$/.test(queryKey)) return { active: false };
+
+            const hasProjectPrefix = /(?:^|[^A-Z0-9])(?:AUT[A-Z]?|MEC)\s*[\-:]?\s*[A-Z0-9]+/i.test(text)
+                || /^(?:AUT[A-Z]?|MEC)[A-Z0-9]+$/.test(queryKey);
+            if (!hasProjectPrefix && /[\/\\-]/.test(text)) return { active: false };
+            const digitCount = (queryKey.match(/\d/g) || []).length;
+            const looksLikeBareProjectCode = digitCount >= 4 && queryKey.length <= 16 && !/\s/.test(text);
+            if (!hasProjectPrefix && !looksLikeBareProjectCode) return { active: false };
+
+            return {
+                active: true,
+                queryKey,
+                queryCore: projectComparableCore(queryKey)
+            };
+        }
+
+        function getProjectSearchScore(report, searchInfo) {
+            const projectKey = normalizeProjectKey(report && report.ma_du_an);
+            if (!projectKey || /^CHUA_XAC_DINH/i.test(projectKey)) return 0;
+            const queryKey = searchInfo.queryKey;
+            const queryCore = searchInfo.queryCore;
+            const projectCore = projectComparableCore(projectKey);
+
+            if (projectKey === queryKey) return 10000;
+            if (projectKey.startsWith(queryKey)) return 9200 + queryKey.length;
+            if (projectKey.includes(queryKey)) return 8500 + queryKey.length;
+            if (queryKey.includes(projectKey)) return 7800 + projectKey.length;
+
+            if (queryCore && queryCore.length >= 4 && projectCore) {
+                if (projectCore === queryCore) return 7600 + queryCore.length;
+                if (projectCore.startsWith(queryCore)) return 7000 + queryCore.length;
+                if (projectCore.includes(queryCore)) return 6400 + queryCore.length;
+                if (queryCore.length >= 6) {
+                    const score = projectSimilarityScore(queryKey, projectKey);
+                    if (score >= 520) return 5200 + score;
+                }
+            }
+
+            return 0;
         }
 
         function parseSearchDate(value) {
