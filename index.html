@@ -2298,6 +2298,7 @@
                         <div class="summary">
                             <span class="pill" id="totalPill">Tổng: 0</span>
                             <button id="saveBtn">Lưu</button>
+                            <button id="quickGoogleSheetBackupBtn">Backup Google Sheet</button>
                             <button id="clearPreviewBtn">Clear</button>
                             <button id="excelBtn" class="excel-action">Thêm vào Excel</button>
                         </div>
@@ -2493,6 +2494,7 @@
                         <button class="settings-card" data-settings-section="columns">Cột hiển thị báo cáo tuần</button>
                         <button class="settings-card" data-settings-section="learning">AI học nhập liệu</button>
                         <button class="settings-card" data-settings-section="zalo">Tự chuyển ảnh Zalo</button>
+                        <button class="settings-card" data-settings-section="sync">Đồng bộ dữ liệu</button>
                     </div>
                     <button class="settings-scroll-zone right" data-settings-scroll="right" title="Cuộn sang phải" aria-label="Cuộn sang phải"></button>
                 </div>
@@ -2556,6 +2558,42 @@
                         <button id="findZaloFolderBtn">Tự tìm thư mục Zalo</button>
                     </div>
                     <div id="zaloAutoMoveStatus" class="about-box">Chưa bật tự chuyển ảnh Zalo.</div>
+                </section>
+
+                <section id="settingsSectionSync" class="settings-section">
+                    <h3>Đồng bộ dữ liệu SQLite lên server</h3>
+                    <p class="muted">Dùng server riêng để lưu bản sao SQLite. Khi reset máy có thể tải lại dữ liệu từ server.</p>
+                    <label>Địa chỉ server</label>
+                    <div class="field-row">
+                        <input id="syncServerUrlInput" type="text" placeholder="Ví dụ: http://192.168.1.10:3959">
+                        <button id="testSyncServerBtn">Kiểm tra</button>
+                    </div>
+                    <label style="margin-top: 10px;">Token bảo vệ</label>
+                    <input id="syncTokenInput" type="password" placeholder="Có thể để trống khi chạy trong mạng nội bộ">
+                    <label style="margin-top: 10px;">Mã thiết bị</label>
+                    <input id="syncDeviceIdInput" type="text" placeholder="Để trống sẽ dùng tên máy tự động">
+                    <div class="about-actions">
+                        <button id="uploadSqliteBtn" class="primary">Đẩy SQLite lên server</button>
+                        <button id="downloadSqliteBtn">Tải dữ liệu từ server</button>
+                    </div>
+                    <div id="syncStatus" class="about-box">Chưa đồng bộ.</div>
+                    <hr style="margin: 18px 0; border: 0; border-top: 1px solid var(--line);">
+                    <h3>Backup bằng link Google Sheet</h3>
+                    <p class="muted">Dán Google Apps Script Web App URL. Khi backup thành công, phần mềm sẽ trả về link file Google Sheet để lưu lâu dài trên Google Drive.</p>
+                    <label>Google Apps Script Web App URL</label>
+                    <input id="googleSheetWebAppUrlInput" type="text" placeholder="https://script.google.com/macros/s/.../exec">
+                    <label style="margin-top: 10px;">Token Google Sheet</label>
+                    <input id="googleSheetTokenInput" type="password" placeholder="Nếu Apps Script không đặt token thì để trống">
+                    <label style="margin-top: 10px;">Link Google Sheet backup</label>
+                    <div class="field-row">
+                        <input id="googleSheetLinkInput" type="text" readonly placeholder="Sau khi backup thành công sẽ hiện link ở đây">
+                        <button id="openGoogleSheetBtn">Mở link</button>
+                    </div>
+                    <div class="about-actions">
+                        <button id="backupGoogleSheetBtn" class="primary">Backup lên Google Sheet</button>
+                        <button id="restoreGoogleSheetBtn">Khôi phục từ Google Sheet</button>
+                    </div>
+                    <div id="googleSheetStatus" class="about-box">Chưa backup Google Sheet.</div>
                 </section>
             </div>
         </section>
@@ -2804,6 +2842,8 @@
             weeklyRowsByProject: loadWeeklyRowsByProject(),
             currentWeeklyRangeKey: '',
             zaloAutoMoveSettings: loadZaloAutoMoveSettings(),
+            syncSettings: loadSyncSettings(),
+            googleSheetSettings: loadGoogleSheetSettings(),
             weeklyImages: [],
             weeklyImageGroups: [],
             weeklyProjects: loadWeeklyProjects(),
@@ -2843,6 +2883,7 @@
             chooseFolderBtn: document.getElementById('chooseFolderBtn'),
             acceptBtn: document.getElementById('acceptBtn'),
             saveBtn: document.getElementById('saveBtn'),
+            quickGoogleSheetBackupBtn: document.getElementById('quickGoogleSheetBackupBtn'),
             clearPreviewBtn: document.getElementById('clearPreviewBtn'),
             excelBtn: document.getElementById('excelBtn'),
             inputStatus: document.getElementById('inputStatus'),
@@ -2902,6 +2943,20 @@
             startZaloAutoMoveBtn: document.getElementById('startZaloAutoMoveBtn'),
             findZaloFolderBtn: document.getElementById('findZaloFolderBtn'),
             zaloAutoMoveStatus: document.getElementById('zaloAutoMoveStatus'),
+            syncServerUrlInput: document.getElementById('syncServerUrlInput'),
+            syncTokenInput: document.getElementById('syncTokenInput'),
+            syncDeviceIdInput: document.getElementById('syncDeviceIdInput'),
+            testSyncServerBtn: document.getElementById('testSyncServerBtn'),
+            uploadSqliteBtn: document.getElementById('uploadSqliteBtn'),
+            downloadSqliteBtn: document.getElementById('downloadSqliteBtn'),
+            syncStatus: document.getElementById('syncStatus'),
+            googleSheetWebAppUrlInput: document.getElementById('googleSheetWebAppUrlInput'),
+            googleSheetTokenInput: document.getElementById('googleSheetTokenInput'),
+            googleSheetLinkInput: document.getElementById('googleSheetLinkInput'),
+            openGoogleSheetBtn: document.getElementById('openGoogleSheetBtn'),
+            backupGoogleSheetBtn: document.getElementById('backupGoogleSheetBtn'),
+            restoreGoogleSheetBtn: document.getElementById('restoreGoogleSheetBtn'),
+            googleSheetStatus: document.getElementById('googleSheetStatus'),
             reloadBtn: document.getElementById('reloadBtn'),
             searchInput: document.getElementById('searchInput'),
             excelFilter: document.getElementById('excelFilter'),
@@ -2960,6 +3015,8 @@
         refreshAppInfo();
         renderLearningSettings();
         renderZaloAutoMoveSettings();
+        renderSyncSettings();
+        renderGoogleSheetSettings();
         if (state.zaloAutoMoveSettings.enabled) {
             startZaloAutoMove(false);
         }
@@ -3057,6 +3114,8 @@
                 setStatus((error && (error.message || String(error))) || 'Không lưu được dữ liệu.', true);
             }
         });
+
+        els.quickGoogleSheetBackupBtn.addEventListener('click', quickBackupToGoogleSheet);
 
         els.clearPreviewBtn.addEventListener('click', () => {
             state.previewReports = [];
@@ -3196,6 +3255,8 @@
             renderMemberList();
             renderWeeklyProjectSettings();
             renderWeeklyColumnSettings();
+            renderSyncSettings();
+            renderGoogleSheetSettings();
             showSettingsSection('members');
             els.settingsModal.classList.add('open');
             els.memberNameInput.focus();
@@ -3259,6 +3320,17 @@
                 startZaloAutoMove();
             }
         });
+        els.syncServerUrlInput.addEventListener('change', saveSyncSettingsFromInputs);
+        els.syncTokenInput.addEventListener('change', saveSyncSettingsFromInputs);
+        els.syncDeviceIdInput.addEventListener('change', saveSyncSettingsFromInputs);
+        els.testSyncServerBtn.addEventListener('click', testSyncServer);
+        els.uploadSqliteBtn.addEventListener('click', uploadSqliteToSyncServer);
+        els.downloadSqliteBtn.addEventListener('click', downloadSqliteFromSyncServer);
+        els.googleSheetWebAppUrlInput.addEventListener('change', saveGoogleSheetSettingsFromInputs);
+        els.googleSheetTokenInput.addEventListener('change', saveGoogleSheetSettingsFromInputs);
+        els.openGoogleSheetBtn.addEventListener('click', openGoogleSheetBackupLink);
+        els.backupGoogleSheetBtn.addEventListener('click', backupToGoogleSheet);
+        els.restoreGoogleSheetBtn.addEventListener('click', restoreFromGoogleSheet);
         document.querySelectorAll('[data-settings-section]').forEach((button) => {
             button.addEventListener('click', () => showSettingsSection(button.dataset.settingsSection));
         });
@@ -4093,8 +4165,8 @@
 
         function numberedFieldKey(number, value = '') {
             if (number === 1 && looksLikeProjectLine(value)) return 'project';
-            if (isPeopleLine(value)) return 'people';
             if (isDateLine(value)) return 'date';
+            if (isPeopleLine(value)) return 'people';
             if (looksLikeStatusLine(value) || /^\s*(trạng\s*thái|trang\s*thai|tình\s*trạng|tinh\s*trang|thực\s*trạng|thuc\s*trang)\b/i.test(value)) return 'status';
             return {
                 1: 'project',
@@ -4119,7 +4191,7 @@
         }
 
         function isSeparatorOnlyLine(line) {
-            return /^[.\-_=~\s]{4,}$/.test(String(line || '').trim());
+            return /^[.\-_=~$#\s]{4,}$/.test(String(line || '').trim());
         }
 
         function inferSharedNumberedPeople(blocks) {
@@ -4383,11 +4455,14 @@
 
         function isDateLine(text) {
             const plain = removeVietnameseMarks(text).toLowerCase();
-            return /\d{1,2}\s*\/\s*\d{1,2}\s*\/\s*\d{4}/.test(plain) || /\bngay\b.*\d{1,2}/.test(plain);
+            return /\d{1,2}\s*[\/.-]\s*\d{1,2}\s*[\/.-]\s*\d{4}/.test(plain)
+                || /\bngay\s*(?:thuc\s*hien)?\b/.test(plain)
+                || /\bngay\b.*\d{1,2}/.test(plain);
         }
 
         function isPeopleLine(text) {
             const plain = removeVietnameseMarks(text).toLowerCase();
+            if (/\bngay\s*thuc\s*hien\b/.test(plain)) return false;
             return /nguoi\s*thuc\s*hien|thuc\s*hien/.test(plain);
         }
 
@@ -4702,7 +4777,7 @@
         }
 
         function parseDate(text) {
-            const numeric = text.match(/(\d{1,2})\s*\/\s*(\d{1,2})\s*\/\s*(\d{4})/);
+            const numeric = String(text || '').match(/(\d{1,2})\s*[\/.-]\s*(\d{1,2})\s*[\/.-]\s*(\d{4})/);
             if (numeric) {
                 return buildDate(Number(numeric[1]), Number(numeric[2]), Number(numeric[3]));
             }
@@ -5415,6 +5490,244 @@
             saveZaloAutoMoveSettings();
             updateZaloToggleButton();
             updateZaloAutoMoveStatus(status);
+        }
+
+        function loadSyncSettings() {
+            try {
+                const parsed = JSON.parse(localStorage.getItem('dailyWorkReportSyncSettings') || '{}');
+                return {
+                    serverUrl: parsed.serverUrl || '',
+                    token: parsed.token || '',
+                    deviceId: parsed.deviceId || ''
+                };
+            } catch {
+                return { serverUrl: '', token: '', deviceId: '' };
+            }
+        }
+
+        function saveSyncSettings() {
+            localStorage.setItem('dailyWorkReportSyncSettings', JSON.stringify(state.syncSettings));
+        }
+
+        function saveSyncSettingsFromInputs() {
+            state.syncSettings = {
+                serverUrl: els.syncServerUrlInput.value.trim(),
+                token: els.syncTokenInput.value.trim(),
+                deviceId: els.syncDeviceIdInput.value.trim()
+            };
+            saveSyncSettings();
+        }
+
+        function renderSyncSettings() {
+            els.syncServerUrlInput.value = state.syncSettings.serverUrl || '';
+            els.syncTokenInput.value = state.syncSettings.token || '';
+            els.syncDeviceIdInput.value = state.syncSettings.deviceId || '';
+        }
+
+        function syncPayloadFromInputs() {
+            saveSyncSettingsFromInputs();
+            return {
+                serverUrl: state.syncSettings.serverUrl,
+                token: state.syncSettings.token,
+                deviceId: state.syncSettings.deviceId
+            };
+        }
+
+        function setSyncStatus(message, isError = false) {
+            els.syncStatus.textContent = message;
+            els.syncStatus.classList.toggle('error', Boolean(isError));
+        }
+
+        async function testSyncServer() {
+            try {
+                const payload = syncPayloadFromInputs();
+                if (!payload.serverUrl) {
+                    setSyncStatus('Chưa nhập địa chỉ server.', true);
+                    return;
+                }
+                const result = await ipcRenderer.invoke('sync-server-health', payload);
+                setSyncStatus(`Kết nối OK: ${result.name || 'Daily Work Report Sync Server'} | ${result.time || ''}`);
+            } catch (error) {
+                setSyncStatus(error.message || 'Không kết nối được server đồng bộ.', true);
+            }
+        }
+
+        async function uploadSqliteToSyncServer() {
+            try {
+                const payload = syncPayloadFromInputs();
+                if (!payload.serverUrl) {
+                    setSyncStatus('Chưa nhập địa chỉ server.', true);
+                    return;
+                }
+                els.uploadSqliteBtn.disabled = true;
+                setSyncStatus('Đang đẩy SQLite lên server...');
+                const result = await ipcRenderer.invoke('sync-sqlite-upload', payload);
+                setSyncStatus(`Đã đẩy lên server lúc ${result.uploadedAt}. Dung lượng: ${result.size} bytes.`);
+            } catch (error) {
+                setSyncStatus(error.message || 'Không đẩy được SQLite lên server.', true);
+            } finally {
+                els.uploadSqliteBtn.disabled = false;
+            }
+        }
+
+        async function downloadSqliteFromSyncServer() {
+            try {
+                const payload = syncPayloadFromInputs();
+                if (!payload.serverUrl) {
+                    setSyncStatus('Chưa nhập địa chỉ server.', true);
+                    return;
+                }
+                const confirmed = confirm('Tải dữ liệu SQLite từ server sẽ thay thế dữ liệu hiện tại. File hiện tại sẽ được backup trước khi thay. Tiếp tục?');
+                if (!confirmed) return;
+                els.downloadSqliteBtn.disabled = true;
+                setSyncStatus('Đang tải SQLite từ server...');
+                const result = await ipcRenderer.invoke('sync-sqlite-download', payload);
+                state.allReports = result.reports || [];
+                state.savedReports = state.allReports;
+                setSyncStatus(`Đã tải dữ liệu từ server. Tổng ${result.count || 0} bản ghi.`);
+                renderSearch();
+                updateCurrentDateTime();
+            } catch (error) {
+                setSyncStatus(error.message || 'Không tải được SQLite từ server.', true);
+            } finally {
+                els.downloadSqliteBtn.disabled = false;
+            }
+        }
+
+        function loadGoogleSheetSettings() {
+            try {
+                const parsed = JSON.parse(localStorage.getItem('dailyWorkReportGoogleSheetSettings') || '{}');
+                return {
+                    webAppUrl: parsed.webAppUrl || '',
+                    token: parsed.token || '',
+                    spreadsheetUrl: parsed.spreadsheetUrl || ''
+                };
+            } catch {
+                return { webAppUrl: '', token: '', spreadsheetUrl: '' };
+            }
+        }
+
+        function saveGoogleSheetSettings() {
+            localStorage.setItem('dailyWorkReportGoogleSheetSettings', JSON.stringify(state.googleSheetSettings));
+        }
+
+        function saveGoogleSheetSettingsFromInputs() {
+            state.googleSheetSettings = {
+                webAppUrl: els.googleSheetWebAppUrlInput.value.trim(),
+                token: els.googleSheetTokenInput.value.trim(),
+                spreadsheetUrl: els.googleSheetLinkInput.value.trim()
+            };
+            saveGoogleSheetSettings();
+        }
+
+        function renderGoogleSheetSettings() {
+            els.googleSheetWebAppUrlInput.value = state.googleSheetSettings.webAppUrl || '';
+            els.googleSheetTokenInput.value = state.googleSheetSettings.token || '';
+            els.googleSheetLinkInput.value = state.googleSheetSettings.spreadsheetUrl || '';
+        }
+
+        function googleSheetPayloadFromInputs() {
+            saveGoogleSheetSettingsFromInputs();
+            return {
+                webAppUrl: state.googleSheetSettings.webAppUrl,
+                token: state.googleSheetSettings.token,
+                deviceId: state.syncSettings.deviceId || ''
+            };
+        }
+
+        function setGoogleSheetStatus(message, isError = false) {
+            els.googleSheetStatus.textContent = message;
+            els.googleSheetStatus.classList.toggle('error', Boolean(isError));
+        }
+
+        function openGoogleSheetBackupLink() {
+            const url = els.googleSheetLinkInput.value.trim();
+            if (url) ipcRenderer.invoke('open-external-link', url);
+        }
+
+        async function backupToGoogleSheet() {
+            try {
+                const payload = googleSheetPayloadFromInputs();
+                if (!payload.webAppUrl) {
+                    setGoogleSheetStatus('Chưa nhập Google Apps Script Web App URL.', true);
+                    return;
+                }
+                els.backupGoogleSheetBtn.disabled = true;
+                setGoogleSheetStatus('Đang backup dữ liệu lên Google Sheet...');
+                const result = await ipcRenderer.invoke('google-sheet-backup', payload);
+                state.googleSheetSettings.spreadsheetUrl = result.spreadsheetUrl || state.googleSheetSettings.spreadsheetUrl || '';
+                saveGoogleSheetSettings();
+                renderGoogleSheetSettings();
+                setGoogleSheetStatus(`Đã backup ${result.count || 0} bản ghi lên Google Sheet. Link: ${state.googleSheetSettings.spreadsheetUrl}`);
+            } catch (error) {
+                setGoogleSheetStatus(error.message || 'Không backup được lên Google Sheet.', true);
+            } finally {
+                els.backupGoogleSheetBtn.disabled = false;
+            }
+        }
+
+        async function quickBackupToGoogleSheet() {
+            if (!state.googleSheetSettings.webAppUrl) {
+                setStatus('Chưa cấu hình Google Apps Script Web App URL. Mở Cài đặt -> Đồng bộ dữ liệu để dán URL một lần.', true);
+                renderSyncSettings();
+                renderGoogleSheetSettings();
+                showSettingsSection('sync');
+                els.settingsModal.classList.add('open');
+                els.googleSheetWebAppUrlInput.focus();
+                return;
+            }
+
+            try {
+                els.quickGoogleSheetBackupBtn.disabled = true;
+                setStatus('Đang backup dữ liệu lên Google Sheet...');
+                const result = await ipcRenderer.invoke('google-sheet-backup', {
+                    webAppUrl: state.googleSheetSettings.webAppUrl,
+                    token: state.googleSheetSettings.token,
+                    deviceId: state.syncSettings.deviceId || ''
+                });
+                state.googleSheetSettings.spreadsheetUrl = result.spreadsheetUrl || state.googleSheetSettings.spreadsheetUrl || '';
+                saveGoogleSheetSettings();
+                renderGoogleSheetSettings();
+                if (state.googleSheetSettings.spreadsheetUrl) {
+                    clipboard.writeText(state.googleSheetSettings.spreadsheetUrl);
+                }
+                setStatus(`Đã backup ${result.count || 0} bản ghi lên Google Sheet. Link đã copy: ${state.googleSheetSettings.spreadsheetUrl}`);
+                showToast('Daily Work Report', [
+                    `Đã backup ${result.count || 0} bản ghi lên Google Sheet.`,
+                    state.googleSheetSettings.spreadsheetUrl ? `Đã copy link: ${state.googleSheetSettings.spreadsheetUrl}` : ''
+                ].filter(Boolean));
+            } catch (error) {
+                setStatus(error.message || 'Không backup được lên Google Sheet.', true);
+            } finally {
+                els.quickGoogleSheetBackupBtn.disabled = false;
+            }
+        }
+
+        async function restoreFromGoogleSheet() {
+            try {
+                const payload = googleSheetPayloadFromInputs();
+                if (!payload.webAppUrl) {
+                    setGoogleSheetStatus('Chưa nhập Google Apps Script Web App URL.', true);
+                    return;
+                }
+                const confirmed = confirm('Khôi phục từ Google Sheet sẽ thay thế dữ liệu SQLite hiện tại. File hiện tại sẽ được backup trước khi thay. Tiếp tục?');
+                if (!confirmed) return;
+                els.restoreGoogleSheetBtn.disabled = true;
+                setGoogleSheetStatus('Đang tải dữ liệu từ Google Sheet...');
+                const result = await ipcRenderer.invoke('google-sheet-restore', payload);
+                state.googleSheetSettings.spreadsheetUrl = result.spreadsheetUrl || state.googleSheetSettings.spreadsheetUrl || '';
+                saveGoogleSheetSettings();
+                renderGoogleSheetSettings();
+                state.allReports = result.reports || [];
+                state.savedReports = state.allReports;
+                setGoogleSheetStatus(`Đã khôi phục ${result.count || 0} bản ghi từ Google Sheet.`);
+                renderSearch();
+                updateCurrentDateTime();
+            } catch (error) {
+                setGoogleSheetStatus(error.message || 'Không khôi phục được từ Google Sheet.', true);
+            } finally {
+                els.restoreGoogleSheetBtn.disabled = false;
+            }
         }
 
         function normalizeWeeklyRowForStorage(row) {

@@ -2,6 +2,7 @@ const { app, BrowserWindow, Notification, dialog, ipcMain, protocol, session, sh
 const fs = require('fs');
 const https = require('https');
 const path = require('path');
+const os = require('os');
 const { execFile, spawn } = require('child_process');
 const initSqlJs = require('sql.js');
 const ExcelJS = require('exceljs');
@@ -577,6 +578,170 @@ function getJsonFile() {
 
 function getSqliteFile() {
     return path.join(getDataDir(), 'work_reports.sqlite');
+}
+
+function getDefaultSyncDeviceId() {
+    return `${os.hostname()}_${process.env.USERNAME || process.env.USER || 'user'}`;
+}
+
+function normalizeSyncServerUrl(serverUrl) {
+    const clean = String(serverUrl || '').trim().replace(/\/+$/g, '');
+    if (!clean) {
+        throw new Error('Chưa nhập địa chỉ server đồng bộ.');
+    }
+    return clean;
+}
+
+async function syncFetchJson(url, options = {}) {
+    const response = await fetch(url, options);
+    const text = await response.text();
+    let payload = {};
+    try {
+        payload = text ? JSON.parse(text) : {};
+    } catch (_error) {
+        payload = { raw: text };
+    }
+    if (!response.ok) {
+        throw new Error(payload.error || `Server trả lỗi ${response.status}`);
+    }
+    return payload;
+}
+
+async function uploadSqliteToServer(options = {}) {
+    const serverUrl = normalizeSyncServerUrl(options.serverUrl);
+    const sqliteFile = getSqliteFile();
+    if (!fs.existsSync(sqliteFile)) {
+        await loadReportsSqlite();
+    }
+    if (!fs.existsSync(sqliteFile)) {
+        throw new Error('Chưa có file SQLite để đồng bộ.');
+    }
+
+    const sqliteBase64 = fs.readFileSync(sqliteFile).toString('base64');
+    const headers = { 'Content-Type': 'application/json' };
+    if (options.token) headers.Authorization = `Bearer ${options.token}`;
+
+    return syncFetchJson(`${serverUrl}/api/sqlite/upload`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+            deviceId: options.deviceId || getDefaultSyncDeviceId(),
+            sqliteBase64,
+            appVersion: app.getVersion(),
+            machineName: os.hostname(),
+            note: options.note || ''
+        })
+    });
+}
+
+async function getLatestSqliteBackupInfo(options = {}) {
+    const serverUrl = normalizeSyncServerUrl(options.serverUrl);
+    const deviceId = encodeURIComponent(options.deviceId || getDefaultSyncDeviceId());
+    const headers = {};
+    if (options.token) headers.Authorization = `Bearer ${options.token}`;
+    return syncFetchJson(`${serverUrl}/api/sqlite/latest?deviceId=${deviceId}`, { headers });
+}
+
+async function getSyncServerHealth(options = {}) {
+    const serverUrl = normalizeSyncServerUrl(options.serverUrl);
+    const headers = {};
+    if (options.token) headers.Authorization = `Bearer ${options.token}`;
+    return syncFetchJson(`${serverUrl}/health`, { headers });
+}
+
+async function downloadSqliteFromServer(options = {}) {
+    const serverUrl = normalizeSyncServerUrl(options.serverUrl);
+    const deviceId = encodeURIComponent(options.deviceId || getDefaultSyncDeviceId());
+    const headers = {};
+    if (options.token) headers.Authorization = `Bearer ${options.token}`;
+
+    const response = await fetch(`${serverUrl}/api/sqlite/download?deviceId=${deviceId}`, { headers });
+    if (!response.ok) {
+        let message = `Server trả lỗi ${response.status}`;
+        try {
+            const payload = await response.json();
+            message = payload.error || message;
+        } catch (_error) {
+            // Keep status message.
+        }
+        throw new Error(message);
+    }
+
+    const sqliteFile = getSqliteFile();
+    fs.mkdirSync(path.dirname(sqliteFile), { recursive: true });
+    if (fs.existsSync(sqliteFile)) {
+        const backupFile = path.join(path.dirname(sqliteFile), `work_reports.before_restore_${Date.now()}.sqlite`);
+        fs.copyFileSync(sqliteFile, backupFile);
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    fs.writeFileSync(sqliteFile, Buffer.from(arrayBuffer));
+    const result = await loadReportsSqlite();
+    return {
+        ok: true,
+        sqliteFile,
+        count: result.reports.length,
+        reports: result.reports
+    };
+}
+
+function normalizeGoogleScriptUrl(url) {
+    const clean = String(url || '').trim();
+    if (!clean) {
+        throw new Error('Chưa nhập Google Apps Script Web App URL.');
+    }
+    return clean;
+}
+
+async function postGoogleSheetBackup(options = {}, action = 'backup') {
+    const webAppUrl = normalizeGoogleScriptUrl(options.webAppUrl);
+    const result = await loadReportsSqlite();
+    const payload = {
+        action,
+        token: options.token || '',
+        deviceId: options.deviceId || getDefaultSyncDeviceId(),
+        appVersion: app.getVersion(),
+        machineName: os.hostname(),
+        reports: result.reports
+    };
+    const response = await fetch(webAppUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+    });
+    const text = await response.text();
+    let data = {};
+    try {
+        data = text ? JSON.parse(text) : {};
+    } catch (_error) {
+        data = { raw: text };
+    }
+    if (!response.ok || data.ok === false) {
+        throw new Error(data.error || `Google Sheet backup lỗi ${response.status}`);
+    }
+    return data;
+}
+
+async function restoreReportsFromGoogleSheet(options = {}) {
+    const data = await postGoogleSheetBackup(options, 'restore');
+    const reports = Array.isArray(data.reports) ? data.reports : [];
+    const sqliteFile = getSqliteFile();
+    fs.mkdirSync(path.dirname(sqliteFile), { recursive: true });
+    if (fs.existsSync(sqliteFile)) {
+        const backupFile = path.join(path.dirname(sqliteFile), `work_reports.before_google_restore_${Date.now()}.sqlite`);
+        fs.copyFileSync(sqliteFile, backupFile);
+    }
+    if (fs.existsSync(sqliteFile)) {
+        fs.unlinkSync(sqliteFile);
+    }
+    await insertReportsSqlite(reports);
+    const result = await loadReportsSqlite();
+    return {
+        ok: true,
+        spreadsheetUrl: data.spreadsheetUrl || '',
+        count: result.reports.length,
+        reports: result.reports,
+        sqliteFile
+    };
 }
 
 async function getSql() {
@@ -2969,6 +3134,30 @@ ipcMain.handle('query-reports', async (_event, query) => {
 ipcMain.handle('query-project-detail', async (_event, payload) => {
     const result = await queryReportsByExactProject(payload && payload.project);
     return { sqliteFile: result.sqliteFile, reports: result.reports };
+});
+
+ipcMain.handle('sync-sqlite-upload', async (_event, payload) => {
+    return uploadSqliteToServer(payload || {});
+});
+
+ipcMain.handle('sync-server-health', async (_event, payload) => {
+    return getSyncServerHealth(payload || {});
+});
+
+ipcMain.handle('sync-sqlite-latest', async (_event, payload) => {
+    return getLatestSqliteBackupInfo(payload || {});
+});
+
+ipcMain.handle('sync-sqlite-download', async (_event, payload) => {
+    return downloadSqliteFromServer(payload || {});
+});
+
+ipcMain.handle('google-sheet-backup', async (_event, payload) => {
+    return postGoogleSheetBackup(payload || {}, 'backup');
+});
+
+ipcMain.handle('google-sheet-restore', async (_event, payload) => {
+    return restoreReportsFromGoogleSheet(payload || {});
 });
 
 ipcMain.handle('delete-reports', async (_event, payload) => {

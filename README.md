@@ -9,6 +9,52 @@ npm install
 npm start
 ```
 
+## Server dong bo SQLite
+
+Chay server luu backup SQLite:
+
+```bash
+npm run sync-server
+```
+
+Mac dinh server chay tai:
+
+```text
+http://localhost:3959
+```
+
+Neu muon dat token bao ve:
+
+```powershell
+$env:SYNC_TOKEN="mat_khau_rieng"
+npm run sync-server
+```
+
+Trong app vao **Cai dat -> Dong bo du lieu**, nhap dia chi server, token neu co, roi bam **Day SQLite len server**.
+Du lieu backup duoc luu trong `server_data/` va khong duoc commit len Git.
+
+## Backup bang link Google Sheet
+
+Neu muon backup len Google Drive bang mot link Google Sheet:
+
+1. Mo Google Apps Script: https://script.google.com
+2. Tao project moi.
+3. Copy noi dung file `scripts/google-sheets-backup.gs` vao Apps Script.
+4. Bam **Deploy -> New deployment -> Web app**.
+5. Chon **Execute as: Me** va **Who has access: Anyone with the link**.
+6. Copy Web App URL dang `https://script.google.com/macros/s/.../exec`.
+7. Trong app vao **Cai dat -> Dong bo du lieu**, dan URL vao muc Google Sheet va bam **Backup len Google Sheet**.
+
+Sau khi backup thanh cong, app se hien link file Google Sheet. Reset Windows xong chi can cai/chay lai app, dan lai Web App URL va bam **Khoi phuc tu Google Sheet**.
+
+Neu muon dat token bao ve Apps Script, vao **Project Settings -> Script properties** them:
+
+```text
+SYNC_TOKEN=mat_khau_rieng
+```
+
+Sau do nhap cung token nay trong app.
+
 Neu muon chay tren Windows ma chi hien cua so phan mem, bam file:
 
 ```text

@@ -1,6 +1,6 @@
 {
   "name": "daily_work_report",
-  "version": "1.5.9",
+  "version": "1.6.0",
   "description": "Phần mềm chuẩn hóa báo cáo công việc hằng ngày, quản lý SQLite, thư mục ảnh/tài liệu và xuất báo cáo tuần Excel.",
   "main": "main.js",
   "scripts": {
@@ -10,7 +10,8 @@
     "build:installer": "electron-builder --win nsis --x64",
     "package:unpacked": "node scripts/package-unpacked.js",
     "build:release": "npm run build && npm run package:unpacked",
-    "release:auto": "node scripts/release.js"
+    "release:auto": "node scripts/release.js",
+    "sync-server": "node server/sync-server.js"
   },
   "keywords": [],
   "author": "",
