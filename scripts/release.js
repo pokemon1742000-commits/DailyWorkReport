@@ -136,6 +136,33 @@ function readPackage() {
     return JSON.parse(fs.readFileSync(path.join(rootDir, 'package.json'), 'utf8'));
 }
 
+function normalizeReleaseNoteText(text) {
+    return String(text || '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function updateChangelog(version, notes) {
+    const changelogFile = path.join(rootDir, 'CHANGELOG.json');
+    let entries = [];
+    try {
+        entries = JSON.parse(fs.readFileSync(changelogFile, 'utf8'));
+        if (!Array.isArray(entries)) entries = [];
+    } catch {
+        entries = [];
+    }
+
+    const cleanNotes = normalizeReleaseNoteText(notes || `Release v${version}`);
+    const prefix = `Bản ${version}:`;
+    const entry = cleanNotes.startsWith(prefix)
+        ? cleanNotes
+        : `${prefix} ${cleanNotes.replace(/^Release\s+v?\d+\.\d+\.\d+\s*[:\-]?\s*/i, '').trim() || `cập nhật phiên bản ${version}`}`;
+    entries = entries.filter((item) => !String(item || '').startsWith(prefix));
+    entries.unshift(entry);
+    fs.writeFileSync(changelogFile, `${JSON.stringify(entries, null, 2)}\n`, 'utf8');
+    console.log(`Updated CHANGELOG.json: ${entry}`);
+}
+
 function assertVersion(version) {
     if (!/^\d+\.\d+\.\d+([-.][0-9A-Za-z.-]+)?$/.test(version || '')) {
         throw new Error('Cần truyền version đúng dạng semver, ví dụ: node scripts/release.js 1.5.7 "Release v1.5.7"');
@@ -235,6 +262,7 @@ function main() {
     }
 
     ensureGithubCli();
+    updateChangelog(options.version, options.notes);
 
     if (!options.skipBuild) {
         run('npm', ['version', options.version, '--no-git-tag-version']);

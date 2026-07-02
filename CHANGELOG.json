@@ -1,0 +1,23 @@
+[
+  "Bản 1.6.1: cập nhật phiên bản 1.6.1",
+  "B?n 1.5.9: s?a h? tr? nh?p ti?ng Vi?t b?ng Unikey/Telex b?ng c? ch? IME-safe d?ng chung, s?a nh?n di?n ng?y sau nh?n Ng?y th?c hi?n v? th?m backup Google Sheet.",
+  "Bản 1.5.6: chuyển updater sang electron-updater để hỗ trợ cập nhật vi sai bằng latest.yml và blockmap, chỉ tải phần thay đổi khi có thể.",
+  "Bản 1.5.5: sửa updater có log, chờ phần mềm đóng hẳn, cài silent và tự mở installer nếu silent lỗi; cập nhật logo phần mềm mới và hỗ trợ nhập tiếng Việt bằng Unikey/Telex.",
+  "Bản 1.5.3: sửa updater để tự động đóng phần mềm, cài đặt silent và mở lại phần mềm sau khi cập nhật.",
+  "Bản 1.5.2: sửa nhãn phiên bản trên tiêu đề để tự động đọc đúng version từ package.json.",
+  "Bản 1.5.1: sửa lỗi bản chạy Administrator không đọc được thư mục File Explorer đang mở.",
+  "Bản 1.5.0: thêm chế độ chạy quyền Administrator cho bản build Windows và hiển thị thư mục đích ảnh Zalo.",
+  "Bản 1.4.0: thêm popup phát hiện phiên bản mới trên GitHub, nút Update ngay/Để sau và cải tiến AI học nhập liệu, hand tracking.",
+  "Bản 1.3.4: cập nhật hạng mục báo cáo tuần, giữ nội dung đã nhập, sửa xuất Excel setup lấy Lắp đặt tại line/Sửa máy và hỗ trợ ghi khi file Excel đang mở.",
+  "Bản 1.3.3: bổ sung xuất Excel setup theo file nội bộ, ghi thêm vào đúng nhóm mã thiết bị, lọc lắp mới trùng và cải thiện báo cáo tuần.",
+  "Bản 1.3.2: thêm trường Thời gian cho nhập liệu, lưu SQLite/tìm kiếm, chặn mã dự án ảo theo năm-tháng và làm sạch trạng thái theo từng dự án.",
+  "Bản 1.3.1: nút Update tự động tải installer, mở trình cài đặt và đóng phần mềm hiện tại để cài đè bản mới.",
+  "Bản 1.3.0: thêm cảnh báo mã dự án không có trong file tham khảo, gợi ý sửa mã, Detail lọc đúng mã dự án và build installer NSIS.",
+  "Bản 1.2.2: phát hành thử nghiệm dạng win-unpacked.zip để kiểm tra updater tải gói unpack.",
+  "Bản 1.2.1: thêm gói win-unpacked.zip và updater có thể tải cả file .exe hoặc .zip từ GitHub Releases.",
+  "Bản 1.2.0: đổi nút tạo dữ liệu thành Tạo Folder, giữ bảng chuẩn hóa sau khi tạo folder và thêm nút Clear.",
+  "Bản 1.1.0: thêm chọn và xóa bản ghi trong trang tìm kiếm, xóa đồng thời SQLite và JSON.",
+  "Thêm popup thông tin phần mềm và nút update từ GitHub.",
+  "Cây cấu trúc thư mục hiển thị file bằng icon local theo loại file.",
+  "Xuất báo cáo tuần có ảnh chi tiết dạng gallery theo nhóm dự án."
+]

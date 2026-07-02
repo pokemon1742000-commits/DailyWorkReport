@@ -2810,6 +2810,36 @@
         function isImeInput(event) {
             return imeComposing || Boolean(event && (event.isComposing || event.key === 'Process' || event.keyCode === 229));
         }
+
+        function isComposingElement(element) {
+            return Boolean(element && element.dataset && element.dataset.imeComposing === 'true');
+        }
+
+        function bindImeSafeInput(element, handler, options = {}) {
+            const useInput = options.input !== false;
+            const useChange = options.change !== false;
+            const run = (event) => handler(event);
+
+            element.addEventListener('compositionstart', () => {
+                element.dataset.imeComposing = 'true';
+            });
+            element.addEventListener('compositionend', (event) => {
+                delete element.dataset.imeComposing;
+                run(event);
+            });
+            if (useInput) {
+                element.addEventListener('input', (event) => {
+                    if (isImeInput(event) || isComposingElement(event.target)) return;
+                    run(event);
+                });
+            }
+            if (useChange) {
+                element.addEventListener('change', (event) => {
+                    if (isComposingElement(event.target)) return;
+                    run(event);
+                });
+            }
+        }
         const DEFAULT_WEEKLY_COLUMNS = [
             { id: 'stt', label: 'STT', width: 44, locked: true },
             { id: 'hang_muc', label: 'HẠNG\nMỤC', width: 132, locked: true },
@@ -3134,7 +3164,7 @@
         });
 
         els.searchBtn.addEventListener('click', renderSearch);
-        els.searchInput.addEventListener('input', debounce(renderSearch, 180));
+        bindImeSafeInput(els.searchInput, debounce(renderSearch, 180), { change: false });
         els.excelFilter.addEventListener('change', renderSearch);
         els.selectAllSearch.addEventListener('change', toggleSelectAllSearch);
         document.addEventListener('click', (event) => {
@@ -4890,8 +4920,7 @@
             });
 
             document.querySelectorAll('[data-preview-edit-field]').forEach((input) => {
-                input.addEventListener('input', syncPreviewEditableField);
-                input.addEventListener('change', syncPreviewEditableField);
+                bindImeSafeInput(input, syncPreviewEditableField);
             });
 
             document.querySelectorAll('[data-person-report]').forEach((select) => {
@@ -4991,6 +5020,7 @@
         }
 
         function syncPreviewEditableField(event) {
+            if (event.type === 'input' && (isImeInput(event) || isComposingElement(event.target))) return;
             const reportIndex = Number(event.target.dataset.previewEditIndex);
             const field = event.target.dataset.previewEditField;
             const report = state.previewReports[reportIndex];
@@ -6373,8 +6403,7 @@
                 if (input.tagName === 'SELECT') {
                     input.addEventListener('change', syncWeeklyField);
                 } else {
-                    input.addEventListener('input', syncWeeklyField);
-                    input.addEventListener('change', syncWeeklyField);
+                    bindImeSafeInput(input, syncWeeklyField);
                 }
                 if (input.tagName === 'TEXTAREA') autoResizeWeeklyTextarea(input);
             });
@@ -6555,6 +6584,7 @@
         }
 
         function syncWeeklyField(event) {
+            if (event.type === 'input' && (isImeInput(event) || isComposingElement(event.target))) return;
             const index = Number(event.target.dataset.weeklyIndex);
             const field = event.target.dataset.weeklyField;
             if (!state.weeklyRows[index] || !field) return;
@@ -7339,9 +7369,9 @@
             const addGroupBtn = els.weeklyImageList.querySelector('[data-add-image-group]');
             if (addGroupBtn) addGroupBtn.addEventListener('click', addCustomWeeklyImageGroup);
             document.querySelectorAll('[data-image-group-description]').forEach((input) => {
-                input.addEventListener('input', () => {
+                bindImeSafeInput(input, () => {
                     updateWeeklyImageGroupDescription(input.dataset.imageGroupDescription, input.value);
-                });
+                }, { change: false });
             });
             document.querySelectorAll('[data-remove-image-group]').forEach((button) => {
                 button.addEventListener('click', () => removeWeeklyImageGroup(button.dataset.removeImageGroup));
