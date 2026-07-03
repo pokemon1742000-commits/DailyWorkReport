@@ -12,6 +12,7 @@ const DEFAULT_WEEKLY_LOGO = path.join(__dirname, 'assets', 'meiko-automation-log
 const APP_ICON_FILE = path.join(__dirname, 'assets', 'daily-work-report-icon.png');
 const MACHINE_REFERENCE_FILE = path.join(__dirname, 'reference_files', 'Thamkhao.xlsm');
 const SETUP_TRACKING_TEMPLATE_FILE = path.join(__dirname, 'reference_files', 'Theo_doi_setup_may_cho_khach_hang.xlsx');
+const DEFAULT_SETUP_TRACKING_OUTPUT_NAME = 'lắp đặt, sửa tính từ 22-06-2026.xlsx';
 const MACHINE_REFERENCE_SHEET_KEY = 'danhsachmay';
 const GITHUB_OWNER = 'pokemon1742000-commits';
 const GITHUB_REPO = 'DailyWorkReport';
@@ -121,6 +122,7 @@ function wait(ms) {
 async function ensureVietnameseImeCompatibility() {
     if (process.platform !== 'win32') return;
     const script = String.raw`
+$isElevated = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 $process = Get-CimInstance Win32_Process | Where-Object {
     $_.Name -match '^(UniKey|UniKeyNT|Unikey|unikey).*\.exe$'
 } | Select-Object -First 1
@@ -146,8 +148,14 @@ if (-not $candidate) {
 }
 if ($candidate -and (Test-Path -LiteralPath $candidate)) {
     try {
-        Start-Process -FilePath $candidate -Verb RunAs -WindowStyle Minimized
-        "STARTED|$candidate"
+        if ($isElevated) {
+            Get-Process | Where-Object { $_.ProcessName -match '^(UniKey|UniKeyNT|Unikey|unikey)' } | Stop-Process -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Milliseconds 300
+            Start-Process -FilePath $candidate -Verb RunAs -WindowStyle Minimized
+            "STARTED_ADMIN|$candidate"
+        } else {
+            "NOT_NEEDED|$candidate"
+        }
     } catch {
         "FAILED|$candidate|$($_.Exception.Message)"
     }
@@ -158,8 +166,12 @@ if ($candidate -and (Test-Path -LiteralPath $candidate)) {
     try {
         const result = await execFileText('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', script], { timeout: 7000 });
         const message = result.stdout.trim();
-        if (message.startsWith('STARTED|')) {
-            console.log('Vietnamese IME helper started:', message.slice('STARTED|'.length));
+        if (message.startsWith('STARTED_ADMIN|')) {
+            console.log('Vietnamese IME helper restarted as admin:', message.slice('STARTED_ADMIN|'.length));
+        } else if (message.startsWith('NOT_NEEDED|')) {
+            console.log('Vietnamese IME helper not needed:', message.slice('NOT_NEEDED|'.length));
+        } else if (message.startsWith('FAILED|') || message === 'NOT_FOUND') {
+            console.warn('Vietnamese IME helper skipped:', message);
         }
     } catch (error) {
         console.warn('Vietnamese IME helper skipped:', error.message || error);
@@ -727,6 +739,9 @@ async function postGoogleSheetBackup(options = {}, action = 'backup') {
         data = text ? JSON.parse(text) : {};
     } catch (_error) {
         data = { raw: text };
+    }
+    if (response.status === 403) {
+        throw new Error('Google Sheet backup lỗi 403: Web App chưa cho phép app truy cập. Hãy Deploy lại Apps Script dạng Web app, chọn Execute as: Me và Who has access: Anyone, sau đó dùng URL kết thúc bằng /exec.');
     }
     if (!response.ok || data.ok === false) {
         throw new Error(data.error || `Google Sheet backup lỗi ${response.status}`);
@@ -1434,7 +1449,9 @@ function normalizeWeeklyRows(rows) {
             ten_may: row.ten_may || '',
             du_an: project,
             noi_dung: Array.isArray(row.noi_dung_cong_viec) ? row.noi_dung_cong_viec : (Array.isArray(row.noi_dung) ? row.noi_dung : []),
-            tien_do: Array.isArray(row.trang_thai) ? row.trang_thai : (Array.isArray(row.tien_do) ? row.tien_do : []),
+            tien_do: Array.isArray(row.trang_thai)
+                ? row.trang_thai
+                : (Array.isArray(row.tien_do) ? row.tien_do : (row.tien_do || '')),
             kho_khan: row.kho_khan || '',
             huong_giai_quyet: row.huong_giai_quyet || '',
             ghi_chu: row.ghi_chu || '',
@@ -1519,6 +1536,21 @@ function excelFallbackValue(value) {
     }
     const text = String(value ?? '').trim();
     return text || 'N/A';
+}
+
+function excelTextLineCount(value) {
+    const text = Array.isArray(value) ? value.filter(Boolean).join('\n') : String(value || '');
+    return Math.max(1, text.split(/\r?\n/).length);
+}
+
+function normalizeSetupTrackingOutputName(fileName) {
+    let safeName = String(fileName || '').trim() || DEFAULT_SETUP_TRACKING_OUTPUT_NAME;
+    safeName = safeName.replace(/[\\/:*?"<>|]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!/\.xlsx$/i.test(safeName)) {
+        safeName = safeName.replace(/\.+$/, '');
+        safeName += '.xlsx';
+    }
+    return safeName || DEFAULT_SETUP_TRACKING_OUTPUT_NAME;
 }
 
 function normalizeSentence(text) {
@@ -2319,7 +2351,9 @@ async function exportWeeklyReport(payload) {
             else if (column.id === 'tien_do') cell.value = excelFallbackValue(item.tien_do || []);
             else cell.value = excelFallbackValue(item[column.id]);
         });
-        row.height = item.row_height ? Math.max(32, Math.round(item.row_height * 0.75)) : Math.max(52, 24 * Math.max(item.noi_dung.length, item.tien_do.length, 2));
+        row.height = item.row_height
+            ? Math.max(32, Math.round(item.row_height * 0.75))
+            : Math.max(52, 24 * Math.max(item.noi_dung.length, excelTextLineCount(item.tien_do), 2));
         row.eachCell((cell, colNumber) => {
             const column = columns[colNumber - 1];
             applyCellBaseStyle(cell, {
@@ -2713,7 +2747,7 @@ async function exportSetupTrackingReport(payload) {
 
     const reference = await loadMachineReference();
     fs.mkdirSync(outputDir, { recursive: true });
-    const outputName = 'Theo dõi setup máy cho khách hàng.xlsx';
+    const outputName = normalizeSetupTrackingOutputName(payload.outputName);
     const outputPath = path.join(outputDir, outputName);
     const useExistingFile = fs.existsSync(outputPath);
     const workbook = new ExcelJS.Workbook();
@@ -2875,6 +2909,11 @@ ipcMain.handle('stop-zalo-auto-move', async () => {
 
 ipcMain.handle('get-zalo-auto-move-status', async () => {
     return getZaloAutoMoveStatus();
+});
+
+ipcMain.handle('fix-vietnamese-ime', async () => {
+    await ensureVietnameseImeCompatibility();
+    return { ok: true };
 });
 
 ipcMain.handle('get-app-info', async () => {

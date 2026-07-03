@@ -1559,15 +1559,37 @@
             cursor: pointer;
         }
 
+        .weekly-progress-button-multi {
+            display: grid;
+            align-content: center;
+            gap: 2px;
+            min-height: 70px;
+            padding: 5px 8px;
+            text-align: left;
+            line-height: 1.25;
+        }
+
+        .weekly-progress-part-button {
+            justify-content: space-between;
+            min-height: 22px;
+            padding: 0 4px;
+            text-align: left;
+            line-height: 1.25;
+        }
+
         .weekly-progress-button::after {
             content: "▾";
             font-size: 14px;
         }
 
+        .weekly-progress-button-multi::after {
+            content: none;
+        }
+
         .weekly-progress-menu {
             position: fixed;
             z-index: 5000;
-            min-width: 178px;
+            min-width: 258px;
             padding: 6px;
             border-radius: 8px;
             border: 1px solid rgba(0, 0, 0, 0.16);
@@ -1591,6 +1613,37 @@
             padding: 0 10px;
             text-align: left;
             font: 15px "Segoe UI", Arial, sans-serif;
+        }
+
+        .weekly-progress-menu input {
+            width: 100%;
+            height: 32px;
+            margin: 0 0 6px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            text-align: center;
+            font: 14px "Segoe UI", Arial, sans-serif;
+        }
+
+        .weekly-progress-menu .weekly-progress-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 4px;
+        }
+
+        .weekly-progress-menu .weekly-progress-grid button {
+            justify-content: center;
+            min-height: 30px;
+            padding: 0 6px;
+            font-size: 13px;
+        }
+
+        .weekly-progress-menu .weekly-progress-status-list {
+            display: grid;
+            gap: 2px;
+            margin-top: 6px;
         }
 
         .weekly-progress-menu button:hover,
@@ -1624,6 +1677,13 @@
             color: #fff;
             text-align: center;
             font: 14px "Segoe UI", Arial, sans-serif;
+        }
+
+        .weekly-progress-subtitle {
+            grid-column: 1 / -1;
+            padding: 2px 4px 4px;
+            font: 600 14px "Segoe UI", Arial, sans-serif;
+            color: rgba(255, 255, 255, 0.88);
         }
 
         .weekly-progress-submenu button {
@@ -2492,6 +2552,7 @@
                         <button class="settings-card active" data-settings-section="members">Danh sách thành viên</button>
                         <button class="settings-card" data-settings-section="projects">Mã dự án</button>
                         <button class="settings-card" data-settings-section="columns">Cột hiển thị báo cáo tuần</button>
+                        <button class="settings-card" data-settings-section="setupExcel">Excel setup</button>
                         <button class="settings-card" data-settings-section="learning">AI học nhập liệu</button>
                         <button class="settings-card" data-settings-section="zalo">Tự chuyển ảnh Zalo</button>
                         <button class="settings-card" data-settings-section="sync">Đồng bộ dữ liệu</button>
@@ -2527,6 +2588,17 @@
                         <button id="addWeeklyColumnBtn">+</button>
                     </div>
                     <div id="weeklyColumnList" class="member-list"></div>
+                </section>
+
+                <section id="settingsSectionSetupExcel" class="settings-section">
+                    <h3>Excel setup</h3>
+                    <p class="muted">Tên file dùng cho nút Thêm vào Excel setup. Nếu trong thư mục lưu đã có file cùng tên, phần mềm sẽ ghi bổ sung vào file đó.</p>
+                    <label>Tên file Excel setup</label>
+                    <div class="field-row">
+                        <input id="setupTrackingFileNameInput" type="text" placeholder="lắp đặt, sửa tính từ 22-06-2026.xlsx">
+                        <button id="resetSetupTrackingFileNameBtn">Mặc định</button>
+                    </div>
+                    <div id="setupTrackingFileNameStatus" class="about-box"></div>
                 </section>
 
                 <section id="settingsSectionLearning" class="settings-section">
@@ -2805,6 +2877,12 @@
         const WEEKLY_CATEGORY_OPTIONS = ['Lắp máy mới', 'Chỉnh máy', 'Lắp đặt tại line', 'Sửa máy', 'Hỗ trợ'];
         const WEEKLY_PROGRESS_PERCENT_OPTIONS = Array.from({ length: 20 }, (_, index) => `${(index + 1) * 5}%`);
         const WEEKLY_PROGRESS_STATUS_OPTIONS = ['Hoàn thành', 'Đang thực hiện', 'Bắt đầu làm.', 'Tạm dừng', 'Đang xử lý', 'Hoàn thiện', 'Chờ'];
+        const WEEKLY_PROGRESS_PARTS = [
+            { key: 'co_khi', label: 'Cơ khí' },
+            { key: 'dien', label: 'Điện' },
+            { key: 'tong', label: 'Tổng' }
+        ];
+        const DEFAULT_SETUP_TRACKING_FILE_NAME = 'lắp đặt, sửa tính từ 22-06-2026.xlsx';
         let imeComposing = false;
 
         function isImeInput(event) {
@@ -2881,6 +2959,7 @@
             weeklyColumns: loadWeeklyColumns(),
             weeklyZoom: Number(localStorage.getItem('dailyWorkReportWeeklyZoom')) || 1,
             weeklyOutputFolder: localStorage.getItem('dailyWorkReportWeeklyOutputFolder') || '',
+            setupTrackingFileName: localStorage.getItem('dailyWorkReportSetupTrackingFileName') || DEFAULT_SETUP_TRACKING_FILE_NAME,
             detailProject: '',
             detailMenuProject: '',
             detailResizeActive: false,
@@ -2964,6 +3043,9 @@
             weeklyColumnInput: document.getElementById('weeklyColumnInput'),
             addWeeklyColumnBtn: document.getElementById('addWeeklyColumnBtn'),
             weeklyColumnList: document.getElementById('weeklyColumnList'),
+            setupTrackingFileNameInput: document.getElementById('setupTrackingFileNameInput'),
+            resetSetupTrackingFileNameBtn: document.getElementById('resetSetupTrackingFileNameBtn'),
+            setupTrackingFileNameStatus: document.getElementById('setupTrackingFileNameStatus'),
             learningEnabled: document.getElementById('learningEnabled'),
             clearLearningBtn: document.getElementById('clearLearningBtn'),
             learningStats: document.getElementById('learningStats'),
@@ -3045,6 +3127,7 @@
         refreshAppInfo();
         renderLearningSettings();
         renderZaloAutoMoveSettings();
+        renderSetupExcelSettings();
         renderSyncSettings();
         renderGoogleSheetSettings();
         if (state.zaloAutoMoveSettings.enabled) {
@@ -3285,6 +3368,7 @@
             renderMemberList();
             renderWeeklyProjectSettings();
             renderWeeklyColumnSettings();
+            renderSetupExcelSettings();
             renderSyncSettings();
             renderGoogleSheetSettings();
             showSettingsSection('members');
@@ -3318,6 +3402,20 @@
         els.weeklyColumnInput.addEventListener('keydown', (event) => {
             if (isImeInput(event)) return;
             if (event.key === 'Enter') addWeeklyColumnFromInput();
+        });
+        els.setupTrackingFileNameInput.addEventListener('change', saveSetupExcelSettingsFromInputs);
+        els.setupTrackingFileNameInput.addEventListener('keydown', (event) => {
+            if (isImeInput(event)) return;
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                saveSetupExcelSettingsFromInputs();
+                els.setupTrackingFileNameInput.blur();
+            }
+        });
+        els.resetSetupTrackingFileNameBtn.addEventListener('click', () => {
+            state.setupTrackingFileName = DEFAULT_SETUP_TRACKING_FILE_NAME;
+            saveSetupExcelSettings();
+            renderSetupExcelSettings();
         });
         els.learningEnabled.addEventListener('change', () => {
             state.learningMemory.enabled = els.learningEnabled.checked;
@@ -5698,17 +5796,21 @@
 
         async function quickBackupToGoogleSheet() {
             if (!state.googleSheetSettings.webAppUrl) {
+                const missingGoogleSheetUrlMessage = 'Chưa cấu hình Google Apps Script Web App URL. Dán URL một lần trong Cài đặt -> Đồng bộ dữ liệu.';
                 setStatus('Chưa cấu hình Google Apps Script Web App URL. Mở Cài đặt -> Đồng bộ dữ liệu để dán URL một lần.', true);
+                showToast('Daily Work Report', [missingGoogleSheetUrlMessage]);
                 renderSyncSettings();
                 renderGoogleSheetSettings();
                 showSettingsSection('sync');
                 els.settingsModal.classList.add('open');
                 els.googleSheetWebAppUrlInput.focus();
+                alert(missingGoogleSheetUrlMessage);
                 return;
             }
 
             try {
                 els.quickGoogleSheetBackupBtn.disabled = true;
+                showToast('Daily Work Report', ['Đang backup dữ liệu lên Google Sheet...']);
                 setStatus('Đang backup dữ liệu lên Google Sheet...');
                 const result = await ipcRenderer.invoke('google-sheet-backup', {
                     webAppUrl: state.googleSheetSettings.webAppUrl,
@@ -5726,8 +5828,12 @@
                     `Đã backup ${result.count || 0} bản ghi lên Google Sheet.`,
                     state.googleSheetSettings.spreadsheetUrl ? `Đã copy link: ${state.googleSheetSettings.spreadsheetUrl}` : ''
                 ].filter(Boolean));
+                if (state.googleSheetSettings.spreadsheetUrl) {
+                    alert(`Đã backup Google Sheet.\nLink đã copy:\n${state.googleSheetSettings.spreadsheetUrl}`);
+                }
             } catch (error) {
                 setStatus(error.message || 'Không backup được lên Google Sheet.', true);
+                alert(error.message || 'Không backup được lên Google Sheet.');
             } finally {
                 els.quickGoogleSheetBackupBtn.disabled = false;
             }
@@ -6060,6 +6166,37 @@
                 input.addEventListener('change', () => updateWeeklyColumnWidth(Number(input.dataset.weeklyColumnWidth), input.value));
                 input.addEventListener('dragstart', (event) => event.preventDefault());
             });
+        }
+
+        function normalizeSetupTrackingFileName(fileName) {
+            let safeName = String(fileName || '').trim() || DEFAULT_SETUP_TRACKING_FILE_NAME;
+            safeName = safeName.replace(/[\\/:*?"<>|]/g, ' ').replace(/\s+/g, ' ').trim();
+            if (!/\.xlsx$/i.test(safeName)) {
+                safeName = safeName.replace(/\.+$/, '');
+                safeName += '.xlsx';
+            }
+            return safeName || DEFAULT_SETUP_TRACKING_FILE_NAME;
+        }
+
+        function saveSetupExcelSettings() {
+            state.setupTrackingFileName = normalizeSetupTrackingFileName(state.setupTrackingFileName);
+            localStorage.setItem('dailyWorkReportSetupTrackingFileName', state.setupTrackingFileName);
+        }
+
+        function saveSetupExcelSettingsFromInputs() {
+            state.setupTrackingFileName = normalizeSetupTrackingFileName(els.setupTrackingFileNameInput.value);
+            saveSetupExcelSettings();
+            renderSetupExcelSettings();
+        }
+
+        function renderSetupExcelSettings() {
+            state.setupTrackingFileName = normalizeSetupTrackingFileName(state.setupTrackingFileName);
+            if (els.setupTrackingFileNameInput) {
+                els.setupTrackingFileNameInput.value = state.setupTrackingFileName;
+            }
+            if (els.setupTrackingFileNameStatus) {
+                els.setupTrackingFileNameStatus.textContent = `File hiện dùng: ${state.setupTrackingFileName}`;
+            }
         }
 
         async function refreshWeeklyRowsFromSettings(fillReference = false) {
@@ -6492,12 +6629,16 @@
                 return `<td><span class="weekly-project-label">${escapeHtml(value)}</span></td>`;
             }
             if (column.id === 'tien_do') {
-                const value = row[column.id] || '';
+                const progressParts = parseWeeklyProgressParts(row[column.id]);
                 return `
                     <td>
-                        <button type="button" class="weekly-progress-button" data-weekly-progress-open="${index}" title="Chọn tiến độ">
-                            ${escapeHtml(value || '%')}
-                        </button>
+                        <div class="weekly-progress-button-multi">
+                            ${WEEKLY_PROGRESS_PARTS.map((part) => `
+                                <button type="button" class="weekly-progress-button weekly-progress-part-button" data-weekly-progress-open="${index}" data-weekly-progress-part="${escapeHtml(part.key)}" title="Chọn tiến độ ${escapeHtml(part.label)}">
+                                    <span>${escapeHtml(part.label)}: ${escapeHtml(String(progressParts[part.key] || '').trim() || '%')}</span>
+                                </button>
+                            `).join('')}
+                        </div>
                     </td>
                 `;
             }
@@ -6506,7 +6647,9 @@
         }
 
         function getWeeklyRowHeight(row) {
-            return Math.max(Number(row.row_height) || 0, 64, String(row.noi_dung || '').split('\n').length * 22);
+            const contentHeight = String(row.noi_dung || '').split('\n').length * 22;
+            const progressHeight = getWeeklyProgressDisplayLines(row.tien_do).length * 24 + 30;
+            return Math.max(Number(row.row_height) || 0, 74, contentHeight, progressHeight);
         }
 
         function excelColumnName(index) {
@@ -6603,11 +6746,63 @@
             }
         }
 
+        function createEmptyWeeklyProgressParts() {
+            return WEEKLY_PROGRESS_PARTS.reduce((result, part) => {
+                result[part.key] = '';
+                return result;
+            }, {});
+        }
+
+        function matchWeeklyProgressPartKey(label) {
+            const key = removeVietnameseMarks(String(label || '')).toLowerCase().replace(/[^a-z]/g, '');
+            if (key === 'cokhi') return 'co_khi';
+            if (key === 'dien') return 'dien';
+            if (key === 'tong') return 'tong';
+            return '';
+        }
+
+        function parseWeeklyProgressParts(value) {
+            const text = String(value || '').trim();
+            const parts = createEmptyWeeklyProgressParts();
+            if (!text) return parts;
+
+            const lines = text.split(/\r?\n|;/).map((line) => line.trim()).filter(Boolean);
+            let foundPart = false;
+            lines.forEach((line) => {
+                const match = line.match(/^\s*([^:：-]+)\s*[:：-]\s*(.*?)\s*$/);
+                if (!match) return;
+                const key = matchWeeklyProgressPartKey(match[1]);
+                if (!key) return;
+                parts[key] = match[2].trim();
+                foundPart = true;
+            });
+
+            if (!foundPart) {
+                parts.tong = text;
+            }
+            return parts;
+        }
+
+        function formatWeeklyProgressParts(parts) {
+            const safeParts = parts || {};
+            return WEEKLY_PROGRESS_PARTS
+                .map((part) => `${part.label}: ${String(safeParts[part.key] || '').trim() || '%'}`)
+                .join('\n');
+        }
+
+        function getWeeklyProgressDisplayLines(value) {
+            return formatWeeklyProgressParts(parseWeeklyProgressParts(value)).split('\n');
+        }
+
         function openWeeklyProgressMenu(event) {
             event.stopPropagation();
             const index = Number(event.currentTarget.dataset.weeklyProgressOpen);
+            const partKey = event.currentTarget.dataset.weeklyProgressPart || 'tong';
             const row = state.weeklyRows[index];
             if (!row) return;
+            const part = WEEKLY_PROGRESS_PARTS.find((item) => item.key === partKey) || WEEKLY_PROGRESS_PARTS[2];
+            const current = parseWeeklyProgressParts(row.tien_do)[part.key] || '';
+            const currentNumber = /^\s*\d+(?:[.,]\d+)?\s*%\s*$/.test(current) ? current.replace('%', '').trim() : '';
 
             closeWeeklyProgressMenu();
             const rect = event.currentTarget.getBoundingClientRect();
@@ -6615,30 +6810,46 @@
             menu.className = 'weekly-progress-menu';
             menu.dataset.weeklyProgressMenu = String(index);
             menu.innerHTML = `
-                <button type="button" data-weekly-progress-percent-root="${index}"><span>%</span><span>›</span></button>
-                ${WEEKLY_PROGRESS_STATUS_OPTIONS.map((item) => `<button type="button" data-weekly-progress-status="${index}" data-value="${escapeHtml(item)}">${escapeHtml(item)}</button>`).join('')}
+                <div class="weekly-progress-subtitle">${escapeHtml(part.label)}</div>
+                <input type="text" inputmode="decimal" placeholder="Nhập số %" value="${escapeHtml(currentNumber)}" data-weekly-progress-custom="${index}">
+                <div class="weekly-progress-grid">
+                    ${WEEKLY_PROGRESS_PERCENT_OPTIONS.map((item) => `<button type="button" class="${current === item ? 'active' : ''}" data-weekly-progress-value="${index}" data-value="${item}">${item}</button>`).join('')}
+                </div>
+                <div class="weekly-progress-status-list">
+                    ${WEEKLY_PROGRESS_STATUS_OPTIONS.map((item) => `<button type="button" class="${current === item ? 'active' : ''}" data-weekly-progress-status-value="${index}" data-value="${escapeHtml(item)}">${escapeHtml(item)}</button>`).join('')}
+                </div>
             `;
             document.body.appendChild(menu);
 
             const menuWidth = menu.offsetWidth || 190;
             const menuHeight = menu.offsetHeight || 310;
-            const left = Math.min(event.clientX, window.innerWidth - menuWidth - 8);
-            const top = Math.min(event.clientY + 8, window.innerHeight - menuHeight - 8);
+            const left = Math.min(rect.left, window.innerWidth - menuWidth - 8);
+            const top = Math.min(rect.bottom + 4, window.innerHeight - menuHeight - 8);
             menu.style.left = `${Math.max(8, left)}px`;
             menu.style.top = `${Math.max(8, top)}px`;
 
-            const percentRoot = menu.querySelector('[data-weekly-progress-percent-root]');
-            percentRoot.addEventListener('mouseenter', () => showWeeklyPercentSubmenu(menu, index));
-            percentRoot.addEventListener('click', () => showWeeklyPercentSubmenu(menu, index));
-            percentRoot.addEventListener('mouseleave', () => scheduleHideWeeklyPercentSubmenu(menu));
-            menu.querySelectorAll('[data-weekly-progress-status]').forEach((button) => {
-                button.addEventListener('click', () => setWeeklyProgressValue(index, button.dataset.value || ''));
+            const input = menu.querySelector('[data-weekly-progress-custom]');
+            input.addEventListener('keydown', (keyboardEvent) => {
+                if (isImeInput(keyboardEvent)) return;
+                if (keyboardEvent.key === 'Enter') {
+                    keyboardEvent.preventDefault();
+                    setWeeklyProgressPartValue(index, part.key, normalizeProgressPercent(input.value));
+                }
+            });
+            input.addEventListener('change', () => setWeeklyProgressPartValue(index, part.key, normalizeProgressPercent(input.value)));
+            menu.querySelectorAll('[data-weekly-progress-value]').forEach((button) => {
+                button.addEventListener('click', () => setWeeklyProgressPartValue(index, part.key, button.dataset.value || ''));
+            });
+            menu.querySelectorAll('[data-weekly-progress-status-value]').forEach((button) => {
+                button.addEventListener('click', () => setWeeklyProgressPartValue(index, part.key, button.dataset.value || ''));
             });
         }
 
-        function showWeeklyPercentSubmenu(menu, index) {
+        function showWeeklyProgressPartSubmenu(menu, index, partKey) {
             let submenu = menu.querySelector('.weekly-progress-submenu');
-            const current = state.weeklyRows[index] ? state.weeklyRows[index].tien_do || '' : '';
+            const row = state.weeklyRows[index];
+            const part = WEEKLY_PROGRESS_PARTS.find((item) => item.key === partKey) || WEEKLY_PROGRESS_PARTS[2];
+            const current = row ? parseWeeklyProgressParts(row.tien_do)[part.key] || '' : '';
             const currentNumber = /^\s*\d+(?:[.,]\d+)?\s*%\s*$/.test(current) ? current.replace('%', '').trim() : '';
             if (!submenu) {
                 submenu = document.createElement('div');
@@ -6650,20 +6861,25 @@
                 submenu.addEventListener('mouseleave', () => hideWeeklyPercentSubmenu(menu));
             }
             submenu.innerHTML = `
+                <div class="weekly-progress-subtitle">${escapeHtml(part.label)}</div>
                 <input type="text" inputmode="decimal" placeholder="Nhập số %" value="${escapeHtml(currentNumber)}" data-weekly-progress-custom="${index}">
                 ${WEEKLY_PROGRESS_PERCENT_OPTIONS.map((item) => `<button type="button" class="${current === item ? 'active' : ''}" data-weekly-progress-value="${index}" data-value="${item}">${item}</button>`).join('')}
+                ${WEEKLY_PROGRESS_STATUS_OPTIONS.map((item) => `<button type="button" class="${current === item ? 'active' : ''}" data-weekly-progress-status-value="${index}" data-value="${escapeHtml(item)}">${escapeHtml(item)}</button>`).join('')}
             `;
             const input = submenu.querySelector('[data-weekly-progress-custom]');
             input.addEventListener('keydown', (event) => {
                 if (isImeInput(event)) return;
                 if (event.key === 'Enter') {
                     event.preventDefault();
-                    setWeeklyProgressValue(index, normalizeProgressPercent(input.value));
+                    setWeeklyProgressPartValue(index, part.key, normalizeProgressPercent(input.value));
                 }
             });
-            input.addEventListener('change', () => setWeeklyProgressValue(index, normalizeProgressPercent(input.value)));
+            input.addEventListener('change', () => setWeeklyProgressPartValue(index, part.key, normalizeProgressPercent(input.value)));
             submenu.querySelectorAll('[data-weekly-progress-value]').forEach((button) => {
-                button.addEventListener('click', () => setWeeklyProgressValue(index, button.dataset.value || ''));
+                button.addEventListener('click', () => setWeeklyProgressPartValue(index, part.key, button.dataset.value || ''));
+            });
+            submenu.querySelectorAll('[data-weekly-progress-status-value]').forEach((button) => {
+                button.addEventListener('click', () => setWeeklyProgressPartValue(index, part.key, button.dataset.value || ''));
             });
         }
 
@@ -6671,8 +6887,8 @@
             if (menu.weeklyPercentHideTimer) clearTimeout(menu.weeklyPercentHideTimer);
             menu.weeklyPercentHideTimer = setTimeout(() => {
                 const submenu = menu.querySelector('.weekly-progress-submenu');
-                const percentRoot = menu.querySelector('[data-weekly-progress-percent-root]');
-                if (!submenu || submenu.matches(':hover') || (percentRoot && percentRoot.matches(':hover'))) return;
+                const activeRoot = menu.querySelector('[data-weekly-progress-part]:hover');
+                if (!submenu || submenu.matches(':hover') || activeRoot) return;
                 hideWeeklyPercentSubmenu(menu);
             }, 120);
         }
@@ -6684,9 +6900,16 @@
         }
 
         function setWeeklyProgressValue(index, value) {
+            setWeeklyProgressPartValue(index, 'tong', value);
+        }
+
+        function setWeeklyProgressPartValue(index, partKey, value) {
             const row = state.weeklyRows[index];
             if (!row) return;
-            row.tien_do = value;
+            const parts = parseWeeklyProgressParts(row.tien_do);
+            const key = WEEKLY_PROGRESS_PARTS.some((part) => part.key === partKey) ? partKey : 'tong';
+            parts[key] = value;
+            row.tien_do = formatWeeklyProgressParts(parts);
             cacheCurrentWeeklyRows();
             closeWeeklyProgressMenu();
             renderWeeklyPreview();
@@ -7592,6 +7815,7 @@
                     dateFrom: els.weeklyDateFrom.value,
                     dateTo: els.weeklyDateTo.value,
                     outputDir: state.weeklyOutputFolder,
+                    outputName: state.setupTrackingFileName,
                     rows
                 });
                 setWeeklyStatus(`Đã xuất Excel setup: ${result.outputPath}`);
