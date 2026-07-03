@@ -1543,6 +1543,20 @@ function excelTextLineCount(value) {
     return Math.max(1, text.split(/\r?\n/).length);
 }
 
+function weeklyProgressExportValue(value) {
+    const text = Array.isArray(value) ? value.filter(Boolean).join('\n') : String(value || '');
+    const lines = text
+        .split(/\r?\n|;/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .filter((line) => {
+            const colonParts = line.split(/[:：]/);
+            const progressValue = (colonParts.length > 1 ? colonParts.slice(1).join(':') : line).trim();
+            return progressValue && progressValue.replace(/\s+/g, '') !== '%';
+        });
+    return lines.join('\n');
+}
+
 function normalizeSetupTrackingOutputName(fileName) {
     let safeName = String(fileName || '').trim() || DEFAULT_SETUP_TRACKING_OUTPUT_NAME;
     safeName = safeName.replace(/[\\/:*?"<>|]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -2348,7 +2362,7 @@ async function exportWeeklyReport(payload) {
             const cell = row.getCell(index + 1);
             if (column.id === 'stt') cell.value = item.stt;
             else if (column.id === 'noi_dung') cell.value = excelFallbackValue(listToNumberedText(item.noi_dung));
-            else if (column.id === 'tien_do') cell.value = excelFallbackValue(item.tien_do || []);
+            else if (column.id === 'tien_do') cell.value = excelFallbackValue(weeklyProgressExportValue(item.tien_do));
             else cell.value = excelFallbackValue(item[column.id]);
         });
         row.height = item.row_height
