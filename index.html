@@ -4080,7 +4080,7 @@
         }
 
         function parseReport(raw) {
-            const normalizedRaw = raw.replace(/\r/g, '').trim();
+            const normalizedRaw = normalizeReportInput(raw.replace(/\r/g, '').trim());
             const numberedReports = parseNumberedProjectBlocks(normalizedRaw);
             if (numberedReports.length) {
                 return numberedReports;
@@ -4137,6 +4137,17 @@
                     warning
                 };
             });
+        }
+
+        function normalizeReportInput(raw) {
+            const fieldLabels = 'mã|ma|tên|ten|dự\\s*án|du\\s*an|project|nội|noi|công|cong|người|nguoi|thực|thuc|trạng|trang|tình|tinh|ngày|ngay';
+            const numberedFieldPattern = new RegExp(`([^\\n])\\s*(?=(?:[1-5])\\s*(?:[\\.)]\\s*(?:${fieldLabels})|:\\s+(?:${fieldLabels}))\\b)`, 'gi');
+            return String(raw || '')
+                .replace(/[\/\\._-]{6,}/g, '\n')
+                .replace(numberedFieldPattern, '$1\n')
+                .replace(/([^\n])\s*(?=(?:[1-5])\s*[\.\):]\s*$)/g, '$1\n')
+                .replace(/\n{2,}/g, '\n')
+                .trim();
         }
 
         async function validatePreviewProjectReferences() {
@@ -4439,7 +4450,7 @@
             let remaining = text;
 
             while (true) {
-                const match = remaining.match(/^\s*[,＋+]\s*([0-9]+(?:[A-Z][0-9]+)?)(?=[\s,+.;:]|$)/i);
+                const match = remaining.match(/^\s*[,＋+]\s*([A-Z]?\d+|\d+[A-Z]\d+)(?=[\s,+.;:]|$)/i);
                 if (!match) break;
 
                 const expanded = expandProjectContinuation(baseCode, match[1].toUpperCase());
@@ -4453,6 +4464,11 @@
         }
 
         function expandProjectContinuation(baseCode, token) {
+            const baseAutWithLetterSuffix = String(baseCode || '').toUpperCase().match(/^(\d{4})([A-Z]\d+)$/);
+            if (baseAutWithLetterSuffix && /^[A-Z]\d+$/.test(token)) {
+                return `${baseAutWithLetterSuffix[1]}${token}`;
+            }
+
             if (/[A-Z]/.test(token)) {
                 return token.length >= baseCode.length - 1 ? token : '';
             }
@@ -4555,7 +4571,7 @@
 
         function looksLikeProjectLine(text) {
             const plain = removeVietnameseMarks(text).toUpperCase();
-            return /\b(?:AUT[A-Z]?|MEC)\s*[:\-]?\s*\d+(?:E\d+)?\b/.test(plain);
+            return /\b(?:AUT[A-Z]?|MEC)\s*[:\-]?\s*\d+[A-Z0-9]*\b/.test(plain);
         }
 
         function looksLikeStatusLine(text) {
@@ -4598,7 +4614,7 @@
             const compact = removeVietnameseMarks(project).toUpperCase().replace(/[^A-Z0-9]/g, '');
             const aliases = new Set([compact]);
 
-            const autCode = compact.match(/(AUT[A-Z]?)(\d+(?:E\d+)?)/);
+            const autCode = compact.match(/(AUT[A-Z]?)(\d+[A-Z0-9]*)/);
             if (autCode) {
                 aliases.add(autCode[2]);
                 aliases.add(`${autCode[1]}${autCode[2]}`);
@@ -5253,7 +5269,7 @@
                 return {
                     ...defaults,
                     ...parsed,
-                    projectAliases: parsed.projectAliases || {},
+                    projectAliases: sanitizeProjectLearningAliases(parsed.projectAliases || {}),
                     personAliases: parsed.personAliases || {},
                     fieldCorrections: {
                         ...defaults.fieldCorrections,
@@ -5263,6 +5279,17 @@
             } catch (_error) {
                 return createDefaultLearningMemory(true);
             }
+        }
+
+        function sanitizeProjectLearningAliases(aliases) {
+            const cleaned = {};
+            Object.entries(aliases || {}).forEach(([before, after]) => {
+                const beforeProject = normalizeProjectCode(before);
+                const afterProject = normalizeProjectCode(after);
+                if (beforeProject && afterProject && beforeProject !== afterProject) return;
+                cleaned[before] = after;
+            });
+            return cleaned;
         }
 
         function saveLearningMemory() {
@@ -5317,12 +5344,6 @@
                 const project = normalizeProjectCode(report.ma_du_an);
                 if (project && !/^CHUA_XAC_DINH/i.test(project)) {
                     if (learnProjectAlias(project, project)) learned += 1;
-                    extractProjectLearningCandidates(report.raw_text || '')
-                        .forEach((candidate) => {
-                            if (projectSimilarityScore(normalizeProjectKey(candidate), normalizeProjectKey(project)) >= 760) {
-                                if (learnProjectAlias(candidate, project)) learned += 1;
-                            }
-                        });
                 }
 
                 (report.nguoi_thuc_hien || []).forEach((person) => {
@@ -5397,11 +5418,6 @@
         function findLearnedProject(report) {
             const direct = state.learningMemory.projectAliases[learningKey(report.ma_du_an)];
             if (direct) return direct;
-            const candidates = extractProjectLearningCandidates(`${report.ma_du_an || ''}\n${report.raw_text || ''}`);
-            for (const candidate of candidates) {
-                const learned = state.learningMemory.projectAliases[learningKey(candidate)];
-                if (learned) return learned;
-            }
             return '';
         }
 
