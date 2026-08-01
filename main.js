@@ -952,7 +952,7 @@ function reportDuplicateFingerprint(report) {
 
 function isInvalidReportProject(report) {
     const project = normalizeProjectCode(report && report.ma_du_an);
-    return !project || /^CHUA_XAC_DINH/.test(project);
+    return !project || /^CHUA_XAC_DINH/.test(project) || /^KHONG_CO_MA_DU_AN/.test(project);
 }
 
 function sanitizeFolderName(value) {
@@ -993,6 +993,39 @@ function reportToDbParams(report) {
         $excel_sheet: report.excel_sheet || null,
         $created_at: report.created_at || new Date().toISOString()
     };
+}
+
+function reportListLines(value, mapper = (item) => item) {
+    return (Array.isArray(value) ? value : [value])
+        .map(mapper)
+        .filter(Boolean)
+        .map((item) => String(item).trim())
+        .filter(Boolean);
+}
+
+function noProjectReportText(report) {
+    const people = reportListLines(report.nguoi_thuc_hien, (person) => (
+        typeof person === 'string' ? person : (person && (person.displayName || person.name || person.folderName || ''))
+    ));
+    const content = reportListLines(report.noi_dung_cong_viec);
+    const time = reportListLines(report.thoi_gian);
+    const status = reportListLines(report.trang_thai);
+    return [
+        `Ngay thuc hien: ${report.ngay_thuc_hien || 'Chua xac dinh'}`,
+        `Nguoi thuc hien: ${people.join(', ') || 'Chua xac dinh'}`,
+        '',
+        'Noi dung cong viec:',
+        ...(content.length ? content.map((item, index) => `${index + 1}. ${item}`) : ['Chua xac dinh']),
+        '',
+        'Thoi gian:',
+        ...(time.length ? time.map((item) => `- ${item}`) : ['Chua xac dinh']),
+        '',
+        'Trang thai:',
+        ...(status.length ? status.map((item) => `- ${item}`) : ['Chua xac dinh']),
+        '',
+        'Raw:',
+        report.raw_text || ''
+    ].join('\n');
 }
 
 function rowToReport(row) {
@@ -1493,23 +1526,29 @@ function normalizeWeeklyColumns(columns) {
     const fallback = [
         { id: 'stt', label: 'STT', width: 44 },
         { id: 'hang_muc', label: 'HẠNG\nMỤC', width: 132 },
-        { id: 'ten_may', label: 'TÊN MÁY', width: 190 },
-        { id: 'du_an', label: 'DỰ ÁN', width: 210 },
+        { id: 'du_an', label: 'MÃ DỰ ÁN', width: 210 },
+        { id: 'ghi_chu', label: 'TÊN DỰ ÁN', width: 240 },
+        { id: 'ten_may', label: 'LOẠI MÁY', width: 190 },
         { id: 'noi_dung', label: 'NỘI DUNG CÔNG VIỆC', width: 322 },
         { id: 'tien_do', label: 'TIẾN ĐỘ CÔNG VIỆC', width: 170 },
         { id: 'kho_khan', label: 'KHÓ KHĂN', width: 230 },
         { id: 'huong_giai_quyet', label: 'HƯỚNG GIẢI QUYẾT', width: 230 },
-        { id: 'ghi_chu', label: 'GHI CHÚ', width: 240 },
         { id: 'thong_tin_khac', label: 'THÔNG TIN KHÁC', width: 214 }
     ];
+    const fallbackMap = new Map(fallback.map((column, index) => [column.id, { column, index }]));
     const source = Array.isArray(columns) && columns.length ? columns : fallback;
-    return source
+    const normalized = source
         .filter((column) => column && column.id && column.label)
         .map((column) => ({
             id: String(column.id),
-            label: String(column.label),
+            label: fallbackMap.has(column.id) ? fallbackMap.get(column.id).column.label : String(column.label),
             width: Math.min(Math.max(Number(column.width) || 160, 52), 520)
         }));
+    return normalized.sort((a, b) => {
+        const orderA = fallbackMap.has(a.id) ? fallbackMap.get(a.id).index : 999;
+        const orderB = fallbackMap.has(b.id) ? fallbackMap.get(b.id).index : 999;
+        return orderA - orderB;
+    });
 }
 
 function excelColumnLetter(index) {
@@ -1524,8 +1563,12 @@ function excelColumnLetter(index) {
 }
 
 function listToNumberedText(items) {
-    return (items || [])
-        .map((item, index) => `${index + 1}. ${normalizeSentence(item)}`)
+    const cleanedItems = (items || [])
+        .map((item) => normalizeSentence(item))
+        .filter(Boolean);
+    if (cleanedItems.length === 1) return cleanedItems[0];
+    return cleanedItems
+        .map((item, index) => `${index + 1}. ${item}`)
         .join('\n');
 }
 
@@ -3143,6 +3186,55 @@ ipcMain.handle('save-reports', async (_event, payload) => {
         skippedInvalidProjects,
         dataFile,
         sqliteFile,
+        reports: savedReports
+    };
+});
+
+ipcMain.handle('save-no-project-reports', async (_event, payload) => {
+    const rootFolder = payload && payload.rootFolder;
+    const reports = Array.isArray(payload && payload.reports) ? payload.reports : [];
+
+    if (!rootFolder) {
+        throw new Error('Chưa chọn thư mục lưu trữ.');
+    }
+
+    fs.mkdirSync(rootFolder, { recursive: true });
+    const saveBatchId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const savedReports = reports
+        .filter((report) => isInvalidReportProject(report) && reportListLines(report.noi_dung_cong_viec).length)
+        .map((report, index) => {
+            const folderDate = report.folder_ngay_name || 'UnknownDate';
+            const dayFolder = path.join(rootFolder, 'KhongCoMaDuAn', folderDate);
+            fs.mkdirSync(dayFolder, { recursive: true });
+
+            const peopleList = Array.isArray(report.nguoi_thuc_hien) ? report.nguoi_thuc_hien : [];
+            const peopleFolderName = peopleList
+                .map((person) => {
+                    if (typeof person === 'string') return sanitizeFolderName(person) || 'UnknownPerson';
+                    return person && (person.folderName || sanitizeFolderName(person.displayName || '')) || 'UnknownPerson';
+                })
+                .filter(Boolean)
+                .join('_') || 'ChuaXacDinh';
+            const peopleFolder = path.join(dayFolder, peopleFolderName);
+            fs.mkdirSync(peopleFolder, { recursive: true });
+
+            const filePath = path.join(peopleFolder, `noi_dung_khong_ma_${String(index + 1).padStart(3, '0')}.txt`);
+            fs.writeFileSync(filePath, noProjectReportText(report), 'utf8');
+
+            return {
+                ...report,
+                id: `${report.ngay_thuc_hien || 'unknown'}_KHONG_CO_MA_DU_AN_${saveBatchId}_${String(index + 1).padStart(3, '0')}`,
+                ma_du_an: 'KHONG_CO_MA_DU_AN',
+                folder_ngay: dayFolder,
+                folder_nhom_nguoi: peopleFolder,
+                folder_nguoi: [peopleFolder],
+                no_project_file: filePath,
+                created_at: report.created_at || new Date().toISOString()
+            };
+        });
+
+    return {
+        count: savedReports.length,
         reports: savedReports
     };
 });

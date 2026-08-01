@@ -2322,6 +2322,7 @@
 
     <nav class="tabs">
         <button class="tab active" data-tab="inputPage">Nhập liệu</button>
+        <button class="tab" data-tab="noProjectPage">Không mã dự án</button>
         <button class="tab" data-tab="searchPage">Tìm kiếm</button>
         <button class="tab" data-tab="weeklyPage">Báo cáo tuần</button>
     </nav>
@@ -2390,6 +2391,25 @@
                         <div class="ready-dot">Sẵn sàng</div>
                         <div id="currentDateTime"></div>
                     </div>
+                </div>
+            </section>
+        </section>
+
+        <section id="noProjectPage" class="page">
+            <section class="panel">
+                <div class="panel-header">
+                    <h2>Nội dung không có mã dự án</h2>
+                    <div class="summary">
+                        <span class="pill" id="noProjectTotalPill">Tổng: 0</span>
+                        <button id="saveNoProjectBtn">Lưu vào thư mục</button>
+                        <button id="clearNoProjectBtn">Clear</button>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div id="noProjectList" class="report-list">
+                        <div class="empty">Các nội dung có công việc nhưng không có mã dự án sẽ tự chuyển sang đây sau khi bấm Accept / Xác nhận.</div>
+                    </div>
+                    <div class="status-line" id="noProjectStatus">Sẵn sàng.</div>
                 </div>
             </section>
         </section>
@@ -2921,19 +2941,20 @@
         const DEFAULT_WEEKLY_COLUMNS = [
             { id: 'stt', label: 'STT', width: 44, locked: true },
             { id: 'hang_muc', label: 'HẠNG\nMỤC', width: 132, locked: true },
-            { id: 'ten_may', label: 'TÊN MÁY', width: 190 },
-            { id: 'du_an', label: 'DỰ ÁN', width: 210, locked: true },
+            { id: 'du_an', label: 'MÃ DỰ ÁN', width: 210, locked: true },
+            { id: 'ghi_chu', label: 'TÊN DỰ ÁN', width: 240 },
+            { id: 'ten_may', label: 'LOẠI MÁY', width: 190 },
             { id: 'noi_dung', label: 'NỘI DUNG CÔNG VIỆC', width: 322 },
             { id: 'tien_do', label: 'TIẾN ĐỘ CÔNG VIỆC', width: 170 },
             { id: 'kho_khan', label: 'KHÓ KHĂN', width: 230 },
             { id: 'huong_giai_quyet', label: 'HƯỚNG GIẢI QUYẾT', width: 230 },
-            { id: 'ghi_chu', label: 'GHI CHÚ', width: 240 },
             { id: 'thong_tin_khac', label: 'THÔNG TIN KHÁC', width: 214 }
         ];
 
         const state = {
             rootFolder: localStorage.getItem('dailyWorkReportRootFolder') || '',
             previewReports: [],
+            noProjectReports: [],
             allReports: [],
             savedReports: [],
             searchRows: [],
@@ -2998,6 +3019,11 @@
             inputStatus: document.getElementById('inputStatus'),
             previewList: document.getElementById('previewList'),
             totalPill: document.getElementById('totalPill'),
+            noProjectList: document.getElementById('noProjectList'),
+            noProjectTotalPill: document.getElementById('noProjectTotalPill'),
+            saveNoProjectBtn: document.getElementById('saveNoProjectBtn'),
+            clearNoProjectBtn: document.getElementById('clearNoProjectBtn'),
+            noProjectStatus: document.getElementById('noProjectStatus'),
             zaloDestinationBar: document.getElementById('zaloDestinationBar'),
             zaloDestinationText: document.getElementById('zaloDestinationText'),
             folderStructurePanel: document.querySelector('.folder-structure-panel'),
@@ -3163,6 +3189,7 @@
                 localStorage.setItem('dailyWorkReportRootFolder', folder);
                 setStatus(`Đã chọn thư mục: ${folder}`);
                 updateSaveButton();
+                renderNoProjectReports();
                 renderFolderStructure();
             }
         });
@@ -3174,8 +3201,9 @@
                 return;
             }
 
-            state.previewReports = applyLearningToReports(sanitizePreviewReports(parseReport(raw)));
-            state.previewReports = state.previewReports.map((report) => ({
+            const parsedReports = applyLearningToReports(sanitizePreviewReports(parseReport(raw)));
+            const splitReports = splitProjectAndNoProjectReports(parsedReports);
+            state.previewReports = splitReports.projectReports.map((report) => ({
                 ...report,
                 ai_original: {
                     ma_du_an: report.ma_du_an,
@@ -3184,9 +3212,12 @@
                     nguoi_thuc_hien: [...(report.nguoi_thuc_hien || [])]
                 }
             }));
+            state.noProjectReports = splitReports.noProjectReports;
             await validatePreviewProjectReferences();
             renderPreview();
-            setStatus(`Đã chuẩn hóa ${state.previewReports.length} dự án. Kiểm tra lại rồi lưu.`);
+            renderNoProjectReports();
+            const noProjectText = state.noProjectReports.length ? ` Có ${state.noProjectReports.length} nội dung không có mã dự án ở tab Không mã dự án.` : '';
+            setStatus(`Đã chuẩn hóa ${state.previewReports.length} dự án. Kiểm tra lại rồi lưu.${noProjectText}`);
         });
 
         els.saveBtn.addEventListener('click', async () => {
@@ -3230,10 +3261,20 @@
 
         els.quickGoogleSheetBackupBtn.addEventListener('click', quickBackupToGoogleSheet);
 
+        els.saveNoProjectBtn.addEventListener('click', saveNoProjectReports);
+
         els.clearPreviewBtn.addEventListener('click', () => {
             state.previewReports = [];
+            state.noProjectReports = [];
             renderPreview();
+            renderNoProjectReports();
             setStatus('Đã clear bảng chuẩn hóa.');
+        });
+
+        els.clearNoProjectBtn.addEventListener('click', () => {
+            state.noProjectReports = [];
+            renderNoProjectReports();
+            setNoProjectStatus('Đã clear nội dung không có mã dự án.');
         });
 
         els.excelBtn.addEventListener('click', () => {
@@ -5065,6 +5106,145 @@
             updateSaveButton();
         }
 
+        function isNoProjectReport(report) {
+            const project = normalizeProjectKey(report && report.ma_du_an);
+            return !project
+                || /^CHUA_XAC_DINH/i.test(String(report && report.ma_du_an || ''))
+                || /^KHONG_CO_MA_DU_AN/i.test(String(report && report.ma_du_an || ''));
+        }
+
+        function hasMeaningfulWorkContent(report) {
+            return (report && Array.isArray(report.noi_dung_cong_viec) ? report.noi_dung_cong_viec : [])
+                .some((item) => {
+                    const text = removeVietnameseMarks(String(item || '')).toLowerCase().trim();
+                    return text && text !== 'chua xac dinh';
+                });
+        }
+
+        function splitProjectAndNoProjectReports(reports) {
+            const projectReports = [];
+            const noProjectReports = [];
+            (reports || []).forEach((report) => {
+                if (isNoProjectReport(report) && hasMeaningfulWorkContent(report)) {
+                    noProjectReports.push({
+                        ...report,
+                        ma_du_an: 'KHONG_CO_MA_DU_AN',
+                        warning: (report.warning || []).filter((item) => !/mã dự án|ma du an|file tham khảo|tham khảo/i.test(item))
+                    });
+                    return;
+                }
+                projectReports.push(report);
+            });
+            return { projectReports, noProjectReports };
+        }
+
+        function buildNoProjectPreviewFolderPath(report) {
+            const dateFolder = report.folder_ngay_name || 'UnknownDate';
+            const peopleFolder = (report.nguoi_thuc_hien || [])
+                .map((person) => person.folderName || toFolderName(person.displayName || String(person || '')))
+                .filter(Boolean)
+                .join('_') || 'ChuaXacDinh';
+            return `KhongCoMaDuAn/${dateFolder}/${peopleFolder}`;
+        }
+
+        function renderNoProjectReports() {
+            if (!els.noProjectList) return;
+            els.noProjectTotalPill.textContent = `Tổng: ${state.noProjectReports.length}`;
+            els.saveNoProjectBtn.disabled = !state.noProjectReports.length || !state.rootFolder;
+            els.saveNoProjectBtn.title = !state.rootFolder ? 'Chọn thư mục lưu ảnh / tài liệu ở tab Nhập liệu trước.' : 'Lưu nội dung không có mã dự án vào thư mục riêng.';
+
+            if (!state.noProjectReports.length) {
+                els.noProjectList.innerHTML = '<div class="empty">Chưa có nội dung không có mã dự án.</div>';
+                return;
+            }
+
+            els.noProjectList.innerHTML = state.noProjectReports.map((report, index) => {
+                const folderPath = report.folder_nguoi && report.folder_nguoi.length
+                    ? report.folder_nguoi.join('; ')
+                    : buildNoProjectPreviewFolderPath(report);
+                const copyFolderPath = report.folder_nguoi && report.folder_nguoi.length
+                    ? report.folder_nguoi.join('; ')
+                    : buildPreviewFolderPath(folderPath);
+                const openFolderPath = report.folder_nguoi && report.folder_nguoi.length
+                    ? report.folder_nguoi[0]
+                    : (state.rootFolder ? buildPreviewFolderPath(folderPath) : '');
+                return `
+                    <article class="report-card warning">
+                        <div class="card-top">
+                            <div class="index-badge reference-warning">${String(index + 1).padStart(2, '0')}</div>
+                            <h3>Không có mã dự án</h3>
+                            <span></span>
+                        </div>
+                        <div class="report-grid">
+                            ${fieldHtml('Nội dung công việc', escapeHtml(listToTextareaValue(report.noi_dung_cong_viec)).replace(/\n/g, '<br>'))}
+                            ${fieldHtml('Thời gian', escapeHtml(listToTextareaValue(report.thoi_gian) || 'Chưa xác định').replace(/\n/g, '<br>'))}
+                            ${fieldHtml('Người thực hiện', escapeHtml((report.nguoi_thuc_hien || []).map((person) => person.displayName || String(person)).join(', ') || 'Chưa xác định'))}
+                            ${fieldHtml('Trạng thái', escapeHtml(listToTextareaValue(report.trang_thai) || 'Chưa xác định').replace(/\n/g, '<br>'))}
+                            ${fieldHtml('Ngày thực hiện', report.ngay_thuc_hien || 'Chưa xác định')}
+                            <div>
+                                <label>Thư mục</label>
+                                <div class="folder-row">
+                                    <div class="value-box folder-path-box">
+                                        <span>${escapeHtml(folderPath)}</span>
+                                        <button class="copy-folder-btn" data-copy-no-project-folder="${escapeHtml(copyFolderPath)}" title="Copy đường dẫn" aria-label="Copy đường dẫn">⎘</button>
+                                    </div>
+                                    <button class="open-folder-inline-btn" data-open-no-project-folder="${escapeHtml(openFolderPath)}" ${openFolderPath ? '' : 'disabled'}>Mở</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="warning-text">Nội dung này không có mã dự án, sẽ chỉ lưu vào thư mục riêng.</div>
+                    </article>
+                `;
+            }).join('');
+
+            document.querySelectorAll('[data-open-no-project-folder]').forEach((button) => {
+                button.addEventListener('click', () => {
+                    const folder = button.dataset.openNoProjectFolder;
+                    if (folder) ipcRenderer.invoke('open-folder', folder);
+                });
+            });
+            document.querySelectorAll('[data-copy-no-project-folder]').forEach((button) => {
+                button.addEventListener('click', () => {
+                    const folder = button.dataset.copyNoProjectFolder || '';
+                    if (!folder) return;
+                    clipboard.writeText(folder);
+                    button.textContent = '✓';
+                    setTimeout(() => {
+                        button.textContent = '⎘';
+                    }, 1200);
+                });
+            });
+        }
+
+        async function saveNoProjectReports() {
+            if (!state.noProjectReports.length) {
+                setNoProjectStatus('Chưa có nội dung không có mã dự án để lưu.', true);
+                return;
+            }
+            if (!state.rootFolder) {
+                setNoProjectStatus('Vui lòng chọn thư mục ở tab Nhập liệu trước khi lưu.', true);
+                return;
+            }
+            try {
+                const result = await ipcRenderer.invoke('save-no-project-reports', {
+                    rootFolder: state.rootFolder,
+                    reports: sanitizePreviewReports(state.noProjectReports)
+                });
+                state.noProjectReports = result.reports || [];
+                renderNoProjectReports();
+                renderFolderStructure();
+                setNoProjectStatus(`Đã lưu ${result.count || 0} nội dung không có mã dự án vào thư mục riêng.`);
+            } catch (error) {
+                setNoProjectStatus(error.message || 'Không lưu được nội dung không có mã dự án.', true);
+            }
+        }
+
+        function setNoProjectStatus(message, isError = false) {
+            if (!els.noProjectStatus) return;
+            els.noProjectStatus.textContent = message;
+            els.noProjectStatus.classList.toggle('error', Boolean(isError));
+        }
+
         function fieldHtml(label, value) {
             return `
                 <div>
@@ -6081,7 +6261,7 @@
                     merged.push({ ...defaultColumn });
                 });
 
-                return merged;
+                return normalizeWeeklyColumnLabelsAndOrder(merged);
             };
             try {
                 const parsed = JSON.parse(localStorage.getItem('dailyWorkReportWeeklyColumns') || '[]');
@@ -6089,6 +6269,32 @@
             } catch {
                 return defaults.map((column) => ({ ...column }));
             }
+        }
+
+        function normalizeWeeklyColumnLabelsAndOrder(columns) {
+            const defaultMap = new Map(DEFAULT_WEEKLY_COLUMNS.map((column, index) => [column.id, { column, index }]));
+            const known = [];
+            const custom = [];
+            (columns || []).forEach((column, originalIndex) => {
+                const defaultInfo = defaultMap.get(column.id);
+                if (!defaultInfo) {
+                    custom.push({ ...column, originalIndex });
+                    return;
+                }
+                known.push({
+                    ...column,
+                    label: defaultInfo.column.label,
+                    locked: Boolean(defaultInfo.column.locked || column.locked),
+                    orderIndex: defaultInfo.index,
+                    originalIndex
+                });
+            });
+
+            known.sort((a, b) => a.orderIndex - b.orderIndex || a.originalIndex - b.originalIndex);
+            return [
+                ...known.map(({ orderIndex, originalIndex, ...column }) => column),
+                ...custom.map(({ originalIndex, ...column }) => column)
+            ];
         }
 
         function saveWeeklyColumns() {
