@@ -4199,8 +4199,9 @@
                 state.previewReports.forEach((report, index) => {
                     const warnings = (report.warning || []).filter((item) => !/file tham khảo|thamkhao|tham khảo|gợi ý mã/i.test(item));
                     const info = (references || [])[index];
-                    report.reference_missing = Boolean(info && !info.found);
-                    report.reference_suggestions = info && Array.isArray(info.suggestions) ? info.suggestions : [];
+                    const allowUnreferenced = isAllowedUnreferencedProject(report.ma_du_an);
+                    report.reference_missing = Boolean(info && !info.found && !allowUnreferenced);
+                    report.reference_suggestions = allowUnreferenced ? [] : (info && Array.isArray(info.suggestions) ? info.suggestions : []);
                     report.warning = report.reference_missing
                         ? [...warnings, 'Mã dự án không có trong file tham khảo. Hãy kiểm tra hoặc chọn mã gợi ý.']
                         : warnings;
@@ -4208,6 +4209,11 @@
             } catch (error) {
                 console.error('Không kiểm tra được mã dự án với file tham khảo:', error);
             }
+        }
+
+        function isAllowedUnreferencedProject(project) {
+            const normalized = normalizeProjectCode(project);
+            return /^AUTS/.test(normalized) && isValidProjectCode(normalized);
         }
 
         function projectLookupText(report) {
@@ -4677,7 +4683,7 @@
 
         function extractStatusForProject(statusText, aliases) {
             const segments = statusText
-                .split(/,(?=\s*(?:máy|may|AUTM|MEC|\d{4}E|\d{5,}))/gi)
+                .split(/,(?=\s*(?:máy|may|AUT|MEC|\d{4}[A-Z]|\d{5,}))/gi)
                 .map((segment) => segment.trim())
                 .filter(Boolean);
             const candidates = segments.length > 1 ? segments : [statusText];
@@ -6455,8 +6461,9 @@
                     if (!info) return;
                     row.ten_may = info.ten_may || '';
                     row.ghi_chu = info.ghi_chu || '';
-                    row.reference_missing = !info.found;
-                    if (Array.isArray(info.suggestions) && info.suggestions.length) {
+                    const allowUnreferenced = isAllowedUnreferencedProject(row.du_an || row.project_full);
+                    row.reference_missing = !info.found && !allowUnreferenced;
+                    if (!allowUnreferenced && Array.isArray(info.suggestions) && info.suggestions.length) {
                         row.reference_suggestions = info.suggestions;
                     } else if (!Array.isArray(row.reference_suggestions)) {
                         row.reference_suggestions = [];
