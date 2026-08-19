@@ -11,9 +11,11 @@ const { autoUpdater } = require('electron-updater');
 const DEFAULT_WEEKLY_LOGO = path.join(__dirname, 'assets', 'meiko-automation-logo.png');
 const APP_ICON_FILE = path.join(__dirname, 'assets', 'daily-work-report-icon.png');
 const MACHINE_REFERENCE_FILE = path.join(__dirname, 'reference_files', 'Thamkhao.xlsm');
+const AUTJ_MACHINE_REFERENCE_FILE = path.join(__dirname, 'reference_files', 'Thamkhao2.xlsm');
 const SETUP_TRACKING_TEMPLATE_FILE = path.join(__dirname, 'reference_files', 'Theo_doi_setup_may_cho_khach_hang.xlsx');
 const DEFAULT_SETUP_TRACKING_OUTPUT_NAME = 'lắp đặt, sửa tính từ 22-06-2026.xlsx';
 const MACHINE_REFERENCE_SHEET_KEY = 'danhsachmay';
+const AUTJ_REFERENCE_SHEET_KEY = 'duanle1';
 const GITHUB_OWNER = 'pokemon1742000-commits';
 const GITHUB_REPO = 'DailyWorkReport';
 const GITHUB_REPO_URL = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}`;
@@ -1229,35 +1231,51 @@ function normalizeReferenceSheetName(value) {
         .toLowerCase();
 }
 
-async function loadMachineReference() {
-    if (machineReferenceCache) return machineReferenceCache;
+async function readMachineReferenceFile(filePath, options = {}) {
     const reference = {};
-    if (!fs.existsSync(MACHINE_REFERENCE_FILE)) {
-        machineReferenceCache = reference;
+    if (!fs.existsSync(filePath)) {
         return reference;
     }
 
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(MACHINE_REFERENCE_FILE);
+    await workbook.xlsx.readFile(filePath);
+    const sheetKey = options.sheetKey || MACHINE_REFERENCE_SHEET_KEY;
     const sheet = workbook.worksheets.find((worksheet) => (
-        normalizeReferenceSheetName(worksheet.name) === MACHINE_REFERENCE_SHEET_KEY
+        normalizeReferenceSheetName(worksheet.name) === sheetKey
     )) || workbook.worksheets[0];
     if (!sheet) {
-        machineReferenceCache = reference;
         return reference;
     }
 
+    const codeColumn = options.codeColumn || 'B';
+    const machineNameColumn = options.machineNameColumn || 'AD';
+    const projectNameColumn = options.projectNameColumn || 'AC';
+    const prefixFilter = options.prefix ? new RegExp(`^${String(options.prefix).toUpperCase()}`) : null;
     for (let rowNumber = 5; rowNumber <= sheet.rowCount; rowNumber += 1) {
         const row = sheet.getRow(rowNumber);
-        const code = cellDisplayText(row.getCell('B')).trim();
+        const code = cellDisplayText(row.getCell(codeColumn)).trim();
         const key = normalizeProjectCode(code);
         if (!key || key === '-') continue;
+        if (prefixFilter && !prefixFilter.test(key)) continue;
         reference[key] = {
-            machineName: cellDisplayText(row.getCell('AD')).trim(),
-            projectName: cellDisplayText(row.getCell('AC')).trim()
+            machineName: cellDisplayText(row.getCell(machineNameColumn)).trim(),
+            projectName: cellDisplayText(row.getCell(projectNameColumn)).trim()
         };
     }
 
+    return reference;
+}
+
+async function loadMachineReference() {
+    if (machineReferenceCache) return machineReferenceCache;
+    const reference = await readMachineReferenceFile(MACHINE_REFERENCE_FILE);
+    const autjReference = await readMachineReferenceFile(AUTJ_MACHINE_REFERENCE_FILE, {
+        sheetKey: AUTJ_REFERENCE_SHEET_KEY,
+        codeColumn: 'B',
+        machineNameColumn: 'F',
+        projectNameColumn: 'E'
+    });
+    Object.assign(reference, autjReference);
     machineReferenceCache = reference;
     return reference;
 }

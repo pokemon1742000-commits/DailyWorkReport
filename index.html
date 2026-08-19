@@ -2594,7 +2594,7 @@
                     <h3>Mã dự án</h3>
                     <p class="muted">Danh sách lấy từ cột Dự án trong bảng báo cáo tuần. Bấm - để bỏ hàng dự án, bấm + để thêm hàng dự án.</p>
                     <div class="field-row">
-                        <input id="weeklyProjectInput" type="text" placeholder="Nhập mã dự án, ví dụ: AUTM2602E8">
+                        <input id="weeklyProjectInput" type="text" placeholder="Nhập mã dự án, ví dụ: AUTM2602E8, AUTS260202, AUTJ260202">
                         <button id="addWeeklyProjectBtn">+</button>
                     </div>
                     <div id="weeklyProjectList" class="member-list"></div>
@@ -4213,7 +4213,7 @@
 
         function isAllowedUnreferencedProject(project) {
             const normalized = normalizeProjectCode(project);
-            return /^AUTS/.test(normalized) && isValidProjectCode(normalized);
+            return /^AUT[JS]/.test(normalized) && isValidProjectCode(normalized);
         }
 
         function projectLookupText(report) {
@@ -4351,9 +4351,10 @@
 
         function numberedFieldKey(number, value = '') {
             if (number === 1 && looksLikeProjectLine(value)) return 'project';
+            if (number === 2 && !hasStatusHeading(value)) return 'content';
             if (isDateLine(value)) return 'date';
             if (isPeopleLine(value)) return 'people';
-            if (looksLikeStatusLine(value) || /^\s*(trạng\s*thái|trang\s*thai|tình\s*trạng|tinh\s*trang|thực\s*trạng|thuc\s*trang)\b/i.test(value)) return 'status';
+            if (looksLikeStatusLine(value) || hasStatusHeading(value)) return 'status';
             return {
                 1: 'project',
                 2: 'content',
@@ -4361,6 +4362,15 @@
                 4: 'status',
                 5: 'date'
             }[number] || '';
+        }
+
+        function hasStatusHeading(text) {
+            const plain = removeVietnameseMarks(text).toLowerCase().trim();
+            return /^(trang\s*thai|tinh\s*trang|thuc\s*trang)(?=\s*[:：-]|\s|$)/i.test(plain);
+        }
+
+        function hasExplicitStatusLabel(text) {
+            return /^\s*(trạng\s*thái|trang\s*thai|tình\s*trạng|tinh\s*trang|thực\s*trạng|thuc\s*trang)\b/i.test(String(text || ''));
         }
 
         function cleanNumberedFieldValue(text, key) {
