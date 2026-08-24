@@ -1,10 +1,18 @@
 const SCRIPT_PROP = PropertiesService.getScriptProperties();
 const SHEET_NAME = 'DailyWorkReport_Backup';
+const META_SHEET_NAME = '_Meta';
 
-function jsonOutput(payload) {
+function jsonOutput_(payload) {
   return ContentService
     .createTextOutput(JSON.stringify(payload))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+function parsePayload_(e) {
+  if (e && e.postData && e.postData.contents) {
+    return JSON.parse(e.postData.contents || '{}');
+  }
+  return {};
 }
 
 function checkToken_(payload) {
@@ -24,54 +32,76 @@ function getOrCreateSpreadsheet_() {
   return spreadsheet;
 }
 
-function getBackupSheet_(spreadsheet) {
-  return spreadsheet.getSheetByName(SHEET_NAME) || spreadsheet.insertSheet(SHEET_NAME);
+function getOrCreateSheet_(spreadsheet, name) {
+  return spreadsheet.getSheetByName(name) || spreadsheet.insertSheet(name);
+}
+
+function asArray_(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function personText_(people) {
+  return asArray_(people)
+    .map(function(person) {
+      if (typeof person === 'string') return person;
+      return person && (person.displayName || person.name || person.folderName || '');
+    })
+    .filter(Boolean)
+    .join(', ');
+}
+
+function joinLines_(value) {
+  return asArray_(value).join('\n');
 }
 
 function reportToRow_(report, index) {
-  const people = Array.isArray(report.nguoi_thuc_hien)
-    ? report.nguoi_thuc_hien.map((person) => {
-        if (typeof person === 'string') return person;
-        return person && (person.displayName || person.name || person.folderName || '');
-      }).filter(Boolean).join(', ')
-    : '';
-
-  const content = Array.isArray(report.noi_dung_cong_viec) ? report.noi_dung_cong_viec.join('\n') : '';
-  const time = Array.isArray(report.thoi_gian) ? report.thoi_gian.join('\n') : '';
-  const status = Array.isArray(report.trang_thai) ? report.trang_thai.join('\n') : '';
-  const folders = Array.isArray(report.folder_nguoi) ? report.folder_nguoi.join('\n') : '';
-
   return [
     index + 1,
     report.id || '',
     report.ma_du_an || '',
     report.ngay_thuc_hien || '',
-    time,
-    people,
-    content,
-    status,
+    joinLines_(report.thoi_gian),
+    personText_(report.nguoi_thuc_hien),
+    joinLines_(report.noi_dung_cong_viec),
+    joinLines_(report.trang_thai),
     report.folder_ngay || '',
-    folders,
+    joinLines_(report.folder_nguoi),
     report.created_at || '',
-    JSON.stringify(report)
+    JSON.stringify(report || {})
   ];
+}
+
+function writeMeta_(spreadsheet, meta) {
+  const sheet = getOrCreateSheet_(spreadsheet, META_SHEET_NAME);
+  sheet.clear();
+  sheet.getRange(1, 1, 1, 2).setValues([['Key', 'Value']]);
+  sheet.getRange(2, 1, 7, 2).setValues([
+    ['uploadedAt', meta.uploadedAt || ''],
+    ['count', meta.count || 0],
+    ['deviceId', meta.deviceId || ''],
+    ['appVersion', meta.appVersion || ''],
+    ['spreadsheetId', meta.spreadsheetId || ''],
+    ['spreadsheetUrl', meta.spreadsheetUrl || ''],
+    ['sheetName', meta.sheetName || '']
+  ]);
+  sheet.hideSheet();
 }
 
 function writeBackup_(payload) {
   const reports = Array.isArray(payload.reports) ? payload.reports : [];
   const spreadsheet = getOrCreateSpreadsheet_();
-  const sheet = getBackupSheet_(spreadsheet);
+  const sheet = getOrCreateSheet_(spreadsheet, SHEET_NAME);
   const headers = [
     'STT',
     'ID',
-    'Mã dự án',
-    'Ngày thực hiện',
-    'Thời gian',
-    'Người thực hiện',
-    'Nội dung công việc',
-    'Trạng thái',
-    'Thư mục ngày',
-    'Thư mục người',
+    'Ma du an',
+    'Ngay thuc hien',
+    'Thoi gian',
+    'Nguoi thuc hien',
+    'Noi dung cong viec',
+    'Trang thai',
+    'Thu muc ngay',
+    'Thu muc nguoi',
     'Created At',
     'JSON'
   ];
@@ -89,8 +119,8 @@ function writeBackup_(payload) {
   }
 
   sheet.setFrozenRows(1);
-  sheet.autoResizeColumns(1, Math.min(headers.length, 10));
   sheet.getRange(1, 1, Math.max(1, reports.length + 1), headers.length).createFilter();
+  sheet.autoResizeColumns(1, headers.length);
 
   const meta = {
     ok: true,
@@ -103,68 +133,100 @@ function writeBackup_(payload) {
     uploadedAt: new Date().toISOString()
   };
   SCRIPT_PROP.setProperty('LAST_BACKUP_META', JSON.stringify(meta));
+  writeMeta_(spreadsheet, meta);
   return meta;
 }
 
 function readBackup_() {
   const spreadsheet = getOrCreateSpreadsheet_();
-  const sheet = getBackupSheet_(spreadsheet);
+  const sheet = getOrCreateSheet_(spreadsheet, SHEET_NAME);
   const values = sheet.getDataRange().getValues();
-  const rows = values.slice(1);
-  const reports = rows.map((row) => {
-    try {
-      return JSON.parse(row[11] || '{}');
-    } catch (error) {
-      return null;
-    }
-  }).filter(Boolean);
+  if (!values.length) {
+    return {
+      ok: true,
+      spreadsheetId: spreadsheet.getId(),
+      spreadsheetUrl: spreadsheet.getUrl(),
+      sheetName: SHEET_NAME,
+      count: 0,
+      reports: []
+    };
+  }
+
+  const headers = values[0].map(function(value) {
+    return String(value || '').trim().toUpperCase();
+  });
+  const jsonColumn = headers.indexOf('JSON');
+  if (jsonColumn < 0) {
+    throw new Error('Khong tim thay cot JSON trong sheet backup.');
+  }
+
+  const reports = values.slice(1)
+    .map(function(row) {
+      const raw = row[jsonColumn];
+      if (!raw) return null;
+      try {
+        return JSON.parse(String(raw));
+      } catch (error) {
+        return null;
+      }
+    })
+    .filter(Boolean);
+
   return {
     ok: true,
     spreadsheetId: spreadsheet.getId(),
     spreadsheetUrl: spreadsheet.getUrl(),
     sheetName: SHEET_NAME,
     count: reports.length,
-    reports
+    reports: reports
   };
+}
+
+function handle_(payload) {
+  if (!checkToken_(payload)) {
+    return { ok: false, error: 'Sai token.' };
+  }
+  if (payload.action === 'restore') {
+    return readBackup_();
+  }
+  return writeBackup_(payload);
 }
 
 function doPost(e) {
   try {
-    const payload = JSON.parse((e && e.postData && e.postData.contents) || '{}');
-    if (!checkToken_(payload)) {
-      return jsonOutput({ ok: false, error: 'Sai token.' });
-    }
-    if (payload.action === 'restore') {
-      return jsonOutput(readBackup_());
-    }
-    return jsonOutput(writeBackup_(payload));
+    return jsonOutput_(handle_(parsePayload_(e)));
   } catch (error) {
-    return jsonOutput({ ok: false, error: error.message || String(error) });
+    return jsonOutput_({ ok: false, error: error.message || String(error) });
   }
 }
 
 function doGet(e) {
   try {
     const payload = {
-      token: e && e.parameter && e.parameter.token,
-      action: e && e.parameter && e.parameter.action
+      action: e && e.parameter && e.parameter.action,
+      token: e && e.parameter && e.parameter.token
     };
-    if (!checkToken_(payload)) {
-      return jsonOutput({ ok: false, error: 'Sai token.' });
-    }
     if (payload.action === 'restore') {
-      return jsonOutput(readBackup_());
+      return jsonOutput_(handle_(payload));
     }
+
+    if (!checkToken_(payload)) {
+      return jsonOutput_({ ok: false, error: 'Sai token.' });
+    }
+
     const spreadsheet = getOrCreateSpreadsheet_();
     const lastMeta = JSON.parse(SCRIPT_PROP.getProperty('LAST_BACKUP_META') || '{}');
-    return jsonOutput({
+    return jsonOutput_({
       ok: true,
       spreadsheetId: spreadsheet.getId(),
       spreadsheetUrl: spreadsheet.getUrl(),
       sheetName: SHEET_NAME,
-      ...lastMeta
+      count: lastMeta.count || 0,
+      uploadedAt: lastMeta.uploadedAt || '',
+      deviceId: lastMeta.deviceId || '',
+      appVersion: lastMeta.appVersion || ''
     });
   } catch (error) {
-    return jsonOutput({ ok: false, error: error.message || String(error) });
+    return jsonOutput_({ ok: false, error: error.message || String(error) });
   }
 }
