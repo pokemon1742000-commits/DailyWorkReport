@@ -1530,14 +1530,30 @@ function normalizeWeeklyCategory(category) {
     if (normalized === 'setup' || normalized === 'lap dat' || normalized === 'lap dat tai line') return 'Lắp đặt tại line';
     if (normalized === 'chinh may') return 'Chỉnh máy';
     if (normalized === 'sua' || normalized === 'sua may') return 'Sửa máy';
+    if (normalized === 'cai tien' || normalized === 'cai tien may') return 'Cải tiến';
     if (normalized === 'ho tro') return 'Hỗ trợ';
     if (normalized === 'lap moi' || normalized === 'lap may moi') return 'Lắp máy mới';
     return 'Lắp máy mới';
 }
 
+function isWeeklyNewInstallCategory(category) {
+    const normalized = normalizeWeeklyCategory(category)
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D')
+        .toLowerCase()
+        .trim();
+    return normalized === 'lap may moi';
+}
+
+function weeklyProjectImageGroupId(project) {
+    const key = String(project || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    return key ? `project_${key}` : '';
+}
 function weeklyCategoryOrder(category) {
     const normalized = normalizeWeeklyCategory(category);
-    return ['Lắp máy mới', 'Chỉnh máy', 'Lắp đặt tại line', 'Sửa máy', 'Hỗ trợ'].indexOf(normalized);
+    return ['Lắp máy mới', 'Chỉnh máy', 'Lắp đặt tại line', 'Sửa máy', 'Cải tiến', 'Hỗ trợ'].indexOf(normalized);
 }
 
 function normalizeWeeklyColumns(columns) {
@@ -1654,20 +1670,30 @@ function applyCellBaseStyle(cell, options = {}) {
     };
 }
 
+function weeklyCategoryColorKey(category) {
+    return normalizeWeeklyCategory(category)
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\u0111/g, 'd')
+        .replace(/\u0110/g, 'D')
+        .toLowerCase()
+        .trim();
+}
+
 function categoryFillColor(category) {
-    const normalized = String(category || '').trim().toLowerCase();
-    if (normalized === 'chỉnh máy' || normalized === 'chinh may') return 'FFFFFF00';
-    if (normalized === 'sửa' || normalized === 'sua' || normalized === 'sửa máy' || normalized === 'sua may') return 'FFFF0000';
-    if (normalized === 'setup' || normalized === 'lắp đặt' || normalized === 'lap dat' || normalized === 'lắp đặt tại line' || normalized === 'lap dat tai line') return 'FFFFA500';
-    if (normalized === 'hỗ trợ' || normalized === 'ho tro') return 'FFD9D9D9';
-    if (normalized === 'lắp mới' || normalized === 'lap moi' || normalized === 'lắp máy mới' || normalized === 'lap may moi') return 'FF5B9BD5';
+    const normalized = weeklyCategoryColorKey(category);
+    if (normalized === 'chinh may') return 'FFFFFF00';
+    if (normalized === 'sua may') return 'FFFF0000';
+    if (normalized === 'lap dat tai line') return 'FFF4B183';
+    if (normalized === 'cai tien') return 'FFA65A2A';
+    if (normalized === 'ho tro') return 'FFD9D9D9';
+    if (normalized === 'lap may moi') return 'FF92D050';
     return 'FFFFFFFF';
 }
 
 function categoryFontColor(category) {
-    const normalized = String(category || '').trim().toLowerCase();
-    return normalized === 'sửa' || normalized === 'sua' || normalized === 'sửa máy' || normalized === 'sua may'
-        || normalized === 'lắp mới' || normalized === 'lap moi' || normalized === 'lắp máy mới' || normalized === 'lap may moi'
+    const normalized = weeklyCategoryColorKey(category);
+    return normalized === 'sua may' || normalized === 'cai tien'
         ? 'FFFFFFFF'
         : 'FF000000';
 }
@@ -1756,20 +1782,30 @@ function applyRowStyle(row, templateStyle) {
     }
 }
 
-function groupWeeklyExportImages(images, imageGroups) {
-    const groupMap = new Map((imageGroups || []).map((group) => [group.id, {
-        id: group.id,
-        title: group.title || '',
-        description: group.description || '',
-        images: []
-    }]));
+function groupWeeklyExportImages(images, imageGroups, rows = []) {
+    const allowedProjectGroupIds = new Set((rows || [])
+        .filter((row) => isWeeklyNewInstallCategory(row.hang_muc))
+        .map((row) => weeklyProjectImageGroupId(row.du_an || row.project_full || row.ma_du_an))
+        .filter(Boolean));
+    const groupMap = new Map();
+
+    (imageGroups || []).forEach((group) => {
+        if (!allowedProjectGroupIds.has(group.id)) return;
+        groupMap.set(group.id, {
+            id: group.id,
+            title: group.title || '',
+            description: group.description || '',
+            images: []
+        });
+    });
 
     images.forEach((image) => {
         const groupId = image.groupId || 'ungrouped';
+        if (!allowedProjectGroupIds.has(groupId)) return;
         if (!groupMap.has(groupId)) {
             groupMap.set(groupId, {
                 id: groupId,
-                title: groupId === 'ungrouped' ? 'Chưa phân nhóm' : 'Nhóm ảnh',
+                title: '',
                 description: image.description || '',
                 images: []
             });
@@ -1781,11 +1817,7 @@ function groupWeeklyExportImages(images, imageGroups) {
 
     return [...groupMap.values()]
         .filter((group) => group.images.length)
-        .sort((a, b) => {
-            if (a.id === 'ungrouped') return -1;
-            if (b.id === 'ungrouped') return 1;
-            return 0;
-        });
+        .sort((a, b) => a.id.localeCompare(b.id));
 }
 
 function getUniqueOutputPath(outputDir, fileName) {
@@ -2459,11 +2491,12 @@ async function exportWeeklyReport(payload) {
         sheet.dataValidations.add(categoryRange, {
             type: 'list',
             allowBlank: true,
-            formulae: ['"Lắp máy mới,Chỉnh máy,Lắp đặt tại line,Sửa máy,Hỗ trợ"']
+            formulae: ['"Lắp máy mới,Chỉnh máy,Lắp đặt tại line,Sửa máy,Cải tiến,Hỗ trợ"']
         });
     }
 
-    if (images.length) {
+    const exportImageGroups = groupWeeklyExportImages(images, imageGroups, rows);
+    if (exportImageGroups.length) {
         let imageRow = rowIndex + 2;
         const lastLetter = excelColumnLetter(columns.length);
 
@@ -2476,7 +2509,7 @@ async function exportWeeklyReport(payload) {
         sheet.getRow(imageRow + 1).height = 10;
         imageRow += 3;
 
-        for (const group of groupWeeklyExportImages(images, imageGroups)) {
+        for (const group of exportImageGroups) {
             const blockStartRow = imageRow;
             safeMergeCells(sheet, `A${imageRow}:${lastLetter}${imageRow}`);
             const titleCell = sheet.getCell(imageRow, 1);

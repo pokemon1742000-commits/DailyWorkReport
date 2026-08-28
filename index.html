@@ -2882,7 +2882,7 @@
         const { Hands } = require('@mediapipe/hands');
         const HAND_DWELL_MS = 850;
         const HAND_SELECTABLE_SELECTOR = 'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [role="button"], [tabindex]:not([tabindex="-1"])';
-        const WEEKLY_CATEGORY_OPTIONS = ['Lắp máy mới', 'Chỉnh máy', 'Lắp đặt tại line', 'Sửa máy', 'Hỗ trợ'];
+        const WEEKLY_CATEGORY_OPTIONS = ['Lắp máy mới', 'Chỉnh máy', 'Lắp đặt tại line', 'Sửa máy', 'Cải tiến', 'Hỗ trợ'];
         const WEEKLY_PROGRESS_PERCENT_OPTIONS = Array.from({ length: 20 }, (_, index) => `${(index + 1) * 5}%`);
         const WEEKLY_PROGRESS_STATUS_OPTIONS = ['Hoàn thành', 'Đang thực hiện', 'Bắt đầu làm.', 'Tạm dừng', 'Đang xử lý', 'Hoàn thiện', 'Chờ'];
         const WEEKLY_PROGRESS_PARTS = [
@@ -6483,7 +6483,12 @@
             if (key === 'lap moi' || key === 'lap may moi') return 'Lắp máy mới';
             if (key === 'setup' || key === 'lap dat' || key === 'lap dat tai line') return 'Lắp đặt tại line';
             if (key === 'sua' || key === 'sua may') return 'Sửa máy';
+            if (key === 'cai tien' || key === 'cai tien may') return 'Cải tiến';
             return WEEKLY_CATEGORY_OPTIONS.find((item) => removeVietnameseMarks(item).toLowerCase() === key) || 'Lắp máy mới';
+        }
+        function isWeeklyNewInstallCategory(category) {
+            const key = removeVietnameseMarks(normalizeWeeklyCategory(category)).toLowerCase();
+            return key === 'lap may moi';
         }
 
         function sortWeeklyRowsByCategory() {
@@ -6921,12 +6926,14 @@
                 'chinh may': ['#ffff00', '#000000'],
                 'sua': ['#ff0000', '#ffffff'],
                 'sua may': ['#ff0000', '#ffffff'],
-                'setup': ['#ffa500', '#000000'],
-                'lap dat': ['#ffa500', '#000000'],
-                'lap dat tai line': ['#ffa500', '#000000'],
+                'setup': ['#f4b183', '#000000'],
+                'lap dat': ['#f4b183', '#000000'],
+                'lap dat tai line': ['#f4b183', '#000000'],
+                'cai tien': ['#a65a2a', '#ffffff'],
+                'cai tien may': ['#a65a2a', '#ffffff'],
                 'ho tro': ['#d9d9d9', '#000000'],
-                'lap moi': ['#5b9bd5', '#ffffff'],
-                'lap may moi': ['#5b9bd5', '#ffffff']
+                'lap moi': ['#92d050', '#000000'],
+                'lap may moi': ['#92d050', '#000000']
             };
             const [bg, fg] = colors[key] || ['#ffffff', '#000000'];
             return `background:${bg}!important;color:${fg}!important;`;
@@ -6950,6 +6957,7 @@
                 sortWeeklyRowsByCategory();
                 cacheCurrentWeeklyRows();
                 renderWeeklyPreview();
+                renderWeeklyImages();
             } else if (event.target.tagName === 'TEXTAREA') {
                 autoResizeWeeklyTextarea(event.target);
                 autoResizeWeeklyRow(index);
@@ -7780,9 +7788,6 @@
             syncWeeklyImageGroupsWithProjects();
             const groups = groupWeeklyImages();
             els.weeklyImageList.innerHTML = `
-                <div class="image-toolbar">
-                    <button type="button" data-add-image-group>Thêm nhóm</button>
-                </div>
                 ${groups.length ? groups.map((group, groupIndex) => `
                 <div class="image-group" data-image-group="${escapeHtml(group.id)}">
                     <div class="image-group-head">
@@ -7799,11 +7804,8 @@
                         `).join('') : '<div class="empty">Kéo ảnh vào nhóm này.</div>'}
                     </div>
                 </div>
-                `).join('') : '<div class="empty">Chưa có nhóm ảnh. Bấm Thêm nhóm hoặc tải dữ liệu tuần để tạo nhóm theo dự án.</div>'}
+                `).join('') : '<div class="empty">Chưa có nhóm ảnh cho dự án Lắp máy mới.</div>'}
             `;
-
-            const addGroupBtn = els.weeklyImageList.querySelector('[data-add-image-group]');
-            if (addGroupBtn) addGroupBtn.addEventListener('click', addCustomWeeklyImageGroup);
             document.querySelectorAll('[data-image-group-description]').forEach((input) => {
                 bindImeSafeInput(input, () => {
                     updateWeeklyImageGroupDescription(input.dataset.imageGroupDescription, input.value);
@@ -7842,6 +7844,7 @@
         }
 
         function groupWeeklyImages() {
+            const allowedProjectGroupIds = getWeeklyNewInstallProjectGroupIds();
             const map = new Map(state.weeklyImageGroups.map((group) => [group.id, { ...group, images: [] }]));
             state.weeklyImages.forEach((image, index) => {
                 if (!image.groupId) image.groupId = 'ungrouped';
@@ -7859,7 +7862,10 @@
                 group.images.push({ image, index });
             });
             return [...map.values()]
-                .filter((group) => group.id !== 'ungrouped' || group.images.length)
+                .filter((group) => (
+                    (group.id === 'ungrouped' && group.images.length)
+                    || allowedProjectGroupIds.has(group.id)
+                ))
                 .sort((a, b) => {
                     if (a.id === 'ungrouped') return -1;
                     if (b.id === 'ungrouped') return 1;
@@ -7875,13 +7881,26 @@
             });
         }
 
+        function getWeeklyNewInstallProjectGroupIds() {
+            const ids = new Set();
+            state.weeklyRows.forEach((row) => {
+                if (!isWeeklyNewInstallCategory(row.hang_muc)) return;
+                const project = row.du_an || row.project_full;
+                const key = normalizeProjectKey(project);
+                if (key) ids.add(`project_${key}`);
+            });
+            return ids;
+        }
+
         function syncWeeklyImageGroupsWithProjects() {
             const existing = new Map(state.weeklyImageGroups.map((group) => [group.id, group]));
+            const allowedProjectGroupIds = getWeeklyNewInstallProjectGroupIds();
             state.weeklyRows.forEach((row) => {
                 const project = row.du_an || row.project_full;
                 const key = normalizeProjectKey(project);
-                if (!key) return;
+                if (!key || !isWeeklyNewInstallCategory(row.hang_muc)) return;
                 const id = `project_${key}`;
+                allowedProjectGroupIds.add(id);
                 if (!existing.has(id)) {
                     state.weeklyImageGroups.push({
                         id,
@@ -7890,6 +7909,15 @@
                         locked: true
                     });
                     existing.set(id, state.weeklyImageGroups[state.weeklyImageGroups.length - 1]);
+                }
+            });
+            state.weeklyImageGroups = state.weeklyImageGroups.filter((group) => (
+                !String(group.id || '').startsWith('project_') || allowedProjectGroupIds.has(group.id)
+            ));
+            state.weeklyImages.forEach((image) => {
+                if (String(image.groupId || '').startsWith('project_') && !allowedProjectGroupIds.has(image.groupId)) {
+                    image.groupId = 'ungrouped';
+                    image.description = '';
                 }
             });
             if (state.weeklyImages.some((image) => !image.groupId || image.groupId === 'ungrouped')) {
@@ -7906,18 +7934,6 @@
                 locked: true
             });
         }
-
-        function addCustomWeeklyImageGroup() {
-            const id = `custom_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
-            state.weeklyImageGroups.push({
-                id,
-                title: `Nhóm ${state.weeklyImageGroups.filter((group) => !group.locked).length + 1}`,
-                description: '',
-                locked: false
-            });
-            renderWeeklyImages();
-        }
-
         function removeWeeklyImageGroup(groupId) {
             const group = state.weeklyImageGroups.find((item) => item.id === groupId);
             if (!group || group.locked) return;
@@ -7950,10 +7966,19 @@
             const image = state.weeklyImages[imageIndex];
             const groupId = event.currentTarget.dataset.imageGroup;
             if (!image || !groupId) return;
+            if (groupId !== 'ungrouped' && !getWeeklyNewInstallProjectGroupIds().has(groupId)) return;
             image.groupId = groupId;
             const group = state.weeklyImageGroups.find((item) => item.id === groupId);
             image.description = group ? group.description || '' : '';
             renderWeeklyImages();
+        }
+
+        function getWeeklyExportImagePayload() {
+            const allowedProjectGroupIds = getWeeklyNewInstallProjectGroupIds();
+            return {
+                images: state.weeklyImages.filter((image) => allowedProjectGroupIds.has(image.groupId)),
+                imageGroups: state.weeklyImageGroups.filter((group) => allowedProjectGroupIds.has(group.id))
+            };
         }
 
         async function chooseWeeklyOutputFolder() {
@@ -7982,14 +8007,15 @@
             }));
 
             try {
+                const imagePayload = getWeeklyExportImagePayload();
                 const result = await ipcRenderer.invoke('export-weekly-report', {
                     dateFrom: els.weeklyDateFrom.value,
                     dateTo: els.weeklyDateTo.value,
                     outputDir: state.weeklyOutputFolder,
                     rows,
                     columns: state.weeklyColumns,
-                    images: state.weeklyImages,
-                    imageGroups: state.weeklyImageGroups
+                    images: imagePayload.images,
+                    imageGroups: imagePayload.imageGroups
                 });
                 setWeeklyStatus(`Đã xuất: ${result.outputPath}`);
             } catch (error) {
