@@ -3188,7 +3188,7 @@
 
             const parsedReports = applyLearningToReports(sanitizePreviewReports(parseReport(raw)));
             const splitReports = splitProjectAndNoProjectReports(parsedReports);
-            state.previewReports = splitReports.projectReports.map((report) => ({
+            state.previewReports = parsedReports.map((report) => ({
                 ...report,
                 ai_original: {
                     ma_du_an: report.ma_du_an,
@@ -3211,31 +3211,42 @@
                 return;
             }
 
-            if (!state.rootFolder) {
+            const splitReports = splitProjectAndNoProjectReports(state.previewReports);
+            if (!state.rootFolder && splitReports.projectReports.length) {
                 setStatus('Vui lòng chọn thư mục trước khi lưu.', true);
                 return;
             }
 
             if (hasInvalidPreviewProject()) {
                 updateSaveButton();
-                setStatus('Còn mã dự án chưa xác định hoặc không có trong file tham khảo. Hãy sửa/chọn mã đúng trước khi lưu.', true);
+                setStatus('Có mã dự án không có trong file tham khảo. Hãy sửa/chọn mã đúng trước khi lưu.', true);
                 return;
             }
 
             try {
-                state.previewReports = sanitizePreviewReports(state.previewReports);
-                const result = await ipcRenderer.invoke('save-reports', {
-                    rootFolder: state.rootFolder,
-                    reports: state.previewReports
-                });
-                state.dataFile = result.dataFile;
-                state.sqliteFile = result.sqliteFile || '';
-                state.previewReports = result.reports;
-                learnFromAcceptedReports(result.reports, 'save');
-                const skippedText = result.skippedDuplicates ? ` Bỏ qua ${result.skippedDuplicates} bản ghi trùng 100%.` : '';
-                setStatus(`Đã lưu ${result.count} bản ghi và tạo folder thành công.${skippedText}`);
+                const projectResult = splitReports.projectReports.length
+                    ? await ipcRenderer.invoke('save-reports', {
+                        rootFolder: state.rootFolder,
+                        reports: sanitizePreviewReports(splitReports.projectReports)
+                    })
+                    : { count: 0, skippedDuplicates: 0, reports: [] };
+                const noProjectResult = splitReports.noProjectReports.length
+                    ? await ipcRenderer.invoke('save-no-project-reports', {
+                        rootFolder: state.rootFolder,
+                        reports: sanitizePreviewReports(splitReports.noProjectReports)
+                    })
+                    : { count: 0 };
+                state.dataFile = projectResult.dataFile || '';
+                state.sqliteFile = projectResult.sqliteFile || noProjectResult.sqliteFile || '';
+                learnFromAcceptedReports(projectResult.reports || [], 'save');
+                const skippedText = projectResult.skippedDuplicates ? ` Bỏ qua ${projectResult.skippedDuplicates} bản ghi trùng 100%.` : '';
+                const noProjectText = noProjectResult.count ? ` Đã chuyển ${noProjectResult.count} nội dung sang Không mã dự án.` : '';
+                setStatus(`Đã lưu ${projectResult.count || 0} bản ghi và tạo folder thành công.${noProjectText}${skippedText}`);
                 els.rawInput.value = '';
+                state.previewReports = [];
+                state.noProjectReports = noProjectResult.reports || [];
                 renderPreview();
+                renderNoProjectReports();
                 await loadReports();
                 renderFolderStructure();
             } catch (error) {
@@ -4227,7 +4238,7 @@
             const lines = raw.split('\n').map((line) => line.trim()).filter(Boolean);
             const projectStarts = lines.filter((line) => {
                 const item = parseNumberedLine(line);
-                return item && item.number === 1 && looksLikeProjectLine(item.value);
+                return item && item.number === 1 && isNumberedProjectLine(item.value);
             });
             if (projectStarts.length < 2) return [];
 
@@ -4239,7 +4250,7 @@
             lines.forEach((line) => {
                 if (isSeparatorOnlyLine(line)) return;
                 const numbered = parseNumberedLine(line);
-                if (numbered && numbered.number === 1 && looksLikeProjectLine(numbered.value)) {
+                if (numbered && numbered.number === 1 && isNumberedProjectLine(numbered.value)) {
                     current = { project: cleanNumberedFieldValue(numbered.value, 'project'), content: '', people: '', status: '', date: '' };
                     blocks.push(current);
                     currentKey = 'project';
@@ -4332,7 +4343,7 @@
         }
 
         function numberedFieldKey(number, value = '') {
-            if (number === 1 && looksLikeProjectLine(value)) return 'project';
+            if (number === 1 && isNumberedProjectLine(value)) return 'project';
             if (number === 2 && !hasStatusHeading(value)) return 'content';
             if (isDateLine(value)) return 'date';
             if (isPeopleLine(value)) return 'people';
@@ -4366,6 +4377,11 @@
             };
             if (patterns[key]) value = value.replace(patterns[key], '').trim();
             return value;
+        }
+
+        function isNumberedProjectLine(text) {
+            const plain = removeVietnameseMarks(String(text || '')).toLowerCase();
+            return looksLikeProjectLine(text) || /(?:ma|mã)\s*(?:du|dự)\s*an\s*[:：-]?\s*khong\s*co\s*ma\s*(?:du|dự)\s*an/.test(plain);
         }
 
         function isSeparatorOnlyLine(line) {
@@ -5411,19 +5427,19 @@
 
         function hasInvalidPreviewProject() {
             return state.previewReports.some((report) => (
-                !normalizeProjectKey(report.ma_du_an)
-                || /^CHUA_XAC_DINH/i.test(String(report.ma_du_an || ''))
-                || report.reference_missing
+                Boolean(report.reference_missing)
+                && !isNoProjectReport(report)
             ));
         }
 
         function updateSaveButton() {
             const hasPreview = state.previewReports.length > 0;
+            const hasProjectReports = state.previewReports.some((report) => !isNoProjectReport(report));
             const blocked = hasPreview && hasInvalidPreviewProject();
-            els.saveBtn.disabled = !hasPreview || !state.rootFolder || blocked;
+            els.saveBtn.disabled = !hasPreview || (hasProjectReports && !state.rootFolder) || blocked;
             els.saveBtn.title = blocked
-                ? 'Còn mã dự án chưa xác định hoặc không có trong file tham khảo. Hãy sửa/chọn mã đúng trước khi lưu.'
-                : (!state.rootFolder ? 'Chọn thư mục lưu ảnh / tài liệu trước khi lưu.' : 'Lưu dữ liệu và tạo thư mục ảnh.');
+                ? 'Mã dự án đã nhập không có trong file tham khảo. Hãy sửa/chọn mã đúng trước khi lưu.'
+                : (hasProjectReports && !state.rootFolder ? 'Chọn thư mục lưu ảnh / tài liệu trước khi lưu.' : 'Lưu dữ liệu và tạo thư mục ảnh.');
         }
 
         function createDefaultLearningMemory(enabled = true) {
@@ -5972,6 +5988,9 @@
                 els.backupGoogleSheetBtn.disabled = true;
                 setGoogleSheetStatus('Đang backup dữ liệu lên Google Sheet...');
                 const result = await ipcRenderer.invoke('google-sheet-backup', payload);
+                if (result.noProjectSheetName !== 'Không mã dự án') {
+                    throw new Error('Google Apps Script đang là bản cũ và chưa có sheet "Không mã dự án". Hãy Deploy lại phiên bản mới rồi thử lưu lại.');
+                }
                 state.googleSheetSettings.spreadsheetUrl = result.spreadsheetUrl || state.googleSheetSettings.spreadsheetUrl || '';
                 saveGoogleSheetSettings();
                 setGoogleSheetStatus(`Đã backup ${result.count || 0} bản ghi lên Google Sheet.`);
@@ -6004,6 +6023,9 @@
                     token: state.googleSheetSettings.token,
                     deviceId: state.syncSettings.deviceId || ''
                 });
+                if (result.noProjectSheetName !== 'Không mã dự án') {
+                    throw new Error('Google Apps Script đang là bản cũ và chưa có sheet "Không mã dự án". Hãy Deploy lại phiên bản mới rồi thử lưu lại.');
+                }
                 state.googleSheetSettings.spreadsheetUrl = result.spreadsheetUrl || state.googleSheetSettings.spreadsheetUrl || '';
                 saveGoogleSheetSettings();
                 renderGoogleSheetSettings();
@@ -6042,7 +6064,11 @@
                 saveGoogleSheetSettings();
                 state.allReports = result.reports || [];
                 state.savedReports = state.allReports;
-                setGoogleSheetStatus(`Đã khôi phục ${result.count || 0} bản ghi từ Google Sheet.`);
+                state.noProjectReports = state.allReports.filter(isNoProjectReport);
+                renderNoProjectReports();
+                const restoreMessage = `Đã khôi phục ${result.count || 0} bản ghi: ${result.projectCount || 0} mã dự án, ${result.noProjectCount || 0} không mã dự án.`;
+                setGoogleSheetStatus(restoreMessage);
+                alert(restoreMessage);
                 renderSearch();
                 updateCurrentDateTime();
             } catch (error) {
@@ -8083,10 +8109,12 @@
             const result = await ipcRenderer.invoke('load-reports');
             state.savedReports = result.reports;
             state.allReports = result.reports;
+            state.noProjectReports = result.reports.filter(isNoProjectReport);
             state.dataFile = result.dataFile;
             state.sqliteFile = result.sqliteFile || '';
             learnFromAcceptedReports(result.reports, 'history');
             renderSearch();
+            renderNoProjectReports();
             renderFolderStructure();
             updateCurrentDateTime();
         }
@@ -8340,9 +8368,9 @@
                     ? { ngay: dateQuery }
                     : {};
                 const result = await ipcRenderer.invoke('query-reports', queryPayload);
-                state.savedReports = result.reports;
+                state.savedReports = result.reports.filter((report) => !isNoProjectReport(report));
             } else {
-                state.savedReports = state.allReports;
+                state.savedReports = state.allReports.filter((report) => !isNoProjectReport(report));
             }
 
             const projectSearch = getProjectSearchInfo(rawQuery, dateQuery);

@@ -1,5 +1,6 @@
 const SCRIPT_PROP = PropertiesService.getScriptProperties();
 const SHEET_NAME = 'DailyWorkReport_Backup';
+const NO_PROJECT_SHEET_NAME = 'Không mã dự án';
 const META_SHEET_NAME = '_Meta';
 
 function jsonOutput_(payload) {
@@ -54,6 +55,16 @@ function joinLines_(value) {
   return asArray_(value).join('\n');
 }
 
+function isNoProjectReport_(report) {
+  const rawProject = String(report && report.ma_du_an || '').trim().toUpperCase();
+  const project = rawProject.replace(/[^A-Z0-9]/g, '');
+  return !project
+    || /^CHUA[_ ]?XAC[_ ]?DINH/.test(rawProject)
+    || /^KHONG[_ ]?CO[_ ]?MA[_ ]?DU[_ ]?AN/.test(rawProject)
+    || project.indexOf('CHUAXACDINH') === 0
+    || project.indexOf('KHONGCOMADUAN') === 0;
+}
+
 function reportToRow_(report, index) {
   return [
     index + 1,
@@ -89,8 +100,10 @@ function writeMeta_(spreadsheet, meta) {
 
 function writeBackup_(payload) {
   const reports = Array.isArray(payload.reports) ? payload.reports : [];
+  const explicitNoProjectReports = Array.isArray(payload.noProjectReports) ? payload.noProjectReports : null;
   const spreadsheet = getOrCreateSpreadsheet_();
   const sheet = getOrCreateSheet_(spreadsheet, SHEET_NAME);
+  const noProjectSheet = getOrCreateSheet_(spreadsheet, NO_PROJECT_SHEET_NAME);
   const headers = [
     'STT',
     'ID',
@@ -106,27 +119,50 @@ function writeBackup_(payload) {
     'JSON'
   ];
 
-  sheet.clear();
-  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-  sheet.getRange(1, 1, 1, headers.length)
-    .setFontWeight('bold')
-    .setBackground('#f97316')
-    .setFontColor('#ffffff');
+  const noProjectReports = explicitNoProjectReports || reports.filter(function(report) {
+    return isNoProjectReport_(report);
+  });
+  const noProjectIds = {};
+  noProjectReports.forEach(function(report) {
+    const id = String(report && report.id || '').trim();
+    if (id) noProjectIds[id] = true;
+  });
+  const projectReports = reports.filter(function(report) {
+    const id = String(report && report.id || '').trim();
+    return !isNoProjectReport_(report) && (!id || !noProjectIds[id]);
+  });
 
-  if (reports.length) {
-    sheet.getRange(2, 1, reports.length, headers.length)
-      .setValues(reports.map(reportToRow_));
-  }
+  [
+    [sheet, projectReports, '#f97316'],
+    [noProjectSheet, noProjectReports, '#dc2626']
+  ].forEach(function(entry) {
+    const targetSheet = entry[0];
+    const targetReports = entry[1];
+    targetSheet.clear();
+    targetSheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    targetSheet.getRange(1, 1, 1, headers.length)
+      .setFontWeight('bold')
+      .setBackground(entry[2])
+      .setFontColor('#ffffff');
 
-  sheet.setFrozenRows(1);
-  sheet.getRange(1, 1, Math.max(1, reports.length + 1), headers.length).createFilter();
-  sheet.autoResizeColumns(1, headers.length);
+    if (targetReports.length) {
+      targetSheet.getRange(2, 1, targetReports.length, headers.length)
+        .setValues(targetReports.map(reportToRow_));
+    }
+
+    const existingFilter = targetSheet.getFilter();
+    if (existingFilter) existingFilter.remove();
+    targetSheet.setFrozenRows(1);
+    targetSheet.getRange(1, 1, Math.max(1, targetReports.length + 1), headers.length).createFilter();
+    targetSheet.autoResizeColumns(1, headers.length);
+  });
 
   const meta = {
     ok: true,
     spreadsheetId: spreadsheet.getId(),
     spreadsheetUrl: spreadsheet.getUrl(),
     sheetName: SHEET_NAME,
+    noProjectSheetName: NO_PROJECT_SHEET_NAME,
     count: reports.length,
     deviceId: payload.deviceId || '',
     appVersion: payload.appVersion || '',
@@ -140,27 +176,18 @@ function writeBackup_(payload) {
 function readBackup_() {
   const spreadsheet = getOrCreateSpreadsheet_();
   const sheet = getOrCreateSheet_(spreadsheet, SHEET_NAME);
+  const noProjectSheet = spreadsheet.getSheetByName(NO_PROJECT_SHEET_NAME);
   const values = sheet.getDataRange().getValues();
-  if (!values.length) {
-    return {
-      ok: true,
-      spreadsheetId: spreadsheet.getId(),
-      spreadsheetUrl: spreadsheet.getUrl(),
-      sheetName: SHEET_NAME,
-      count: 0,
-      reports: []
-    };
-  }
-
-  const headers = values[0].map(function(value) {
+  const headers = values.length ? values[0].map(function(value) {
     return String(value || '').trim().toUpperCase();
-  });
+  }) : [];
   const jsonColumn = headers.indexOf('JSON');
-  if (jsonColumn < 0) {
+  if (values.length && jsonColumn < 0) {
     throw new Error('Khong tim thay cot JSON trong sheet backup.');
   }
 
-  const reports = values.slice(1)
+  const readReportsFromValues = function(rows) {
+    return rows.slice(1)
     .map(function(row) {
       const raw = row[jsonColumn];
       if (!raw) return null;
@@ -171,14 +198,45 @@ function readBackup_() {
       }
     })
     .filter(Boolean);
+  };
+  const reports = jsonColumn >= 0 ? readReportsFromValues(values) : [];
+  if (noProjectSheet) {
+    const noProjectValues = noProjectSheet.getDataRange().getValues();
+    const noProjectHeaders = noProjectValues[0] ? noProjectValues[0].map(function(value) {
+      return String(value || '').trim().toUpperCase();
+    }) : [];
+    const noProjectJsonColumn = noProjectHeaders.indexOf('JSON');
+    if (noProjectJsonColumn >= 0) {
+      noProjectValues.slice(1).forEach(function(row) {
+        const raw = row[noProjectJsonColumn];
+        if (!raw) return;
+        try {
+          reports.push(JSON.parse(String(raw)));
+        } catch (error) {}
+      });
+    }
+  }
+
+  const uniqueReports = [];
+  const seenIds = {};
+  reports.forEach(function(report) {
+    const id = String(report && report.id || '').trim();
+    if (id && seenIds[id]) return;
+    if (id) seenIds[id] = true;
+    uniqueReports.push(report);
+  });
+  const noProjectCount = uniqueReports.filter(isNoProjectReport_).length;
 
   return {
     ok: true,
     spreadsheetId: spreadsheet.getId(),
     spreadsheetUrl: spreadsheet.getUrl(),
     sheetName: SHEET_NAME,
-    count: reports.length,
-    reports: reports
+    noProjectSheetName: NO_PROJECT_SHEET_NAME,
+    count: uniqueReports.length,
+    projectCount: uniqueReports.length - noProjectCount,
+    noProjectCount: noProjectCount,
+    reports: uniqueReports
   };
 }
 

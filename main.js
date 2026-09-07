@@ -722,13 +722,15 @@ function normalizeGoogleScriptUrl(url) {
 async function postGoogleSheetBackup(options = {}, action = 'backup') {
     const webAppUrl = normalizeGoogleScriptUrl(options.webAppUrl);
     const result = await loadReportsSqlite();
+    const noProjectReports = result.reports.filter((report) => isInvalidReportProject(report));
     const payload = {
         action,
         token: options.token || '',
         deviceId: options.deviceId || getDefaultSyncDeviceId(),
         appVersion: app.getVersion(),
         machineName: os.hostname(),
-        reports: result.reports
+        reports: result.reports,
+        noProjectReports
     };
     const response = await fetch(webAppUrl, {
         method: 'POST',
@@ -753,7 +755,14 @@ async function postGoogleSheetBackup(options = {}, action = 'backup') {
 
 async function restoreReportsFromGoogleSheet(options = {}) {
     const data = await postGoogleSheetBackup(options, 'restore');
-    const reports = Array.isArray(data.reports) ? data.reports : [];
+    const reports = [];
+    const seenIds = new Set();
+    (Array.isArray(data.reports) ? data.reports : []).forEach((report) => {
+        const id = String(report && report.id || '').trim();
+        if (id && seenIds.has(id)) return;
+        if (id) seenIds.add(id);
+        reports.push(report);
+    });
     const sqliteFile = getSqliteFile();
     fs.mkdirSync(path.dirname(sqliteFile), { recursive: true });
     if (fs.existsSync(sqliteFile)) {
@@ -769,6 +778,8 @@ async function restoreReportsFromGoogleSheet(options = {}) {
         ok: true,
         spreadsheetUrl: data.spreadsheetUrl || '',
         count: result.reports.length,
+        projectCount: Number(data.projectCount) || result.reports.filter((report) => !isInvalidReportProject(report)).length,
+        noProjectCount: Number(data.noProjectCount) || result.reports.filter((report) => isInvalidReportProject(report)).length,
         reports: result.reports,
         sqliteFile
     };
@@ -953,8 +964,13 @@ function reportDuplicateFingerprint(report) {
 }
 
 function isInvalidReportProject(report) {
-    const project = normalizeProjectCode(report && report.ma_du_an);
-    return !project || /^CHUA_XAC_DINH/.test(project) || /^KHONG_CO_MA_DU_AN/.test(project);
+    const rawProject = String(report && report.ma_du_an || '').trim().toUpperCase();
+    const project = normalizeProjectCode(rawProject);
+    return !project
+        || /^CHUA[_ ]?XAC[_ ]?DINH/.test(rawProject)
+        || /^KHONG[_ ]?CO[_ ]?MA[_ ]?DU[_ ]?AN/.test(rawProject)
+        || project.startsWith('CHUAXACDINH')
+        || project.startsWith('KHONGCOMADUAN');
 }
 
 function sanitizeFolderName(value) {
@@ -3245,18 +3261,14 @@ ipcMain.handle('save-no-project-reports', async (_event, payload) => {
     const rootFolder = payload && payload.rootFolder;
     const reports = Array.isArray(payload && payload.reports) ? payload.reports : [];
 
-    if (!rootFolder) {
-        throw new Error('Chưa chọn thư mục lưu trữ.');
-    }
-
-    fs.mkdirSync(rootFolder, { recursive: true });
+    if (rootFolder) fs.mkdirSync(rootFolder, { recursive: true });
     const saveBatchId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const savedReports = reports
         .filter((report) => isInvalidReportProject(report) && reportListLines(report.noi_dung_cong_viec).length)
         .map((report, index) => {
             const folderDate = report.folder_ngay_name || 'UnknownDate';
-            const dayFolder = path.join(rootFolder, 'KhongCoMaDuAn', folderDate);
-            fs.mkdirSync(dayFolder, { recursive: true });
+            const dayFolder = rootFolder ? path.join(rootFolder, 'KhongCoMaDuAn', folderDate) : '';
+            if (dayFolder) fs.mkdirSync(dayFolder, { recursive: true });
 
             const peopleList = Array.isArray(report.nguoi_thuc_hien) ? report.nguoi_thuc_hien : [];
             const peopleFolderName = peopleList
@@ -3266,11 +3278,13 @@ ipcMain.handle('save-no-project-reports', async (_event, payload) => {
                 })
                 .filter(Boolean)
                 .join('_') || 'ChuaXacDinh';
-            const peopleFolder = path.join(dayFolder, peopleFolderName);
-            fs.mkdirSync(peopleFolder, { recursive: true });
+            const peopleFolder = dayFolder ? path.join(dayFolder, peopleFolderName) : '';
+            if (peopleFolder) fs.mkdirSync(peopleFolder, { recursive: true });
 
-            const filePath = path.join(peopleFolder, `noi_dung_khong_ma_${String(index + 1).padStart(3, '0')}.txt`);
-            fs.writeFileSync(filePath, noProjectReportText(report), 'utf8');
+            const filePath = peopleFolder
+                ? path.join(peopleFolder, `noi_dung_khong_ma_${String(index + 1).padStart(3, '0')}.txt`)
+                : '';
+            if (filePath) fs.writeFileSync(filePath, noProjectReportText(report), 'utf8');
 
             return {
                 ...report,
@@ -3284,8 +3298,13 @@ ipcMain.handle('save-no-project-reports', async (_event, payload) => {
             };
         });
 
+    const sqliteFile = savedReports.length
+        ? await insertReportsSqlite(savedReports)
+        : (await loadReportsSqlite()).sqliteFile;
+
     return {
         count: savedReports.length,
+        sqliteFile,
         reports: savedReports
     };
 });
