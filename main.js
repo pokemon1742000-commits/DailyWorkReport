@@ -1040,9 +1040,6 @@ function noProjectReportText(report) {
         '',
         'Trang thai:',
         ...(status.length ? status.map((item) => `- ${item}`) : ['Chua xac dinh']),
-        '',
-        'Raw:',
-        report.raw_text || ''
     ].join('\n');
 }
 
@@ -3232,14 +3229,16 @@ ipcMain.handle('save-reports', async (_event, payload) => {
             .filter(Boolean)
             .join('_') || 'ChuaXacDinh';
         const peopleFolder = path.join(dayFolder, peopleFolderName);
-        fs.mkdirSync(peopleFolder, { recursive: true });
+        const projectFolderName = sanitizeFolderName(report.ma_du_an) || 'UnknownProject';
+        const projectFolder = path.join(peopleFolder, projectFolderName);
+        fs.mkdirSync(projectFolder, { recursive: true });
 
         return {
             ...report,
             id: `${report.ngay_thuc_hien || 'unknown'}_${report.ma_du_an || 'PROJECT'}_${saveBatchId}_${String(index + 1).padStart(3, '0')}`,
             folder_ngay: dayFolder,
             folder_nhom_nguoi: peopleFolder,
-            folder_nguoi: [peopleFolder],
+            folder_nguoi: [projectFolder],
             created_at: report.created_at || new Date().toISOString()
         };
     });
@@ -3282,7 +3281,7 @@ ipcMain.handle('save-no-project-reports', async (_event, payload) => {
             if (peopleFolder) fs.mkdirSync(peopleFolder, { recursive: true });
 
             const filePath = peopleFolder
-                ? path.join(peopleFolder, `noi_dung_khong_ma_${String(index + 1).padStart(3, '0')}.txt`)
+                ? path.join(peopleFolder, `noi_dung_khong_ma_${saveBatchId}_${String(index + 1).padStart(3, '0')}.txt`)
                 : '';
             if (filePath) fs.writeFileSync(filePath, noProjectReportText(report), 'utf8');
 

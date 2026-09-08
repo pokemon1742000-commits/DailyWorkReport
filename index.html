@@ -3197,7 +3197,7 @@
                     nguoi_thuc_hien: [...(report.nguoi_thuc_hien || [])]
                 }
             }));
-            state.noProjectReports = splitReports.noProjectReports;
+            state.noProjectReports = mergeNoProjectReports(state.noProjectReports, splitReports.noProjectReports);
             await validatePreviewProjectReferences();
             renderPreview();
             renderNoProjectReports();
@@ -3224,16 +3224,17 @@
             }
 
             try {
+                const noProjectReportsToSave = mergeNoProjectReports(state.noProjectReports, splitReports.noProjectReports);
                 const projectResult = splitReports.projectReports.length
                     ? await ipcRenderer.invoke('save-reports', {
                         rootFolder: state.rootFolder,
                         reports: sanitizePreviewReports(splitReports.projectReports)
                     })
                     : { count: 0, skippedDuplicates: 0, reports: [] };
-                const noProjectResult = splitReports.noProjectReports.length
+                const noProjectResult = noProjectReportsToSave.length
                     ? await ipcRenderer.invoke('save-no-project-reports', {
                         rootFolder: state.rootFolder,
-                        reports: sanitizePreviewReports(splitReports.noProjectReports)
+                        reports: sanitizePreviewReports(noProjectReportsToSave)
                     })
                     : { count: 0 };
                 state.dataFile = projectResult.dataFile || '';
@@ -3242,12 +3243,10 @@
                 const skippedText = projectResult.skippedDuplicates ? ` Bỏ qua ${projectResult.skippedDuplicates} bản ghi trùng 100%.` : '';
                 const noProjectText = noProjectResult.count ? ` Đã chuyển ${noProjectResult.count} nội dung sang Không mã dự án.` : '';
                 setStatus(`Đã lưu ${projectResult.count || 0} bản ghi và tạo folder thành công.${noProjectText}${skippedText}`);
-                els.rawInput.value = '';
-                state.previewReports = [];
-                state.noProjectReports = noProjectResult.reports || [];
-                renderPreview();
-                renderNoProjectReports();
+                const currentNoProjectReports = noProjectResult.reports || noProjectReportsToSave;
                 await loadReports();
+                state.noProjectReports = mergeNoProjectReports(state.noProjectReports, currentNoProjectReports);
+                renderNoProjectReports();
                 renderFolderStructure();
             } catch (error) {
                 console.error('Không lưu/tạo folder được:', error);
@@ -3260,8 +3259,8 @@
         els.saveNoProjectBtn.addEventListener('click', saveNoProjectReports);
 
         els.clearPreviewBtn.addEventListener('click', () => {
+            els.rawInput.value = '';
             state.previewReports = [];
-            state.noProjectReports = [];
             renderPreview();
             renderNoProjectReports();
             setStatus('Đã clear bảng chuẩn hóa.');
@@ -5015,11 +5014,12 @@
             els.previewList.innerHTML = state.previewReports.map((report, index) => {
                 const isReferenceMissing = report.reference_missing || /^CHUA_XAC_DINH/i.test(String(report.ma_du_an || ''));
                 const groupFolderName = report.nguoi_thuc_hien.map((person) => person.folderName).join('_');
+                const projectFolderName = toFolderName(report.ma_du_an);
                 const folderPath = isReferenceMissing
                     ? 'Chưa tạo thư mục do mã dự án chưa hợp lệ'
                     : (report.folder_nguoi && report.folder_nguoi.length
                         ? report.folder_nguoi.join('; ')
-                        : `${report.folder_ngay_name}/${groupFolderName}`);
+                        : `${report.folder_ngay_name}/${groupFolderName}/${projectFolderName}`);
                 const copyFolderPath = isReferenceMissing
                     ? ''
                     : (report.folder_nguoi && report.folder_nguoi.length
@@ -5150,6 +5150,37 @@
                 projectReports.push(report);
             });
             return { projectReports, noProjectReports };
+        }
+
+        function noProjectReportKey(report) {
+            const normalize = (value) => removeVietnameseMarks(String(value || ''))
+                .toLowerCase()
+                .replace(/\s+/g, ' ')
+                .trim();
+            const listKey = (value, mapper = (item) => item) => (Array.isArray(value) ? value : [value])
+                .map(mapper)
+                .map(normalize)
+                .filter(Boolean)
+                .join('|');
+            return [
+                listKey(report.noi_dung_cong_viec),
+                listKey(report.thoi_gian),
+                listKey(report.nguoi_thuc_hien, (person) => person && (person.displayName || person.name || person)),
+                listKey(report.trang_thai),
+                normalize(report.ngay_thuc_hien)
+            ].join('||');
+        }
+
+        function mergeNoProjectReports(existingReports, incomingReports) {
+            const result = [];
+            const seen = new Set();
+            [...(existingReports || []), ...(incomingReports || [])].forEach((report) => {
+                const key = noProjectReportKey(report);
+                if (!key || seen.has(key)) return;
+                seen.add(key);
+                result.push(report);
+            });
+            return result;
         }
 
         function buildNoProjectPreviewFolderPath(report) {
@@ -8109,7 +8140,6 @@
             const result = await ipcRenderer.invoke('load-reports');
             state.savedReports = result.reports;
             state.allReports = result.reports;
-            state.noProjectReports = result.reports.filter(isNoProjectReport);
             state.dataFile = result.dataFile;
             state.sqliteFile = result.sqliteFile || '';
             learnFromAcceptedReports(result.reports, 'history');

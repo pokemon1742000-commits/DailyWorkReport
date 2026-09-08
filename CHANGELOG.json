@@ -1,4 +1,5 @@
 [
+  "Bản 1.7.6: sửa lưu nội dung không mã dự án không bị ghi đè, cộng dồn dữ liệu mới không trùng, giữ danh sách sau khi clear và tách thư mục theo mã dự án.",
   "Bản 1.7.5: Fix restore counts and no-project search",
   "Bản 1.7.4: Fix no-project restore and search flow",
   "Bản 1.7.3: cập nhật phiên bản 1.7.3",
