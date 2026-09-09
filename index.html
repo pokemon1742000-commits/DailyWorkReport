@@ -205,9 +205,8 @@
         .toast div {
             color: var(--muted);
             font-size: 13px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            overflow-wrap: anywhere;
+            user-select: text;
         }
 
         @keyframes toastIn {
@@ -777,6 +776,15 @@
         .report-card.reference-missing .project-edit-control .editable-preview-input,
         .report-card.reference-missing .project-suggestion-picker {
             border-color: #ef4444;
+        }
+
+        .report-card.saved-preview .report-grid > div:not(:last-child),
+        .report-card.saved-preview .warning-text {
+            display: none;
+        }
+
+        .report-card.saved-preview .report-grid {
+            grid-template-columns: 1fr;
         }
 
         .card-top {
@@ -2945,6 +2953,7 @@
             rootFolder: localStorage.getItem('dailyWorkReportRootFolder') || '',
             previewReports: [],
             noProjectReports: [],
+            saveReadyToClear: false,
             allReports: [],
             savedReports: [],
             searchRows: [],
@@ -3186,6 +3195,7 @@
                 return;
             }
 
+            state.saveReadyToClear = false;
             const parsedReports = applyLearningToReports(sanitizePreviewReports(parseReport(raw)));
             const splitReports = splitProjectAndNoProjectReports(parsedReports);
             state.previewReports = parsedReports.map((report) => ({
@@ -3206,6 +3216,11 @@
         });
 
         els.saveBtn.addEventListener('click', async () => {
+            if (state.saveReadyToClear) {
+                clearPreview();
+                return;
+            }
+
             if (!state.previewReports.length) {
                 setStatus('Chưa có dữ liệu preview để lưu.', true);
                 return;
@@ -3242,7 +3257,11 @@
                 learnFromAcceptedReports(projectResult.reports || [], 'save');
                 const skippedText = projectResult.skippedDuplicates ? ` Bỏ qua ${projectResult.skippedDuplicates} bản ghi trùng 100%.` : '';
                 const noProjectText = noProjectResult.count ? ` Đã chuyển ${noProjectResult.count} nội dung sang Không mã dự án.` : '';
+                state.saveReadyToClear = true;
+                renderPreview();
+                updateSaveButton();
                 setStatus(`Đã lưu ${projectResult.count || 0} bản ghi và tạo folder thành công.${noProjectText}${skippedText}`);
+                showToast('Đã lưu', [state.sqliteFile || state.dataFile || 'Đã lưu thành công'], 10000);
                 const currentNoProjectReports = noProjectResult.reports || noProjectReportsToSave;
                 await loadReports();
                 state.noProjectReports = mergeNoProjectReports(state.noProjectReports, currentNoProjectReports);
@@ -3258,13 +3277,17 @@
 
         els.saveNoProjectBtn.addEventListener('click', saveNoProjectReports);
 
-        els.clearPreviewBtn.addEventListener('click', () => {
+        function clearPreview() {
             els.rawInput.value = '';
             state.previewReports = [];
+            state.noProjectReports = [];
+            state.saveReadyToClear = false;
             renderPreview();
             renderNoProjectReports();
             setStatus('Đã clear bảng chuẩn hóa.');
-        });
+        }
+
+        els.clearPreviewBtn.addEventListener('click', clearPreview);
 
         els.clearNoProjectBtn.addEventListener('click', () => {
             state.noProjectReports = [];
@@ -4951,6 +4974,7 @@
             const parts = cleaned
                 .split(/\s+và\s+|,|;|\n|(?=\s*@)/gi)
                 .map((part) => cleanPersonName(part))
+                .filter((part) => !looksLikeStatusOnlyPerson(part))
                 .filter((part) => !/^\d{1,2}\s*\/\s*\d{1,2}\s*\/\s*\d{4}$/.test(part))
                 .filter(Boolean)
                 .map((name) => {
@@ -4962,6 +4986,17 @@
                 });
 
             return dedupeObjects(parts, 'folderName');
+        }
+
+        function looksLikeStatusOnlyPerson(name) {
+            const plain = removeVietnameseMarks(String(name || ''))
+                .toLowerCase()
+                .replace(/[.,:;!?]+/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+            if (/\btrang\s*thai\b/.test(plain)) return true;
+            if (/\d+\s*%/.test(plain) && /\b(?:dang|da|xong|cho|chua|hoan|xu\s*ly)\b/.test(plain)) return true;
+            return /^(?:dang|da|xong|cho|chua|dang thuc hien|dang xu ly|da xong|hoan thanh|hoan thien|chua xong|cho xu ly|xu ly)$/.test(plain);
         }
 
         function cleanPersonName(name) {
@@ -5033,7 +5068,7 @@
                 const warnings = report.warning || [];
 
                 return `
-                    <article class="report-card ${warnings.length ? 'warning' : ''} ${isReferenceMissing ? 'reference-missing' : ''}">
+                    <article class="report-card ${warnings.length ? 'warning' : ''} ${isReferenceMissing ? 'reference-missing' : ''} ${state.saveReadyToClear ? 'saved-preview' : ''}">
                         <div class="card-top">
                             <div class="index-badge ${isReferenceMissing ? 'reference-warning' : ''}">${String(index + 1).padStart(2, '0')}</div>
                             <h3>${escapeHtml(report.ma_du_an)}</h3>
@@ -5110,6 +5145,7 @@
                     if (state.previewReports[reportIndex].ai_original) {
                         state.previewReports[reportIndex].ai_original.nguoi_thuc_hien = [...state.previewReports[reportIndex].nguoi_thuc_hien];
                     }
+                    state.saveReadyToClear = false;
                     state.previewReports[reportIndex].folder_nguoi = [];
                     state.previewReports[reportIndex].folder_nhom_nguoi = '';
                     renderPreview();
@@ -5364,6 +5400,7 @@
             const field = event.target.dataset.previewEditField;
             const report = state.previewReports[reportIndex];
             if (!report || !field) return;
+            state.saveReadyToClear = false;
 
             if (field === 'ma_du_an') {
                 const project = normalizeProjectCode(event.target.value) || event.target.value.trim();
@@ -5468,7 +5505,10 @@
             const hasProjectReports = state.previewReports.some((report) => !isNoProjectReport(report));
             const blocked = hasPreview && hasInvalidPreviewProject();
             els.saveBtn.disabled = !hasPreview || (hasProjectReports && !state.rootFolder) || blocked;
-            els.saveBtn.title = blocked
+            els.saveBtn.textContent = state.saveReadyToClear ? 'Clear' : 'Lưu';
+            els.saveBtn.title = state.saveReadyToClear
+                ? 'Clear dữ liệu preview sau khi đã lưu.'
+                : blocked
                 ? 'Mã dự án đã nhập không có trong file tham khảo. Hãy sửa/chọn mã đúng trước khi lưu.'
                 : (hasProjectReports && !state.rootFolder ? 'Chọn thư mục lưu ảnh / tài liệu trước khi lưu.' : 'Lưu dữ liệu và tạo thư mục ảnh.');
         }

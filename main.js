@@ -121,65 +121,6 @@ function wait(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function ensureVietnameseImeCompatibility() {
-    if (process.platform !== 'win32') return;
-    const script = String.raw`
-$isElevated = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-$process = Get-CimInstance Win32_Process | Where-Object {
-    $_.Name -match '^(UniKey|UniKeyNT|Unikey|unikey).*\.exe$'
-} | Select-Object -First 1
-$candidate = if ($process -and $process.ExecutablePath) { $process.ExecutablePath } else { '' }
-if (-not $candidate) {
-    $programFilesX86 = [Environment]::GetEnvironmentVariable('ProgramFiles(x86)')
-    $roots = @(
-        $env:ProgramFiles,
-        $programFilesX86,
-        $env:LOCALAPPDATA,
-        $env:APPDATA,
-        [Environment]::GetFolderPath('Desktop')
-    ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) }
-    foreach ($root in $roots) {
-        $found = Get-ChildItem -LiteralPath $root -Recurse -ErrorAction SilentlyContinue -Include 'UniKey*.exe','Unikey*.exe','unikey*.exe' |
-            Where-Object { $_.FullName -notmatch '\\node_modules\\|\\dist\\|\\Daily_work_report\\' } |
-            Select-Object -First 1
-        if ($found) {
-            $candidate = $found.FullName
-            break
-        }
-    }
-}
-if ($candidate -and (Test-Path -LiteralPath $candidate)) {
-    try {
-        if ($isElevated) {
-            Get-Process | Where-Object { $_.ProcessName -match '^(UniKey|UniKeyNT|Unikey|unikey)' } | Stop-Process -Force -ErrorAction SilentlyContinue
-            Start-Sleep -Milliseconds 300
-            Start-Process -FilePath $candidate -Verb RunAs -WindowStyle Minimized
-            "STARTED_ADMIN|$candidate"
-        } else {
-            "NOT_NEEDED|$candidate"
-        }
-    } catch {
-        "FAILED|$candidate|$($_.Exception.Message)"
-    }
-} else {
-    "NOT_FOUND"
-}
-`;
-    try {
-        const result = await execFileText('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', script], { timeout: 7000 });
-        const message = result.stdout.trim();
-        if (message.startsWith('STARTED_ADMIN|')) {
-            console.log('Vietnamese IME helper restarted as admin:', message.slice('STARTED_ADMIN|'.length));
-        } else if (message.startsWith('NOT_NEEDED|')) {
-            console.log('Vietnamese IME helper not needed:', message.slice('NOT_NEEDED|'.length));
-        } else if (message.startsWith('FAILED|') || message === 'NOT_FOUND') {
-            console.warn('Vietnamese IME helper skipped:', message);
-        }
-    } catch (error) {
-        console.warn('Vietnamese IME helper skipped:', error.message || error);
-    }
-}
-
 function parseExplorerFolderLines(output) {
     const folders = String(output || '')
         .trim()
@@ -2969,9 +2910,6 @@ app.whenReady().then(() => {
         callback(permission === 'media');
     });
     createWindow();
-    setTimeout(() => {
-        ensureVietnameseImeCompatibility();
-    }, 1200);
 });
 
 app.on('window-all-closed', () => {
@@ -3030,11 +2968,6 @@ ipcMain.handle('stop-zalo-auto-move', async () => {
 
 ipcMain.handle('get-zalo-auto-move-status', async () => {
     return getZaloAutoMoveStatus();
-});
-
-ipcMain.handle('fix-vietnamese-ime', async () => {
-    await ensureVietnameseImeCompatibility();
-    return { ok: true };
 });
 
 ipcMain.handle('get-app-info', async () => {
