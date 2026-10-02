@@ -1751,6 +1751,34 @@
             background: rgba(18, 101, 179, 0.18);
         }
 
+        .weekly-row-delete {
+            position: absolute;
+            top: 4px;
+            right: 2px;
+            z-index: 5;
+            display: none;
+            min-width: 42px;
+            height: 28px;
+            padding: 0 8px;
+            border: 1px solid #b42318;
+            border-radius: 5px;
+            background: #d92d20;
+            color: #fff;
+            font: 600 12px "Segoe UI", Arial, sans-serif;
+            transform: translateY(-50%);
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .weekly-row-action-active .weekly-row-delete {
+            display: block;
+        }
+
+        .weekly-row-delete:hover,
+        .weekly-row-delete:focus-visible {
+            background: #b42318;
+        }
+
         .image-preview-title {
             margin-top: 14px;
             font-weight: 700;
@@ -2331,6 +2359,7 @@
     <nav class="tabs">
         <button class="tab active" data-tab="inputPage">Nhập liệu</button>
         <button class="tab" data-tab="noProjectPage">Không mã dự án</button>
+        <button class="tab" data-tab="outsideProjectPage">Dự án ngoài</button>
         <button class="tab" data-tab="searchPage">Tìm kiếm</button>
         <button class="tab" data-tab="weeklyPage">Báo cáo tuần</button>
     </nav>
@@ -2414,10 +2443,54 @@
                     </div>
                 </div>
                 <div class="panel-body">
-                    <div id="noProjectList" class="report-list">
-                        <div class="empty">Các nội dung có công việc nhưng không có mã dự án sẽ tự chuyển sang đây sau khi bấm Accept / Xác nhận.</div>
+                    <div id="noProjectList" class="category-table-wrap" style="margin-top: 14px; overflow: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Mã dự án</th>
+                                    <th>Ngày</th>
+                                    <th>Thời gian</th>
+                                    <th>Người thực hiện</th>
+                                    <th>Nội dung</th>
+                                    <th>Trạng thái</th>
+                                    <th>Thư mục</th>
+                                </tr>
+                            </thead>
+                            <tbody id="noProjectResults">
+                                <tr><td colspan="7" class="muted">Các nội dung có công việc nhưng không có mã dự án sẽ tự chuyển sang đây sau khi bấm Accept / Xác nhận.</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                     <div class="status-line" id="noProjectStatus">Sẵn sàng.</div>
+                </div>
+            </section>
+        </section>
+
+        <section id="outsideProjectPage" class="page">
+            <section class="panel search-layout">
+                <div class="panel-header">
+                    <h2>Dự án ngoài</h2>
+                    <div class="summary">
+                        <span class="pill" id="outsideProjectTotalPill">Tổng: 0</span>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div style="margin-top: 14px; overflow: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Mã dự án</th>
+                                    <th>Ngày</th>
+                                    <th>Thời gian</th>
+                                    <th>Người thực hiện</th>
+                                    <th>Nội dung</th>
+                                    <th>Trạng thái</th>
+                                    <th>Thư mục</th>
+                                </tr>
+                            </thead>
+                            <tbody id="outsideProjectResults"></tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
         </section>
@@ -2518,6 +2591,7 @@
                             <button id="addWeeklyImagesBtn">Load hình ảnh</button>
                             <button id="chooseWeeklyOutputBtn">Chọn nơi lưu</button>
                             <button id="exportSetupTrackingBtn">Thêm vào Excel setup</button>
+                            <button id="restoreWeeklyBtn" disabled>Khôi phục</button>
                             <button id="confirmWeeklyExportBtn">Xác nhận xuất Excel</button>
                         </div>
                         <div class="field-row" style="margin-top: 14px;">
@@ -2714,7 +2788,7 @@
             </div>
             <div class="modal-body">
                 <p id="deleteConfirmMessage" style="margin-top:0;"></p>
-                <p class="muted">Thao tác này sẽ xóa dữ liệu trong cả SQLite và JSON.</p>
+                <p id="deleteConfirmHint" class="muted">Thao tác này sẽ xóa dữ liệu trong cả SQLite và JSON.</p>
                 <div class="about-actions">
                     <button id="confirmDeleteBtn" class="primary">Xác nhận xóa</button>
                     <button id="cancelDeleteBtn">Hủy</button>
@@ -2801,6 +2875,7 @@
 
     <div id="projectContextMenu" class="project-context-menu">
         <button id="projectDetailMenuBtn" type="button">Detail</button>
+        <button id="projectDeleteMenuBtn" type="button">Xóa dòng</button>
     </div>
 
     <div id="rawInputContextMenu" class="raw-input-context-menu" role="menu">
@@ -2953,12 +3028,16 @@
             rootFolder: localStorage.getItem('dailyWorkReportRootFolder') || '',
             previewReports: [],
             noProjectReports: [],
+            outsideProjectReports: [],
             saveReadyToClear: false,
             allReports: [],
             savedReports: [],
             searchRows: [],
             selectedSearchIds: new Set(),
             pendingDeleteMode: null,
+            pendingWeeklyDeleteIndex: -1,
+            weeklyContextMenuIndex: -1,
+            weeklyDeletedRowHistory: [],
             updatePromptDismissed: false,
             pendingUpdateInfo: null,
             dataFile: '',
@@ -2985,6 +3064,7 @@
             detailResizeActive: false,
             weeklyColumnResize: null,
             weeklyRowResize: null,
+            activeWeeklyDeleteIndex: -1,
             collapsedFolderNodes: new Set(),
             folderPinned: localStorage.getItem('dailyWorkReportFolderPinned') !== 'false',
             detailImages: [],
@@ -3019,10 +3099,13 @@
             previewList: document.getElementById('previewList'),
             totalPill: document.getElementById('totalPill'),
             noProjectList: document.getElementById('noProjectList'),
+            noProjectResults: document.getElementById('noProjectResults'),
             noProjectTotalPill: document.getElementById('noProjectTotalPill'),
             saveNoProjectBtn: document.getElementById('saveNoProjectBtn'),
             clearNoProjectBtn: document.getElementById('clearNoProjectBtn'),
             noProjectStatus: document.getElementById('noProjectStatus'),
+            outsideProjectTotalPill: document.getElementById('outsideProjectTotalPill'),
+            outsideProjectResults: document.getElementById('outsideProjectResults'),
             zaloDestinationBar: document.getElementById('zaloDestinationBar'),
             zaloDestinationText: document.getElementById('zaloDestinationText'),
             folderStructurePanel: document.querySelector('.folder-structure-panel'),
@@ -3099,6 +3182,7 @@
             deleteAllBtn: document.getElementById('deleteAllBtn'),
             deleteConfirmModal: document.getElementById('deleteConfirmModal'),
             deleteConfirmMessage: document.getElementById('deleteConfirmMessage'),
+            deleteConfirmHint: document.getElementById('deleteConfirmHint'),
             confirmDeleteBtn: document.getElementById('confirmDeleteBtn'),
             cancelDeleteBtn: document.getElementById('cancelDeleteBtn'),
             cancelDeleteTopBtn: document.getElementById('cancelDeleteTopBtn'),
@@ -3120,8 +3204,10 @@
             exportSetupTrackingBtn: document.getElementById('exportSetupTrackingBtn'),
             confirmWeeklyExportBtn: document.getElementById('confirmWeeklyExportBtn'),
             weeklyStatus: document.getElementById('weeklyStatus'),
+            restoreWeeklyBtn: document.getElementById('restoreWeeklyBtn'),
             projectContextMenu: document.getElementById('projectContextMenu'),
             projectDetailMenuBtn: document.getElementById('projectDetailMenuBtn'),
+            projectDeleteMenuBtn: document.getElementById('projectDeleteMenuBtn'),
             projectDetailDrawer: document.getElementById('projectDetailDrawer'),
             detailResizeHandle: document.getElementById('detailResizeHandle'),
             closeProjectDetailBtn: document.getElementById('closeProjectDetailBtn'),
@@ -3232,12 +3318,6 @@
                 return;
             }
 
-            if (hasInvalidPreviewProject()) {
-                updateSaveButton();
-                setStatus('Có mã dự án không có trong file tham khảo. Hãy sửa/chọn mã đúng trước khi lưu.', true);
-                return;
-            }
-
             try {
                 const noProjectReportsToSave = mergeNoProjectReports(state.noProjectReports, splitReports.noProjectReports);
                 const projectResult = splitReports.projectReports.length
@@ -3281,6 +3361,7 @@
             els.rawInput.value = '';
             state.previewReports = [];
             state.noProjectReports = [];
+            state.outsideProjectReports = [];
             state.saveReadyToClear = false;
             renderPreview();
             renderNoProjectReports();
@@ -3370,10 +3451,17 @@
         els.chooseWeeklyOutputBtn.addEventListener('click', chooseWeeklyOutputFolder);
         els.exportSetupTrackingBtn.addEventListener('click', exportSetupTrackingReport);
         els.confirmWeeklyExportBtn.addEventListener('click', exportWeeklyReport);
+        els.restoreWeeklyBtn.addEventListener('click', undoLastWeeklyRowDeletion);
+        els.weeklyPreviewBody.addEventListener('click', handleWeeklyPreviewClick);
         els.weeklyPreviewBody.addEventListener('contextmenu', handleProjectContextMenu);
         els.projectDetailMenuBtn.addEventListener('click', () => {
             hideProjectContextMenu();
             openProjectDetail(state.detailMenuProject);
+        });
+        els.projectDeleteMenuBtn.addEventListener('click', () => {
+            const index = state.weeklyContextMenuIndex;
+            hideProjectContextMenu();
+            openWeeklyRowDeleteConfirm(index);
         });
         els.closeProjectDetailBtn.addEventListener('click', closeProjectDetail);
         els.detailWeekPicker.addEventListener('change', handleDetailWeekChange);
@@ -3387,6 +3475,7 @@
             if (event.target === els.imageViewer) closeImageViewer();
         });
         document.addEventListener('click', hideProjectContextMenu);
+        document.addEventListener('click', handleWeeklyDeleteOutsideClick);
         document.addEventListener('click', (event) => {
             if (!event.target.closest('#rawInputContextMenu')) hideRawInputContextMenu();
         });
@@ -3400,6 +3489,12 @@
         }, true);
         document.addEventListener('keydown', (event) => {
             if (isImeInput(event)) return;
+            const editingTarget = event.target && event.target.closest('input, textarea, select, [contenteditable="true"]');
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && !editingTarget) {
+                event.preventDefault();
+                undoLastWeeklyRowDeletion();
+                return;
+            }
             if (event.key === 'Escape') hideRawInputContextMenu();
             if (!els.imageViewer.classList.contains('open')) return;
             if (event.key === 'Escape') closeImageViewer();
@@ -3962,6 +4057,10 @@
             document.getElementById(tabId).classList.add('active');
             if (tabId === 'searchPage') {
                 renderSearch();
+            } else if (tabId === 'outsideProjectPage') {
+                renderOutsideProjectReports();
+            } else if (tabId === 'noProjectPage') {
+                renderNoProjectReports();
             }
         }
 
@@ -5047,24 +5146,18 @@
             }
 
             els.previewList.innerHTML = state.previewReports.map((report, index) => {
-                const isReferenceMissing = report.reference_missing || /^CHUA_XAC_DINH/i.test(String(report.ma_du_an || ''));
+                const isReferenceMissing = /^CHUA_XAC_DINH/i.test(String(report.ma_du_an || ''));
                 const groupFolderName = report.nguoi_thuc_hien.map((person) => person.folderName).join('_');
                 const projectFolderName = toFolderName(report.ma_du_an);
-                const folderPath = isReferenceMissing
-                    ? 'Chưa tạo thư mục do mã dự án chưa hợp lệ'
-                    : (report.folder_nguoi && report.folder_nguoi.length
-                        ? report.folder_nguoi.join('; ')
-                        : `${report.folder_ngay_name}/${groupFolderName}/${projectFolderName}`);
-                const copyFolderPath = isReferenceMissing
-                    ? ''
-                    : (report.folder_nguoi && report.folder_nguoi.length
-                        ? report.folder_nguoi.join('; ')
-                        : buildPreviewFolderPath(folderPath));
-                const openFolderPath = isReferenceMissing
-                    ? ''
-                    : (report.folder_nguoi && report.folder_nguoi.length
-                        ? report.folder_nguoi[0]
-                        : (state.rootFolder ? buildPreviewFolderPath(folderPath) : ''));
+                const folderPath = report.folder_nguoi && report.folder_nguoi.length
+                    ? report.folder_nguoi.join('; ')
+                    : `${report.folder_ngay_name}/${groupFolderName}/${projectFolderName}`;
+                const copyFolderPath = report.folder_nguoi && report.folder_nguoi.length
+                    ? report.folder_nguoi.join('; ')
+                    : buildPreviewFolderPath(folderPath);
+                const openFolderPath = report.folder_nguoi && report.folder_nguoi.length
+                    ? report.folder_nguoi[0]
+                    : (state.rootFolder ? buildPreviewFolderPath(folderPath) : '');
                 const warnings = report.warning || [];
 
                 return `
@@ -5188,6 +5281,61 @@
             return { projectReports, noProjectReports };
         }
 
+        function isOutsideProjectReport(report) {
+            return !isNoProjectReport(report) && Boolean(report && report.reference_missing);
+        }
+
+        async function refreshReportCategories() {
+            const reports = Array.isArray(state.allReports) ? state.allReports : [];
+            const projects = reports.filter((report) => !isNoProjectReport(report)).map((report) => report.ma_du_an).filter(Boolean);
+            if (projects.length) {
+                try {
+                    const references = await ipcRenderer.invoke('lookup-machine-reference', { projects });
+                    const referenceMap = new Map((references || []).map((item) => [normalizeProjectKey(item.project), item]));
+                    reports.forEach((report) => {
+                        if (isNoProjectReport(report)) return;
+                        const info = referenceMap.get(normalizeProjectKey(report.ma_du_an));
+                        report.reference_missing = Boolean(info && !info.found && !isAllowedUnreferencedProject(report.ma_du_an));
+                        report.reference_suggestions = info && Array.isArray(info.suggestions) ? info.suggestions : [];
+                    });
+                } catch (error) {
+                    console.error('Không phân loại được dự án ngoài:', error);
+                }
+            }
+            state.noProjectReports = reports.filter((report) => isNoProjectReport(report) && hasMeaningfulWorkContent(report));
+            state.outsideProjectReports = reports.filter(isOutsideProjectReport);
+            renderNoProjectReports();
+            renderOutsideProjectReports();
+        }
+
+        function reportTableRowHtml(report, includeSelection = false) {
+            const people = (report.nguoi_thuc_hien || []).map((person) => person.displayName || person).join(', ');
+            const content = Array.isArray(report.noi_dung_cong_viec) ? report.noi_dung_cong_viec.join('; ') : '';
+            const time = Array.isArray(report.thoi_gian) ? report.thoi_gian.join('; ') : '';
+            const status = Array.isArray(report.trang_thai) ? report.trang_thai.join('; ') : '';
+            const folder = report.folder_nguoi && report.folder_nguoi.length ? report.folder_nguoi[0] : (report.folder_ngay || '');
+            return `<tr>
+                ${includeSelection ? `<td><input type="checkbox" data-search-select="${escapeHtml(report.id || '')}"></td>` : ''}
+                <td>${escapeHtml(report.ma_du_an || '')}</td>
+                <td>${escapeHtml(report.ngay_thuc_hien || '')}</td>
+                <td>${escapeHtml(time)}</td>
+                <td>${escapeHtml(people)}</td>
+                <td>${escapeHtml(content)}</td>
+                <td>${escapeHtml(status)}</td>
+                <td><button data-category-folder="${escapeHtml(folder)}" ${folder ? '' : 'disabled'}>Mở thư mục</button></td>
+            </tr>`;
+        }
+
+        function renderOutsideProjectReports() {
+            if (!els.outsideProjectResults) return;
+            const rows = state.outsideProjectReports || [];
+            els.outsideProjectTotalPill.textContent = `Tổng: ${rows.length}`;
+            els.outsideProjectResults.innerHTML = rows.length
+                ? rows.map((report) => reportTableRowHtml(report)).join('')
+                : '<tr><td colspan="7" class="muted">Chưa có dự án ngoài.</td></tr>';
+            bindCategoryFolderButtons(els.outsideProjectResults);
+        }
+
         function noProjectReportKey(report) {
             const normalize = (value) => removeVietnameseMarks(String(value || ''))
                 .toLowerCase()
@@ -5229,70 +5377,32 @@
         }
 
         function renderNoProjectReports() {
-            if (!els.noProjectList) return;
-            els.noProjectTotalPill.textContent = `Tổng: ${state.noProjectReports.length}`;
-            els.saveNoProjectBtn.disabled = !state.noProjectReports.length || !state.rootFolder;
-            els.saveNoProjectBtn.title = !state.rootFolder ? 'Chọn thư mục lưu ảnh / tài liệu ở tab Nhập liệu trước.' : 'Lưu nội dung không có mã dự án vào thư mục riêng.';
+            if (!els.noProjectResults) return;
+            const rows = state.noProjectReports || [];
+            els.noProjectTotalPill.textContent = `Tổng: ${rows.length}`;
+            els.saveNoProjectBtn.disabled = !rows.length || !state.rootFolder;
+            els.saveNoProjectBtn.title = !state.rootFolder
+                ? 'Chọn thư mục lưu ảnh / tài liệu ở tab Nhập liệu trước.'
+                : 'Lưu nội dung không có mã dự án vào thư mục riêng.';
 
-            if (!state.noProjectReports.length) {
-                els.noProjectList.innerHTML = '<div class="empty">Chưa có nội dung không có mã dự án.</div>';
+            if (!rows.length) {
+                els.noProjectResults.innerHTML = '<tr><td colspan="7" class="muted">Chưa có nội dung không có mã dự án.</td></tr>';
                 return;
             }
 
-            els.noProjectList.innerHTML = state.noProjectReports.map((report, index) => {
-                const folderPath = report.folder_nguoi && report.folder_nguoi.length
-                    ? report.folder_nguoi.join('; ')
-                    : buildNoProjectPreviewFolderPath(report);
-                const copyFolderPath = report.folder_nguoi && report.folder_nguoi.length
-                    ? report.folder_nguoi.join('; ')
-                    : buildPreviewFolderPath(folderPath);
-                const openFolderPath = report.folder_nguoi && report.folder_nguoi.length
+            els.noProjectResults.innerHTML = rows.map((report) => {
+                const folder = report.folder_nguoi && report.folder_nguoi.length
                     ? report.folder_nguoi[0]
-                    : (state.rootFolder ? buildPreviewFolderPath(folderPath) : '');
-                return `
-                    <article class="report-card warning">
-                        <div class="card-top">
-                            <div class="index-badge reference-warning">${String(index + 1).padStart(2, '0')}</div>
-                            <h3>Không có mã dự án</h3>
-                            <span></span>
-                        </div>
-                        <div class="report-grid">
-                            ${fieldHtml('Nội dung công việc', escapeHtml(listToTextareaValue(report.noi_dung_cong_viec)).replace(/\n/g, '<br>'))}
-                            ${fieldHtml('Thời gian', escapeHtml(listToTextareaValue(report.thoi_gian) || 'Chưa xác định').replace(/\n/g, '<br>'))}
-                            ${fieldHtml('Người thực hiện', escapeHtml((report.nguoi_thuc_hien || []).map((person) => person.displayName || String(person)).join(', ') || 'Chưa xác định'))}
-                            ${fieldHtml('Trạng thái', escapeHtml(listToTextareaValue(report.trang_thai) || 'Chưa xác định').replace(/\n/g, '<br>'))}
-                            ${fieldHtml('Ngày thực hiện', report.ngay_thuc_hien || 'Chưa xác định')}
-                            <div>
-                                <label>Thư mục</label>
-                                <div class="folder-row">
-                                    <div class="value-box folder-path-box">
-                                        <span>${escapeHtml(folderPath)}</span>
-                                        <button class="copy-folder-btn" data-copy-no-project-folder="${escapeHtml(copyFolderPath)}" title="Copy đường dẫn" aria-label="Copy đường dẫn">⎘</button>
-                                    </div>
-                                    <button class="open-folder-inline-btn" data-open-no-project-folder="${escapeHtml(openFolderPath)}" ${openFolderPath ? '' : 'disabled'}>Mở</button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="warning-text">Nội dung này không có mã dự án, sẽ chỉ lưu vào thư mục riêng.</div>
-                    </article>
-                `;
+                    : (report.folder_ngay || (state.rootFolder ? buildPreviewFolderPath(buildNoProjectPreviewFolderPath(report)) : ''));
+                return reportTableRowHtml({ ...report, ma_du_an: 'Không mã dự án', folder_nguoi: folder ? [folder] : [] });
             }).join('');
+            bindCategoryFolderButtons(els.noProjectResults);
+        }
 
-            document.querySelectorAll('[data-open-no-project-folder]').forEach((button) => {
+        function bindCategoryFolderButtons(container) {
+            container.querySelectorAll('[data-category-folder]').forEach((button) => {
                 button.addEventListener('click', () => {
-                    const folder = button.dataset.openNoProjectFolder;
-                    if (folder) ipcRenderer.invoke('open-folder', folder);
-                });
-            });
-            document.querySelectorAll('[data-copy-no-project-folder]').forEach((button) => {
-                button.addEventListener('click', () => {
-                    const folder = button.dataset.copyNoProjectFolder || '';
-                    if (!folder) return;
-                    clipboard.writeText(folder);
-                    button.textContent = '✓';
-                    setTimeout(() => {
-                        button.textContent = '⎘';
-                    }, 1200);
+                    if (button.dataset.categoryFolder) ipcRenderer.invoke('open-folder', button.dataset.categoryFolder);
                 });
             });
         }
@@ -5494,22 +5604,16 @@
         }
 
         function hasInvalidPreviewProject() {
-            return state.previewReports.some((report) => (
-                Boolean(report.reference_missing)
-                && !isNoProjectReport(report)
-            ));
+            return state.previewReports.some((report) => isNoProjectReport(report) && !hasMeaningfulWorkContent(report));
         }
 
         function updateSaveButton() {
             const hasPreview = state.previewReports.length > 0;
             const hasProjectReports = state.previewReports.some((report) => !isNoProjectReport(report));
-            const blocked = hasPreview && hasInvalidPreviewProject();
-            els.saveBtn.disabled = !hasPreview || (hasProjectReports && !state.rootFolder) || blocked;
+            els.saveBtn.disabled = !hasPreview || (hasProjectReports && !state.rootFolder);
             els.saveBtn.textContent = state.saveReadyToClear ? 'Clear' : 'Lưu';
             els.saveBtn.title = state.saveReadyToClear
                 ? 'Clear dữ liệu preview sau khi đã lưu.'
-                : blocked
-                ? 'Mã dự án đã nhập không có trong file tham khảo. Hãy sửa/chọn mã đúng trước khi lưu.'
                 : (hasProjectReports && !state.rootFolder ? 'Chọn thư mục lưu ảnh / tài liệu trước khi lưu.' : 'Lưu dữ liệu và tạo thư mục ảnh.');
         }
 
@@ -5993,6 +6097,7 @@
                 const result = await ipcRenderer.invoke('sync-sqlite-download', payload);
                 state.allReports = result.reports || [];
                 state.savedReports = state.allReports;
+                await refreshReportCategories();
                 setSyncStatus(`Đã tải dữ liệu từ server. Tổng ${result.count || 0} bản ghi.`);
                 renderSearch();
                 updateCurrentDateTime();
@@ -6135,8 +6240,7 @@
                 saveGoogleSheetSettings();
                 state.allReports = result.reports || [];
                 state.savedReports = state.allReports;
-                state.noProjectReports = state.allReports.filter(isNoProjectReport);
-                renderNoProjectReports();
+                await refreshReportCategories();
                 const restoreMessage = `Đã khôi phục ${result.count || 0} bản ghi: ${result.projectCount || 0} mã dự án, ${result.noProjectCount || 0} không mã dự án.`;
                 setGoogleSheetStatus(restoreMessage);
                 alert(restoreMessage);
@@ -6698,6 +6802,8 @@
 
             cacheCurrentWeeklyRows();
             const rangeKey = getWeeklyRangeKey();
+            state.weeklyDeletedRowHistory = [];
+            updateWeeklyRestoreButton();
             const result = await ipcRenderer.invoke('get-weekly-preview', {
                 dateFrom: els.weeklyDateFrom.value,
                 dateTo: els.weeklyDateTo.value
@@ -6712,6 +6818,7 @@
             syncWeeklyImageGroupsWithProjects();
             renderWeeklyPreview();
             renderWeeklyImages();
+            updateWeeklyRestoreButton();
             els.weeklyWorkspace.classList.add('visible');
             els.weeklyEmptyState.style.display = 'none';
             els.weeklyModal.classList.remove('open');
@@ -6846,7 +6953,7 @@
             }
 
             els.weeklyPreviewBody.innerHTML = state.weeklyRows.map((row, index) => `
-                <tr data-weekly-index="${index}" data-weekly-project="${escapeHtml(row.du_an || row.project_full || '')}" style="height:${getWeeklyRowHeight(row)}px">
+                <tr class="${state.activeWeeklyDeleteIndex === index ? 'weekly-row-action-active' : ''}" data-weekly-index="${index}" data-weekly-project="${escapeHtml(row.du_an || row.project_full || '')}" style="height:${getWeeklyRowHeight(row)}px">
                     ${state.weeklyColumns.map((column) => renderWeeklyCell(column, row, index)).join('')}
                 </tr>
             `).join('');
@@ -6920,7 +7027,7 @@
                         </select>
                     `
                     : '';
-                return `<td class="weekly-stt-cell ${row.reference_missing ? 'reference-warning' : ''}">${row.stt}${suggestionSelect}<span class="weekly-row-resizer" data-weekly-resize-row="${index}"></span></td>`;
+                return `<td class="weekly-stt-cell ${row.reference_missing ? 'reference-warning' : ''}">${row.stt}${suggestionSelect}<span class="weekly-row-resizer" data-weekly-resize-row="${index}"></span><button type="button" class="weekly-row-delete" data-weekly-delete-index="${index}" aria-label="Xóa dòng dự án">Xóa</button></td>`;
             }
             if (column.id === 'hang_muc') {
                 row.hang_muc = normalizeWeeklyCategory(row.hang_muc);
@@ -7413,6 +7520,87 @@
             els.rawInput.setSelectionRange(cursor, cursor);
         }
 
+        function handleWeeklyPreviewClick(event) {
+            const rowElement = event.target.closest('tr[data-weekly-index]');
+            if (!rowElement || !els.weeklyPreviewBody.contains(rowElement)) return;
+
+            const deleteButton = event.target.closest('[data-weekly-delete-index]');
+            if (deleteButton) {
+                event.preventDefault();
+                event.stopPropagation();
+                deleteWeeklyRow(Number(deleteButton.dataset.weeklyDeleteIndex));
+                return;
+            }
+
+            if (event.target.closest('input, select, textarea, button, [data-weekly-resize-row]')) return;
+
+            const index = Number(rowElement.dataset.weeklyIndex);
+            if (!state.weeklyRows[index]) return;
+            if (state.activeWeeklyDeleteIndex === index) return;
+            state.activeWeeklyDeleteIndex = index;
+            renderWeeklyPreview();
+        }
+
+        function handleWeeklyDeleteOutsideClick(event) {
+            if (state.activeWeeklyDeleteIndex < 0) return;
+            if (event.target.closest('tr[data-weekly-index]')) return;
+            state.activeWeeklyDeleteIndex = -1;
+            renderWeeklyPreview();
+        }
+
+        function deleteWeeklyRow(index) {
+            if (!state.weeklyRows[index]) return;
+            const [row] = state.weeklyRows.splice(index, 1);
+            state.weeklyDeletedRowHistory.push({
+                rangeKey: state.currentWeeklyRangeKey,
+                index,
+                row: JSON.parse(JSON.stringify(row))
+            });
+            state.weeklyDeletedRowHistory = state.weeklyDeletedRowHistory.slice(-20);
+            finishWeeklyRowsMutation();
+        }
+
+        function finishWeeklyRowsMutation() {
+            state.weeklyRows.forEach((row, rowIndex) => {
+                row.stt = rowIndex + 1;
+            });
+            state.activeWeeklyDeleteIndex = -1;
+            state.weeklyContextMenuIndex = -1;
+            cacheCurrentWeeklyRows();
+            syncWeeklyImageGroupsWithProjects();
+            renderWeeklyPreview();
+            renderWeeklyImages();
+            updateWeeklyRestoreButton();
+        }
+
+        function undoLastWeeklyRowDeletion() {
+            const historyIndex = [...state.weeklyDeletedRowHistory]
+                .map((item, index) => ({ item, index }))
+                .reverse()
+                .find(({ item }) => item.rangeKey === state.currentWeeklyRangeKey);
+            if (!historyIndex) return;
+            const { item, index } = historyIndex;
+            state.weeklyDeletedRowHistory.splice(index, 1);
+            state.weeklyRows.splice(Math.min(item.index, state.weeklyRows.length), 0, item.row);
+            finishWeeklyRowsMutation();
+        }
+
+        function updateWeeklyRestoreButton() {
+            if (!els.restoreWeeklyBtn) return;
+            els.restoreWeeklyBtn.disabled = !state.weeklyDeletedRowHistory.some((item) => item.rangeKey === state.currentWeeklyRangeKey);
+        }
+
+        function openWeeklyRowDeleteConfirm(index) {
+            if (!state.weeklyRows[index]) return;
+            state.pendingDeleteMode = 'weekly-row';
+            state.pendingWeeklyDeleteIndex = index;
+            const row = state.weeklyRows[index];
+            const project = row.du_an || row.project_full || 'dự án này';
+            els.deleteConfirmMessage.textContent = `Bạn có chắc muốn xóa dòng dự án ${project} khỏi bản xem trước báo cáo tuần không?`;
+            els.deleteConfirmHint.textContent = 'Chỉ xóa dòng trong bản xem trước, không xóa dữ liệu SQLite hoặc báo cáo ngày.';
+            els.deleteConfirmModal.classList.add('open');
+        }
+
         function handleProjectContextMenu(event) {
             const projectRow = event.target.closest('tr[data-weekly-index]');
             if (!projectRow || !els.weeklyPreviewBody.contains(projectRow)) return;
@@ -7424,6 +7612,7 @@
 
             event.preventDefault();
             state.detailMenuProject = project;
+            state.weeklyContextMenuIndex = index;
             const menuWidth = 128;
             const left = Math.min(event.clientX, window.innerWidth - menuWidth - 10);
             const top = Math.min(event.clientY, window.innerHeight - 48);
@@ -8184,7 +8373,7 @@
             state.sqliteFile = result.sqliteFile || '';
             learnFromAcceptedReports(result.reports, 'history');
             renderSearch();
-            renderNoProjectReports();
+            await refreshReportCategories();
             renderFolderStructure();
             updateCurrentDateTime();
         }
@@ -8532,6 +8721,7 @@
         }
 
         function openDeleteConfirm(mode) {
+            els.deleteConfirmHint.textContent = 'Thao tác này sẽ xóa dữ liệu trong cả SQLite và JSON.';
             const selectedVisibleIds = state.searchRows
                 .map((report) => report.id)
                 .filter((id) => id && state.selectedSearchIds.has(id));
@@ -8547,12 +8737,20 @@
 
         function closeDeleteConfirm() {
             state.pendingDeleteMode = null;
+            state.pendingWeeklyDeleteIndex = -1;
+            els.deleteConfirmHint.textContent = 'Thao tác này sẽ xóa dữ liệu trong cả SQLite và JSON.';
             els.deleteConfirmModal.classList.remove('open');
         }
 
         async function confirmDeleteReports() {
             const mode = state.pendingDeleteMode;
             if (!mode) return;
+            if (mode === 'weekly-row') {
+                const index = state.pendingWeeklyDeleteIndex;
+                closeDeleteConfirm();
+                deleteWeeklyRow(index);
+                return;
+            }
             const selectedVisibleIds = state.searchRows
                 .map((report) => report.id)
                 .filter((id) => id && state.selectedSearchIds.has(id));
@@ -8566,6 +8764,7 @@
                 state.savedReports = state.allReports;
                 state.selectedSearchIds.clear();
                 closeDeleteConfirm();
+                await refreshReportCategories();
                 renderSearch();
                 renderFolderStructure();
                 updateCurrentDateTime();
