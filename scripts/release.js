@@ -265,7 +265,12 @@ function main() {
     updateChangelog(options.version, options.notes);
 
     if (!options.skipBuild) {
-        run('npm', ['version', options.version, '--no-git-tag-version']);
+        const currentVersion = readPackage().version;
+        if (String(currentVersion) !== String(options.version)) {
+            run('npm', ['version', options.version, '--no-git-tag-version']);
+        } else {
+            console.log(`package.json đã ở phiên bản ${options.version}; bỏ qua npm version.`);
+        }
         run('npm', ['run', 'build:release']);
     }
 
