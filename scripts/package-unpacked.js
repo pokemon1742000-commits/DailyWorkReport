@@ -6,8 +6,13 @@ const rootDir = path.resolve(__dirname, '..');
 const pkg = JSON.parse(fs.readFileSync(path.join(rootDir, 'package.json'), 'utf8'));
 const productName = (pkg.build && pkg.build.productName) || 'Daily Work Report';
 const distDir = path.join(rootDir, 'dist');
-const unpackedDir = path.join(distDir, 'win-unpacked');
-const zipFile = path.join(distDir, `${productName}-v${pkg.version}-win-unpacked.zip`);
+
+// Determine architecture: first CLI arg is arch (default x64)
+const arch = process.argv[2] || 'x64';
+const version = pkg.version;
+
+const unpackedDir = path.join(distDir, arch === 'ia32' ? `win-unpacked-ia32` : 'win-unpacked');
+const zipFile = path.join(distDir, `${productName}-v${version}-${arch === 'ia32' ? 'ia32-' : ''}win-unpacked.zip`);
 
 if (!fs.existsSync(unpackedDir)) {
     throw new Error(`Missing unpacked build folder: ${unpackedDir}. Run npm run build first.`);

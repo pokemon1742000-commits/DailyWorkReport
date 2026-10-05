@@ -174,7 +174,9 @@ function copyReleaseAliases(version) {
     const productName = (pkg.build && pkg.build.productName) || 'Daily Work Report';
     const dashedName = productName.replace(/\s+/g, '-');
     const distDir = path.join(rootDir, 'dist');
-    const aliases = [
+
+    // x64 assets
+    const x64Aliases = [
         [
             path.join(distDir, `${productName}-Setup-v${version}.exe`),
             path.join(distDir, `${dashedName}-Setup-v${version}.exe`)
@@ -184,13 +186,30 @@ function copyReleaseAliases(version) {
             path.join(distDir, `${dashedName}-Setup-v${version}.exe.blockmap`)
         ]
     ];
-    aliases.forEach(([source, target]) => {
+    x64Aliases.forEach(([source, target]) => {
         if (!fs.existsSync(source)) {
             throw new Error(`Thiếu file build: ${source}`);
         }
         fs.copyFileSync(source, target);
-        console.log(`Copied ${path.basename(source)} -> ${path.basename(target)}`);
+        console.log(`Copied x64: ${path.basename(source)} -> ${path.basename(target)}`);
     });
+
+    // ia32 assets
+    const ia32Setup = path.join(distDir, `${productName}-Setup-v${version}-ia32.exe`);
+    const ia32SetupAlias = path.join(distDir, `${dashedName}-Setup-v${version}-ia32.exe`);
+    const ia32Portable = path.join(distDir, `${productName}-v${version}-ia32.exe`);
+    const ia32Unpacked = path.join(distDir, `${productName}-v${version}-ia32-win-unpacked.zip`);
+
+    if (fs.existsSync(ia32Setup)) {
+        fs.copyFileSync(ia32Setup, ia32SetupAlias);
+        console.log(`Copied ia32: ${path.basename(ia32Setup)} -> ${path.basename(ia32SetupAlias)}`);
+    }
+    if (fs.existsSync(ia32Portable)) {
+        console.log(`Found ia32 portable: ${path.basename(ia32Portable)}`);
+    }
+    if (fs.existsSync(ia32Unpacked)) {
+        console.log(`Found ia32 unpacked zip: ${path.basename(ia32Unpacked)}`);
+    }
 }
 
 function collectReleaseAssets(version) {
@@ -198,13 +217,22 @@ function collectReleaseAssets(version) {
     const productName = (pkg.build && pkg.build.productName) || 'Daily Work Report';
     const dashedName = productName.replace(/\s+/g, '-');
     const distDir = path.join(rootDir, 'dist');
-    return [
+
+    const assets = [
+        // x64
         path.join(distDir, `${dashedName}-Setup-v${version}.exe`),
         path.join(distDir, `${dashedName}-Setup-v${version}.exe.blockmap`),
         path.join(distDir, `${productName}-v${version}.exe`),
         path.join(distDir, `${productName}-v${version}-win-unpacked.zip`),
+        // ia32
+        path.join(distDir, `${dashedName}-Setup-v${version}-ia32.exe`),
+        path.join(distDir, `${productName}-v${version}-ia32.exe`),
+        path.join(distDir, `${productName}-v${version}-ia32-win-unpacked.zip`),
+        // latest.yml
         path.join(distDir, 'latest.yml')
     ];
+
+    return assets.filter((asset) => fs.existsSync(asset));
 }
 
 function ensureAssetsExist(assets) {
