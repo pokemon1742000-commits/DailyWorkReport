@@ -1,16 +1,17 @@
 {
   "name": "daily_work_report",
-  "version": "1.8.4",
+  "version": "1.8.5",
   "description": "Phần mềm chuẩn hóa báo cáo công việc hằng ngày, quản lý SQLite, thư mục ảnh/tài liệu và xuất báo cáo tuần Excel.",
   "main": "main.js",
   "scripts": {
     "start": "set ELECTRON_RUN_AS_NODE=& electron .",
     "start:hidden": "wscript \"Run Daily Work Report.vbs\"",
-    "build": "electron-builder --win",
+    "build": "electron-builder --win --x64",
+    "build:ia32": "electron-builder --win --ia32",
     "build:installer": "electron-builder --win nsis",
     "package:unpacked": "node scripts/package-unpacked.js",
     "package:unpacked:ia32": "node scripts/package-unpacked.js ia32",
-    "build:release": "npm run build && npm run package:unpacked:ia32 && npm run package:unpacked",
+    "build:release": "npm run build && npm run package:unpacked && npm run build:ia32 && npm run package:unpacked:ia32",
     "release:auto": "node scripts/release.js",
     "sync-server": "node server/sync-server.js",
     "test": "node --test tests/*.test.js"
@@ -68,30 +69,6 @@
       "createStartMenuShortcut": true,
       "shortcutName": "${productName}",
       "deleteAppDataOnUninstall": false
-    },
-    "x64": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": ["x64"]
-        },
-        {
-          "target": "portable",
-          "arch": ["x64"]
-        }
-      ]
-    },
-    "ia32": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": ["ia32"]
-        },
-        {
-          "target": "portable",
-          "arch": ["ia32"]
-        }
-      ]
     }
   }
 }

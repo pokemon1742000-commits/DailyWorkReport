@@ -299,7 +299,24 @@ function main() {
         } else {
             console.log(`package.json đã ở phiên bản ${options.version}; bỏ qua npm version.`);
         }
-        run('npm', ['run', 'build:release']);
+        // Build x64 first so latest.yml targets x64 (for auto-updater)
+        run('npm', ['run', 'build']);
+        run('npm', ['run', 'package:unpacked']);
+        // Backup x64 latest.yml before ia32 build overwrites it
+        const latestYml = path.join(rootDir, 'dist', 'latest.yml');
+        const latestYmlBackup = path.join(rootDir, 'dist', 'latest-x64.yml');
+        if (fs.existsSync(latestYml)) {
+            fs.copyFileSync(latestYml, latestYmlBackup);
+            console.log('Backed up x64 latest.yml before ia32 build');
+        }
+        // Build ia32
+        run('npm', ['run', 'build:ia32']);
+        run('npm', ['run', 'package:unpacked:ia32']);
+        // Restore x64 latest.yml for auto-updater
+        if (fs.existsSync(latestYmlBackup)) {
+            fs.copyFileSync(latestYmlBackup, latestYml);
+            console.log('Restored x64 latest.yml for auto-updater');
+        }
     }
 
     copyReleaseAliases(options.version);
