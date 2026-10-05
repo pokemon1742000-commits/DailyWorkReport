@@ -40,7 +40,7 @@
       }
     ],
     "directories": {
-      "output": "dist"
+      "output": "dist/${arch}"
     },
     "compression": "maximum",
     "files": [

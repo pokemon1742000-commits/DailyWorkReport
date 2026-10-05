@@ -11,8 +11,9 @@ const distDir = path.join(rootDir, 'dist');
 const arch = process.argv[2] || 'x64';
 const version = pkg.version;
 
-const unpackedDir = path.join(distDir, arch === 'ia32' ? `win-ia32-unpacked` : 'win-unpacked');
-const zipFile = path.join(distDir, `${productName}-v${version}-${arch === 'ia32' ? 'ia32-' : ''}win-unpacked.zip`);
+// electron-builder outputs to dist/${arch}/
+const unpackedDir = path.join(distDir, arch, 'win-unpacked');
+const zipFile = path.join(distDir, `${productName}-v${version}-${arch}-win-unpacked.zip`);
 
 if (!fs.existsSync(unpackedDir)) {
     throw new Error(`Missing unpacked build folder: ${unpackedDir}. Run npm run build first.`);

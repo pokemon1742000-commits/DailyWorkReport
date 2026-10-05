@@ -175,14 +175,14 @@ function copyReleaseAliases(version) {
     const dashedName = productName.replace(/\s+/g, '-');
     const distDir = path.join(rootDir, 'dist');
 
-    // x64 assets
+    // x64 assets: copy from dist/x64/ to dist root with dashed name
     const x64Aliases = [
         [
-            path.join(distDir, `${productName}-Setup-v${version}.exe`),
+            path.join(distDir, 'x64', `${productName}-Setup-v${version}.exe`),
             path.join(distDir, `${dashedName}-Setup-v${version}.exe`)
         ],
         [
-            path.join(distDir, `${productName}-Setup-v${version}.exe.blockmap`),
+            path.join(distDir, 'x64', `${productName}-Setup-v${version}.exe.blockmap`),
             path.join(distDir, `${dashedName}-Setup-v${version}.exe.blockmap`)
         ]
     ];
@@ -194,19 +194,26 @@ function copyReleaseAliases(version) {
         console.log(`Copied x64: ${path.basename(source)} -> ${path.basename(target)}`);
     });
 
-    // ia32 assets
-    const ia32Setup = path.join(distDir, `${productName}-Setup-v${version}-ia32.exe`);
-    const ia32SetupAlias = path.join(distDir, `${dashedName}-Setup-v${version}-ia32.exe`);
-    const ia32Portable = path.join(distDir, `${productName}-v${version}-ia32.exe`);
-    const ia32Unpacked = path.join(distDir, `${productName}-v${version}-ia32-win-unpacked.zip`);
+    // ia32 assets: copy from dist/ia32/ to dist root
+    const ia32Aliases = [
+        [
+            path.join(distDir, 'ia32', `${productName}-Setup-v${version}.exe`),
+            path.join(distDir, `${productName}-Setup-v${version}-ia32.exe`)
+        ],
+        [
+            path.join(distDir, 'ia32', `${productName}-v${version}.exe`),
+            path.join(distDir, `${productName}-v${version}-ia32.exe`)
+        ]
+    ];
+    ia32Aliases.forEach(([source, target]) => {
+        if (!fs.existsSync(source)) {
+            throw new Error(`Thiếu file build: ${source}`);
+        }
+        fs.copyFileSync(source, target);
+        console.log(`Copied ia32: ${path.basename(source)} -> ${path.basename(target)}`);
+    });
 
-    if (fs.existsSync(ia32Setup)) {
-        fs.copyFileSync(ia32Setup, ia32SetupAlias);
-        console.log(`Copied ia32: ${path.basename(ia32Setup)} -> ${path.basename(ia32SetupAlias)}`);
-    }
-    if (fs.existsSync(ia32Portable)) {
-        console.log(`Found ia32 portable: ${path.basename(ia32Portable)}`);
-    }
+    const ia32Unpacked = path.join(distDir, `${productName}-v${version}-ia32-win-unpacked.zip`);
     if (fs.existsSync(ia32Unpacked)) {
         console.log(`Found ia32 unpacked zip: ${path.basename(ia32Unpacked)}`);
     }
@@ -219,17 +226,17 @@ function collectReleaseAssets(version) {
     const distDir = path.join(rootDir, 'dist');
 
     const assets = [
-        // x64
-        path.join(distDir, `${dashedName}-Setup-v${version}.exe`),
-        path.join(distDir, `${dashedName}-Setup-v${version}.exe.blockmap`),
-        path.join(distDir, `${productName}-v${version}.exe`),
-        path.join(distDir, `${productName}-v${version}-win-unpacked.zip`),
-        // ia32
-        path.join(distDir, `${dashedName}-Setup-v${version}-ia32.exe`),
-        path.join(distDir, `${productName}-v${version}-ia32.exe`),
+        // x64: from dist/x64/
+        path.join(distDir, 'x64', `${productName}-Setup-v${version}.exe`),
+        path.join(distDir, 'x64', `${productName}-Setup-v${version}.exe.blockmap`),
+        path.join(distDir, 'x64', `${productName}-v${version}.exe`),
+        path.join(distDir, `${productName}-v${version}-x64-win-unpacked.zip`),
+        // ia32: from dist/ia32/
+        path.join(distDir, 'ia32', `${productName}-Setup-v${version}.exe`),
+        path.join(distDir, 'ia32', `${productName}-v${version}.exe`),
         path.join(distDir, `${productName}-v${version}-ia32-win-unpacked.zip`),
-        // latest.yml
-        path.join(distDir, 'latest.yml')
+        // latest.yml: from dist/x64/
+        path.join(distDir, 'x64', 'latest.yml')
     ];
 
     return assets.filter((asset) => fs.existsSync(asset));
@@ -299,43 +306,12 @@ function main() {
         } else {
             console.log(`package.json đã ở phiên bản ${options.version}; bỏ qua npm version.`);
         }
-        // Build x64 first so latest.yml targets x64 (for auto-updater)
+        // Build x64: outputs to dist/x64/ (latest.yml targets x64 for auto-updater)
         run('npm', ['run', 'build']);
         run('npm', ['run', 'package:unpacked']);
-        // Backup x64 latest.yml before ia32 build overwrites it
-        const latestYml = path.join(rootDir, 'dist', 'latest.yml');
-        const latestYmlBackup = path.join(rootDir, 'dist', 'latest-x64.yml');
-        if (fs.existsSync(latestYml)) {
-            fs.copyFileSync(latestYml, latestYmlBackup);
-            console.log('Backed up x64 latest.yml before ia32 build');
-        }
-        // Build ia32
+        // Build ia32: outputs to dist/ia32/ (separate dir, no clash)
         run('npm', ['run', 'build:ia32']);
         run('npm', ['run', 'package:unpacked:ia32']);
-        // Rename ia32 artifacts so they don't clash with x64
-        const pkg2 = readPackage();
-        const productName2 = (pkg2.build && pkg2.build.productName) || 'Daily Work Report';
-        const dashedName2 = productName2.replace(/\s+/g, '-');
-        const distDir2 = path.join(rootDir, 'dist');
-        // Rename to dashed-name so collectReleaseAssets can find them directly
-        const ia32Renames = [
-            [`${productName2}-Setup-v${options.version}.exe`, `${dashedName2}-Setup-v${options.version}-ia32.exe`],
-            [`${productName2}-Setup-v${options.version}.exe.blockmap`, `${dashedName2}-Setup-v${options.version}-ia32.exe.blockmap`],
-            [`${productName2}-v${options.version}.exe`, `${productName2}-v${options.version}-ia32.exe`]
-        ];
-        ia32Renames.forEach(([from, to]) => {
-            const src = path.join(distDir2, from);
-            const dst = path.join(distDir2, to);
-            if (fs.existsSync(src)) {
-                fs.renameSync(src, dst);
-                console.log(`Renamed ia32: ${from} -> ${to}`);
-            }
-        });
-        // Restore x64 latest.yml for auto-updater
-        if (fs.existsSync(latestYmlBackup)) {
-            fs.copyFileSync(latestYmlBackup, latestYml);
-            console.log('Restored x64 latest.yml for auto-updater');
-        }
     }
 
     copyReleaseAliases(options.version);
