@@ -4,7 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 
 const PORT = Number(process.env.PORT || process.env.SYNC_PORT || 3959);
-const HOST = process.env.HOST || '0.0.0.0';
+const HOST = process.env.HOST || '127.0.0.1';
 const SYNC_TOKEN = process.env.SYNC_TOKEN || '';
 const DATA_DIR = process.env.SYNC_DATA_DIR || path.join(__dirname, '..', 'server_data');
 const MAX_BODY_SIZE = Number(process.env.SYNC_MAX_BODY_SIZE || 80 * 1024 * 1024);
@@ -110,6 +110,10 @@ async function handleUpload(req, res) {
         return;
     }
 
+    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(String(body.sqliteBase64))) {
+        jsonResponse(res, 400, { ok: false, error: 'sqliteBase64 không hợp lệ.' });
+        return;
+    }
     const sqliteBuffer = Buffer.from(body.sqliteBase64, 'base64');
     if (!sqliteBuffer.length) {
         jsonResponse(res, 400, { ok: false, error: 'File SQLite rỗng.' });

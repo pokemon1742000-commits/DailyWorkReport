@@ -23,6 +23,7 @@ const GITHUB_REPO_URL = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}`;
 let sqlPromise = null;
 let machineReferenceCache = null;
 let autoUpdaterConfigured = false;
+let updateShutdownRequested = false;
 const ZALO_IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.webp', '.heic', '.tif', '.tiff']);
 const zaloAutoMoveState = {
     enabled: false,
@@ -310,7 +311,7 @@ async function updateFromGithubRelease() {
         const downloadedFile = Array.isArray(downloadedFiles) ? downloadedFiles.join('; ') : String(downloadedFiles || '');
 
         setTimeout(() => {
-            autoUpdater.quitAndInstall(false, true);
+            requestUpdateShutdown();
         }, 700);
 
         return {
@@ -339,6 +340,16 @@ function vbsQuote(value) {
     return `"${String(value || '').replace(/"/g, '""')}"`;
 }
 
+function requestUpdateShutdown() {
+    if (updateShutdownRequested) return;
+    updateShutdownRequested = true;
+    BrowserWindow.getAllWindows().forEach((window) => {
+        if (!window.isDestroyed()) window.close();
+    });
+    setTimeout(() => app.quit(), 120);
+    setTimeout(() => app.exit(0), 2500);
+}
+
 function createUpdateInstallLauncher(installerFile, latestVersion) {
     const updatesDir = path.dirname(installerFile);
     const token = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -358,8 +369,21 @@ function Write-UpdateLog([string]$message) {
     Add-Content -LiteralPath $logFile -Value "[$stamp] $message" -Encoding UTF8
 }
 Write-UpdateLog "Launcher started. Installer=$installer CurrentExe=$currentExe CurrentPid=$currentPid"
-try { Wait-Process -Id $currentPid -Timeout 90; Write-UpdateLog "App process closed." } catch { Write-UpdateLog "Wait app process timeout or failed: $($_.Exception.Message)" }
-Start-Sleep -Milliseconds 900
+$closed = $false
+for ($attempt = 0; $attempt -lt 180; $attempt++) {
+    $process = Get-Process -Id $currentPid -ErrorAction SilentlyContinue
+    if ($null -eq $process) {
+        $closed = $true
+        Write-UpdateLog "App process closed after $attempt checks."
+        break
+    }
+    Start-Sleep -Milliseconds 500
+}
+if (-not $closed) {
+    Write-UpdateLog "App process is still running after 90 seconds; installer will not start."
+    exit 3
+}
+Start-Sleep -Milliseconds 700
 if (-not (Test-Path -LiteralPath $installer)) {
     Write-UpdateLog "Installer not found."
     exit 2
@@ -453,7 +477,7 @@ async function updateFromGithubInstallerFallback() {
             windowsHide: true
         }).unref();
         installerStarted = true;
-        setTimeout(() => app.quit(), 500);
+        setTimeout(() => requestUpdateShutdown(), 500);
     } else {
         shell.showItemInFolder(destinationFile);
     }
@@ -637,16 +661,14 @@ async function downloadSqliteFromServer(options = {}) {
 
     const sqliteFile = getSqliteFile();
     fs.mkdirSync(path.dirname(sqliteFile), { recursive: true });
-    if (fs.existsSync(sqliteFile)) {
-        const backupFile = path.join(path.dirname(sqliteFile), `work_reports.before_restore_${Date.now()}.sqlite`);
-        fs.copyFileSync(sqliteFile, backupFile);
-    }
+    const backupFile = createSqliteSnapshot('before_sync_restore');
     const arrayBuffer = await response.arrayBuffer();
     fs.writeFileSync(sqliteFile, Buffer.from(arrayBuffer));
     const result = await loadReportsSqlite();
     return {
         ok: true,
         sqliteFile,
+        backupFile,
         count: result.reports.length,
         reports: result.reports
     };
@@ -706,10 +728,7 @@ async function restoreReportsFromGoogleSheet(options = {}) {
     });
     const sqliteFile = getSqliteFile();
     fs.mkdirSync(path.dirname(sqliteFile), { recursive: true });
-    if (fs.existsSync(sqliteFile)) {
-        const backupFile = path.join(path.dirname(sqliteFile), `work_reports.before_google_restore_${Date.now()}.sqlite`);
-        fs.copyFileSync(sqliteFile, backupFile);
-    }
+    const backupFile = createSqliteSnapshot('before_google_restore');
     if (fs.existsSync(sqliteFile)) {
         fs.unlinkSync(sqliteFile);
     }
@@ -722,7 +741,8 @@ async function restoreReportsFromGoogleSheet(options = {}) {
         projectCount: Number(data.projectCount) || result.reports.filter((report) => !isInvalidReportProject(report)).length,
         noProjectCount: Number(data.noProjectCount) || result.reports.filter((report) => isInvalidReportProject(report)).length,
         reports: result.reports,
-        sqliteFile
+        sqliteFile,
+        backupFile
     };
 }
 
@@ -843,6 +863,18 @@ function migrateLegacyReports(db) {
 function saveDb(db, sqliteFile) {
     fs.writeFileSync(sqliteFile, Buffer.from(db.export()));
     db.close();
+}
+
+function createSqliteSnapshot(label) {
+    const sqliteFile = getSqliteFile();
+    if (!fs.existsSync(sqliteFile)) return '';
+    const safeLabel = String(label || 'before_change').replace(/[^a-zA-Z0-9_.-]+/g, '_');
+    const snapshotFile = path.join(
+        path.dirname(sqliteFile),
+        `work_reports.${safeLabel}.${Date.now()}.sqlite`
+    );
+    fs.copyFileSync(sqliteFile, snapshotFile);
+    return snapshotFile;
 }
 
 function serializeList(value) {
@@ -1121,6 +1153,7 @@ async function queryReportsByDateRange(dateFrom, dateTo) {
 
 async function deleteReportsData(options = {}) {
     const dataFile = getJsonFile();
+    const backupFile = createSqliteSnapshot(options.all ? 'before_delete_all' : 'before_delete');
     const { db, sqliteFile } = await openReportsDb();
     const deleteAll = Boolean(options.all);
     const ids = Array.isArray(options.ids) ? options.ids.map((id) => String(id || '')).filter(Boolean) : [];
@@ -1143,6 +1176,7 @@ async function deleteReportsData(options = {}) {
     return {
         dataFile,
         sqliteFile: result.sqliteFile,
+        backupFile,
         reports: result.reports,
         deleted: deleteAll ? beforeCount : ids.length
     };
@@ -3117,14 +3151,26 @@ ipcMain.handle('export-setup-tracking-report', async (_event, payload) => {
 });
 
 ipcMain.handle('save-reports', async (_event, payload) => {
-    const rootFolder = payload && payload.rootFolder;
+    const rootFolder = typeof (payload && payload.rootFolder) === 'string'
+        ? path.normalize(payload.rootFolder.trim())
+        : '';
     const reports = Array.isArray(payload && payload.reports) ? payload.reports : [];
 
     if (!rootFolder) {
         throw new Error('Chưa chọn thư mục lưu trữ.');
     }
+    if (rootFolder.length > 240) {
+        throw new Error(`Đường dẫn thư mục quá dài (${rootFolder.length} ký tự). Hãy chọn thư mục gốc ngắn hơn.`);
+    }
 
-    fs.mkdirSync(rootFolder, { recursive: true });
+    try {
+        fs.mkdirSync(rootFolder, { recursive: true });
+        if (!fs.statSync(rootFolder).isDirectory()) {
+            throw new Error('Đường dẫn đã chọn không phải là thư mục.');
+        }
+    } catch (error) {
+        throw new Error(`Không tạo/truy cập được thư mục gốc:\n${rootFolder}\n\n${error.message || error}`);
+    }
 
     const existingResult = await loadReportsSqlite();
     const existingFingerprints = new Set((existingResult.reports || []).map(reportDuplicateFingerprint));
@@ -3151,7 +3197,11 @@ ipcMain.handle('save-reports', async (_event, payload) => {
     const savedReports = uniqueReports.map((report, index) => {
         const folderDate = report.folder_ngay_name || 'UnknownDate';
         const dayFolder = path.join(rootFolder, folderDate);
-        fs.mkdirSync(dayFolder, { recursive: true });
+        try {
+            fs.mkdirSync(dayFolder, { recursive: true });
+        } catch (error) {
+            throw new Error(`Không tạo được thư mục ngày:\n${dayFolder}\n\n${error.message || error}`);
+        }
 
         const peopleList = Array.isArray(report.nguoi_thuc_hien) ? report.nguoi_thuc_hien : [];
         const peopleFolderName = peopleList
@@ -3164,7 +3214,11 @@ ipcMain.handle('save-reports', async (_event, payload) => {
         const peopleFolder = path.join(dayFolder, peopleFolderName);
         const projectFolderName = sanitizeFolderName(report.ma_du_an) || 'UnknownProject';
         const projectFolder = path.join(peopleFolder, projectFolderName);
-        fs.mkdirSync(projectFolder, { recursive: true });
+        try {
+            fs.mkdirSync(projectFolder, { recursive: true });
+        } catch (error) {
+            throw new Error(`Không tạo được thư mục dự án:\n${projectFolder}\n\n${error.message || error}`);
+        }
 
         return {
             ...report,
@@ -3190,10 +3244,21 @@ ipcMain.handle('save-reports', async (_event, payload) => {
 });
 
 ipcMain.handle('save-no-project-reports', async (_event, payload) => {
-    const rootFolder = payload && payload.rootFolder;
+    const rootFolder = typeof (payload && payload.rootFolder) === 'string'
+        ? path.normalize(payload.rootFolder.trim())
+        : '';
     const reports = Array.isArray(payload && payload.reports) ? payload.reports : [];
 
-    if (rootFolder) fs.mkdirSync(rootFolder, { recursive: true });
+    if (rootFolder) {
+        try {
+            fs.mkdirSync(rootFolder, { recursive: true });
+            if (!fs.statSync(rootFolder).isDirectory()) {
+                throw new Error('Đường dẫn đã chọn không phải là thư mục.');
+            }
+        } catch (error) {
+            throw new Error(`Không tạo/truy cập được thư mục gốc:\n${rootFolder}\n\n${error.message || error}`);
+        }
+    }
     const saveBatchId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const savedReports = reports
         .filter((report) => isInvalidReportProject(report) && reportListLines(report.noi_dung_cong_viec).length)

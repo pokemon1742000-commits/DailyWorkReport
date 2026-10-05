@@ -3334,6 +3334,15 @@
                     : { count: 0 };
                 state.dataFile = projectResult.dataFile || '';
                 state.sqliteFile = projectResult.sqliteFile || noProjectResult.sqliteFile || '';
+                if (Array.isArray(projectResult.reports) && projectResult.reports.length) {
+                    const reportKey = (report) => [
+                        report && report.ma_du_an || '',
+                        report && report.ngay_thuc_hien || '',
+                        report && report.raw_text || ''
+                    ].join('||');
+                    const savedByKey = new Map(projectResult.reports.map((report) => [reportKey(report), report]));
+                    state.previewReports = state.previewReports.map((report) => savedByKey.get(reportKey(report)) || report);
+                }
                 learnFromAcceptedReports(projectResult.reports || [], 'save');
                 const skippedText = projectResult.skippedDuplicates ? ` Bỏ qua ${projectResult.skippedDuplicates} bản ghi trùng 100%.` : '';
                 const noProjectText = noProjectResult.count ? ` Đã chuyển ${noProjectResult.count} nội dung sang Không mã dự án.` : '';
