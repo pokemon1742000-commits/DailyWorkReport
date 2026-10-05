@@ -3179,11 +3179,48 @@ ipcMain.handle('save-reports', async (_event, payload) => {
     let skippedDuplicates = 0;
     let skippedInvalidProjects = 0;
 
-    reports.forEach((report) => {
-        if (isInvalidReportProject(report)) {
+    const saveBatchId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const preparedReports = reports
+        .filter((report) => {
+            if (!isInvalidReportProject(report)) return true;
             skippedInvalidProjects += 1;
-            return;
-        }
+            return false;
+        })
+        .map((report, index) => {
+            const folderDate = report.folder_ngay_name || 'UnknownDate';
+            const dayFolder = path.join(rootFolder, folderDate);
+            const peopleList = Array.isArray(report.nguoi_thuc_hien) ? report.nguoi_thuc_hien : [];
+            const peopleFolderName = peopleList
+                .map((person) => {
+                    if (typeof person === 'string') return sanitizeFolderName(person) || 'UnknownPerson';
+                    return person && (person.folderName || sanitizeFolderName(person.displayName || '')) || 'UnknownPerson';
+                })
+                .filter(Boolean)
+                .join('_') || 'ChuaXacDinh';
+            const peopleFolder = path.join(dayFolder, peopleFolderName);
+            const projectFolderName = sanitizeFolderName(report.ma_du_an) || 'UnknownProject';
+            const projectFolder = path.join(peopleFolder, projectFolderName);
+
+            try {
+                fs.mkdirSync(projectFolder, { recursive: true });
+                if (!fs.statSync(projectFolder).isDirectory()) {
+                    throw new Error('Đường dẫn đã tạo không phải là thư mục.');
+                }
+            } catch (error) {
+                throw new Error(`Không tạo được thư mục dự án:\n${projectFolder}\n\n${error.message || error}`);
+            }
+
+            return {
+                ...report,
+                id: `${report.ngay_thuc_hien || 'unknown'}_${report.ma_du_an || 'PROJECT'}_${saveBatchId}_${String(index + 1).padStart(3, '0')}`,
+                folder_ngay: dayFolder,
+                folder_nhom_nguoi: peopleFolder,
+                folder_nguoi: [projectFolder],
+                created_at: report.created_at || new Date().toISOString()
+            };
+        });
+
+    preparedReports.forEach((report) => {
         const fingerprint = reportDuplicateFingerprint(report);
         if (existingFingerprints.has(fingerprint) || batchFingerprints.has(fingerprint)) {
             skippedDuplicates += 1;
@@ -3193,53 +3230,16 @@ ipcMain.handle('save-reports', async (_event, payload) => {
         uniqueReports.push(report);
     });
 
-    const saveBatchId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const savedReports = uniqueReports.map((report, index) => {
-        const folderDate = report.folder_ngay_name || 'UnknownDate';
-        const dayFolder = path.join(rootFolder, folderDate);
-        try {
-            fs.mkdirSync(dayFolder, { recursive: true });
-        } catch (error) {
-            throw new Error(`Không tạo được thư mục ngày:\n${dayFolder}\n\n${error.message || error}`);
-        }
-
-        const peopleList = Array.isArray(report.nguoi_thuc_hien) ? report.nguoi_thuc_hien : [];
-        const peopleFolderName = peopleList
-            .map((person) => {
-                if (typeof person === 'string') return sanitizeFolderName(person) || 'UnknownPerson';
-                return person && (person.folderName || sanitizeFolderName(person.displayName || '')) || 'UnknownPerson';
-            })
-            .filter(Boolean)
-            .join('_') || 'ChuaXacDinh';
-        const peopleFolder = path.join(dayFolder, peopleFolderName);
-        const projectFolderName = sanitizeFolderName(report.ma_du_an) || 'UnknownProject';
-        const projectFolder = path.join(peopleFolder, projectFolderName);
-        try {
-            fs.mkdirSync(projectFolder, { recursive: true });
-        } catch (error) {
-            throw new Error(`Không tạo được thư mục dự án:\n${projectFolder}\n\n${error.message || error}`);
-        }
-
-        return {
-            ...report,
-            id: `${report.ngay_thuc_hien || 'unknown'}_${report.ma_du_an || 'PROJECT'}_${saveBatchId}_${String(index + 1).padStart(3, '0')}`,
-            folder_ngay: dayFolder,
-            folder_nhom_nguoi: peopleFolder,
-            folder_nguoi: [projectFolder],
-            created_at: report.created_at || new Date().toISOString()
-        };
-    });
-
     const dataFile = getJsonFile();
-    const sqliteFile = savedReports.length ? await insertReportsSqlite(savedReports) : existingResult.sqliteFile;
+    const sqliteFile = uniqueReports.length ? await insertReportsSqlite(uniqueReports) : existingResult.sqliteFile;
 
     return {
-        count: savedReports.length,
+        count: uniqueReports.length,
         skippedDuplicates,
         skippedInvalidProjects,
         dataFile,
         sqliteFile,
-        reports: savedReports
+        reports: preparedReports
     };
 });
 
