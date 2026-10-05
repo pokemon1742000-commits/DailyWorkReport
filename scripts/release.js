@@ -312,6 +312,25 @@ function main() {
         // Build ia32
         run('npm', ['run', 'build:ia32']);
         run('npm', ['run', 'package:unpacked:ia32']);
+        // Rename ia32 artifacts so they don't clash with x64
+        const pkg2 = readPackage();
+        const productName2 = (pkg2.build && pkg2.build.productName) || 'Daily Work Report';
+        const dashedName2 = productName2.replace(/\s+/g, '-');
+        const distDir2 = path.join(rootDir, 'dist');
+        // Rename to dashed-name so collectReleaseAssets can find them directly
+        const ia32Renames = [
+            [`${productName2}-Setup-v${options.version}.exe`, `${dashedName2}-Setup-v${options.version}-ia32.exe`],
+            [`${productName2}-Setup-v${options.version}.exe.blockmap`, `${dashedName2}-Setup-v${options.version}-ia32.exe.blockmap`],
+            [`${productName2}-v${options.version}.exe`, `${productName2}-v${options.version}-ia32.exe`]
+        ];
+        ia32Renames.forEach(([from, to]) => {
+            const src = path.join(distDir2, from);
+            const dst = path.join(distDir2, to);
+            if (fs.existsSync(src)) {
+                fs.renameSync(src, dst);
+                console.log(`Renamed ia32: ${from} -> ${to}`);
+            }
+        });
         // Restore x64 latest.yml for auto-updater
         if (fs.existsSync(latestYmlBackup)) {
             fs.copyFileSync(latestYmlBackup, latestYml);
