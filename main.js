@@ -956,6 +956,19 @@ function sanitizeFolderName(value) {
         .trim();
 }
 
+function folderDateNameFromReport(report) {
+    const iso = String(report && report.ngay_thuc_hien || '').match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (iso) {
+        const monthNames = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+        return `${iso[1]}${monthNames[Number(iso[2]) - 1] || 'Unknown'}${String(iso[3]).padStart(2, '0')}`;
+    }
+    const fallback = String(report && report.folder_ngay_name || '').trim();
+    return fallback && !/^unknown(date)?$/i.test(fallback) ? fallback : 'UnknownDate';
+}
+
 function reportToDbParams(report) {
     const peopleText = listText(report.nguoi_thuc_hien, (person) => person.displayName || person);
     const contentText = listText(report.noi_dung_cong_viec);
@@ -3187,7 +3200,7 @@ ipcMain.handle('save-reports', async (_event, payload) => {
             return false;
         })
         .map((report, index) => {
-            const folderDate = report.folder_ngay_name || 'UnknownDate';
+            const folderDate = folderDateNameFromReport(report);
             const dayFolder = path.join(rootFolder, folderDate);
             const peopleList = Array.isArray(report.nguoi_thuc_hien) ? report.nguoi_thuc_hien : [];
             const peopleFolderName = peopleList
@@ -3263,7 +3276,7 @@ ipcMain.handle('save-no-project-reports', async (_event, payload) => {
     const savedReports = reports
         .filter((report) => isInvalidReportProject(report) && reportListLines(report.noi_dung_cong_viec).length)
         .map((report, index) => {
-            const folderDate = report.folder_ngay_name || 'UnknownDate';
+            const folderDate = folderDateNameFromReport(report);
             const dayFolder = rootFolder ? path.join(rootFolder, 'KhongCoMaDuAn', folderDate) : '';
             if (dayFolder) fs.mkdirSync(dayFolder, { recursive: true });
 

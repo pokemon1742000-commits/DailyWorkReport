@@ -3334,16 +3334,27 @@
                     : { count: 0 };
                 state.dataFile = projectResult.dataFile || '';
                 state.sqliteFile = projectResult.sqliteFile || noProjectResult.sqliteFile || '';
-                if (Array.isArray(projectResult.reports) && projectResult.reports.length) {
-                    const reportKey = (report) => [
-                        report && report.ma_du_an || '',
-                        report && report.ngay_thuc_hien || '',
-                        report && report.raw_text || ''
-                    ].join('||');
-                    const savedByKey = new Map(projectResult.reports.map((report) => [reportKey(report), report]));
-                    state.previewReports = state.previewReports.map((report) => savedByKey.get(reportKey(report)) || report);
-                }
-                learnFromAcceptedReports(projectResult.reports || [], 'save');
+                const reportKey = (report) => [
+                    report && report.ma_du_an || '',
+                    report && report.ngay_thuc_hien || '',
+                    report && report.raw_text || ''
+                ].join('||');
+                const reportContentKey = (report) => [
+                    report && report.ngay_thuc_hien || '',
+                    report && report.raw_text || ''
+                ].join('||');
+                const savedProjectByKey = new Map((projectResult.reports || []).map((report) => [reportKey(report), report]));
+                const savedNoProjectByKey = new Map((noProjectResult.reports || []).map((report) => [reportContentKey(report), report]));
+                state.previewReports = state.previewReports.map((report) => {
+                    const savedReport = savedProjectByKey.get(reportKey(report));
+                    if (savedReport) return savedReport;
+                    const savedNoProject = savedNoProjectByKey.get(reportContentKey(report));
+                    return savedNoProject || report;
+                });
+                learnFromAcceptedReports([
+                    ...(projectResult.reports || []),
+                    ...(noProjectResult.reports || [])
+                ], 'save');
                 const skippedText = projectResult.skippedDuplicates ? ` Bỏ qua ${projectResult.skippedDuplicates} bản ghi trùng 100%.` : '';
                 const noProjectText = noProjectResult.count ? ` Đã chuyển ${noProjectResult.count} nội dung sang Không mã dự án.` : '';
                 state.saveReadyToClear = true;
@@ -4290,7 +4301,7 @@
                     nguoi_thuc_hien: safePeople,
                     trang_thai: relatedStatuses.length ? relatedStatuses : (hasProjectSpecificStatus ? ['Chưa có tiến độ riêng cho dự án này.'] : (fallbackStatuses.length ? fallbackStatuses : ['Chưa xác định'])),
                     ngay_thuc_hien: dateInfo.iso || '',
-                    folder_ngay_name: dateInfo.folderName || 'UnknownDate',
+                    folder_ngay_name: dateInfo.folderName || folderNameFromDate(dateInfo.iso) || 'UnknownDate',
                     folder_ngay: '',
                     folder_nguoi: [],
                     raw_text: normalizedRaw,
@@ -4447,7 +4458,7 @@
                         nguoi_thuc_hien: safePeople,
                         trang_thai: statusItems.length ? statusItems : ['Chưa xác định'],
                         ngay_thuc_hien: dateInfo.iso || '',
-                        folder_ngay_name: dateInfo.folderName || 'UnknownDate',
+                        folder_ngay_name: dateInfo.folderName || folderNameFromDate(dateInfo.iso) || 'UnknownDate',
                         folder_ngay: '',
                         folder_nguoi: [],
                         raw_text: raw,
@@ -5118,17 +5129,30 @@
         }
 
         function parseDate(text) {
-            const numeric = String(text || '').match(/(\d{1,2})\s*[\/.-]\s*(\d{1,2})\s*[\/.-]\s*(\d{4})/);
+            const source = String(text || '').replace(/[：]/g, ':');
+            const numeric = source.match(/(?:^|[^\d])(\d{1,2})\s*[\/.-]\s*(\d{1,2})\s*[\/.-]\s*(\d{4})(?=[^\d]|$)/);
             if (numeric) {
                 return buildDate(Number(numeric[1]), Number(numeric[2]), Number(numeric[3]));
             }
 
-            const vietnamese = removeVietnameseMarks(text).match(/ngay\s+(\d{1,2})\s+thang\s+(\d{1,2})\s+nam\s+(\d{4})/i);
+            const iso = source.match(/(?:^|[^\d])(\d{4})\s*[\/.-]\s*(\d{1,2})\s*[\/.-]\s*(\d{1,2})(?=[^\d]|$)/);
+            if (iso) {
+                return buildDate(Number(iso[3]), Number(iso[2]), Number(iso[1]));
+            }
+
+            const vietnamese = removeVietnameseMarks(source).match(/ngay\s+(\d{1,2})\s+thang\s+(\d{1,2})\s+nam\s+(\d{4})/i);
             if (vietnamese) {
                 return buildDate(Number(vietnamese[1]), Number(vietnamese[2]), Number(vietnamese[3]));
             }
 
             return { iso: '', folderName: '' };
+        }
+
+        function folderNameFromDate(isoDate) {
+            const match = String(isoDate || '').match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+            return match
+                ? buildDate(Number(match[3]), Number(match[2]), Number(match[1])).folderName
+                : '';
         }
 
         function buildDate(day, month, year) {
