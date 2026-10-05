@@ -1,5 +1,5 @@
 [
-  "Bản 1.8.5: Hỗ trợ Windows 32-bit (ia32) và 64-bit (x64). Mỗi file setup chỉ cần tải về và chạy là hoạt động, không phụ thuộc bên thứ ba.",
+  "Bản 1.8.5: cập nhật phiên bản 1.8.5",
   "Bản 1.8.4: Sửa lỗi thiếu thư mục src khi đóng gói bộ cài đặt, làm mượt chu trình xác nhận, lưu, tìm kiếm và xuất báo cáo",
   "Bản 1.8.3: cập nhật phiên bản 1.8.3",
   "Bản 1.8.2: cập nhật phiên bản 1.8.2",
