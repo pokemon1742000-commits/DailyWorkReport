@@ -5135,6 +5135,20 @@
             };
         }
 
+        async function openFolderFromUi(folder) {
+            try {
+                const result = await ipcRenderer.invoke('open-folder', {
+                    folderPath: folder,
+                    rootFolder: state.rootFolder || ''
+                });
+                if (!result || !result.ok) {
+                    setStatus((result && result.error) || 'Không mở được thư mục.', true);
+                }
+            } catch (error) {
+                setStatus(error && (error.message || String(error)) || 'Không mở được thư mục.', true);
+            }
+        }
+
         function renderPreview() {
             els.totalPill.textContent = `Tổng: ${state.previewReports.length}`;
 
@@ -5193,7 +5207,7 @@
             document.querySelectorAll('[data-open-folder]').forEach((button) => {
                 button.addEventListener('click', () => {
                     const folder = button.dataset.openFolder;
-                    if (folder) ipcRenderer.invoke('open-folder', folder);
+                    if (folder) openFolderFromUi(folder);
                 });
             });
 
@@ -5402,7 +5416,7 @@
         function bindCategoryFolderButtons(container) {
             container.querySelectorAll('[data-category-folder]').forEach((button) => {
                 button.addEventListener('click', () => {
-                    if (button.dataset.categoryFolder) ipcRenderer.invoke('open-folder', button.dataset.categoryFolder);
+                    if (button.dataset.categoryFolder) openFolderFromUi(button.dataset.categoryFolder);
                 });
             });
         }
@@ -8682,7 +8696,7 @@
             document.querySelectorAll('[data-search-folder]').forEach((button) => {
                 button.addEventListener('click', () => {
                     const folder = button.dataset.searchFolder;
-                    if (folder) ipcRenderer.invoke('open-folder', folder);
+                    if (folder) openFolderFromUi(folder);
                 });
             });
             document.querySelectorAll('[data-search-select]').forEach((checkbox) => {

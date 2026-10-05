@@ -3304,11 +3304,37 @@ ipcMain.handle('delete-reports', async (_event, payload) => {
     return deleteReportsData(payload || {});
 });
 
-ipcMain.handle('open-folder', async (_event, folderPath) => {
-    if (!folderPath) {
-        return false;
+ipcMain.handle('open-folder', async (_event, payload) => {
+    const requestedPath = typeof payload === 'string' ? payload : payload && payload.folderPath;
+    const rootFolder = typeof payload === 'object' && payload ? payload.rootFolder : '';
+    if (!requestedPath) {
+        return { ok: false, error: 'Chưa có đường dẫn thư mục.' };
     }
 
-    await shell.openPath(folderPath);
-    return true;
+    const folderPath = path.isAbsolute(requestedPath)
+        ? path.normalize(requestedPath)
+        : rootFolder
+            ? path.resolve(rootFolder, requestedPath)
+            : path.resolve(requestedPath);
+
+    if (!fs.existsSync(folderPath)) {
+        return {
+            ok: false,
+            path: folderPath,
+            error: `Không tìm thấy thư mục:\n${folderPath}`
+        };
+    }
+    if (!fs.statSync(folderPath).isDirectory()) {
+        return {
+            ok: false,
+            path: folderPath,
+            error: `Đường dẫn không phải là thư mục:\n${folderPath}`
+        };
+    }
+
+    const openError = await shell.openPath(folderPath);
+    if (openError) {
+        return { ok: false, path: folderPath, error: openError };
+    }
+    return { ok: true, path: folderPath };
 });
