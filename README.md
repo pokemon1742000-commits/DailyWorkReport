@@ -37,7 +37,7 @@ Du lieu backup duoc luu trong `server_data/` va khong duoc commit len Git.
 
 Neu muon backup len Google Drive bang mot link Google Sheet:
 
-1. Mo Google Apps Script: https://script.google.com
+1. Mo [Google Apps Script](https://script.google.com).
 2. Tao project moi.
 3. Copy noi dung file `scripts/google-sheets-backup.gs` vao Apps Script.
 4. Bam **Deploy -> New deployment -> Web app**.
@@ -73,7 +73,26 @@ npm run start:hidden
 npm run build
 ```
 
-Ban build unpacked nam trong `dist/win-unpacked`.
+Bản cài đặt NSIS và bản portable nằm trong `dist`. Bản chạy thử unpacked nằm trong `dist/win-unpacked`; có thể chạy `Daily Work Report.exe` trong thư mục này mà không cần cài đặt.
+
+Dữ liệu báo cáo được lưu duy nhất trong file SQLite `work_reports.sqlite` ở thư mục `userData` của Electron, thường là `%APPDATA%/daily_work_report/data`. Ứng dụng không tạo thêm JSON cho báo cáo. Nếu còn `work_reports.json` từ phiên bản cũ, lần mở đầu tiên sẽ migrate sang SQLite rồi xóa file JSON sau khi migrate thành công; JSON lỗi sẽ được giữ lại để không mất dữ liệu. Build hoặc cập nhật không xóa dữ liệu này. Khi restore/xóa dữ liệu, ứng dụng tạo snapshot SQLite trước thao tác nếu file hiện tại tồn tại.
+
+## Release GitHub
+
+Kiểm tra trước khi phát hành:
+
+```bash
+npm test
+node scripts/release.js 1.8.4 "Release v1.8.4" --dry-run
+```
+
+Phát hành thật:
+
+```bash
+npm run release:auto -- 1.8.4 "Release v1.8.4"
+```
+
+Script build installer/portable, tạo `latest.yml` và blockmap cho updater. Nếu tag đã có release (kể cả release đang ở trạng thái draft), script sẽ upload lại artifact bằng `--clobber` và chuyển release sang published.
 
 ## Release tu dong
 

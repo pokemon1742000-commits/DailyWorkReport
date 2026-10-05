@@ -21,6 +21,12 @@ const {
     assertDirectory,
     ensureDirectory
 } = require('./src/filesystem/path-utils');
+const {
+    sanitizeSnapshotLabel,
+    snapshotPath,
+    assertSqliteIntegrity,
+    assertSnapshotFile
+} = require('./src/data/backup-utils');
 
 const DEFAULT_WEEKLY_LOGO = path.join(__dirname, 'assets', 'meiko-automation-logo.png');
 const APP_ICON_FILE = path.join(__dirname, 'assets', 'daily-work-report-icon.png');
@@ -689,14 +695,20 @@ async function downloadSqliteFromServer(options = {}) {
 
     const sqliteFile = getSqliteFile();
     fs.mkdirSync(path.dirname(sqliteFile), { recursive: true });
-    const backupFile = createSqliteSnapshot('before_sync_restore');
+    const before = await loadReportsSqlite();
     const arrayBuffer = await response.arrayBuffer();
-    fs.writeFileSync(sqliteFile, Buffer.from(arrayBuffer));
+    const incoming = Buffer.from(arrayBuffer);
+    const SQL = await getSql();
+    assertSqliteIntegrity(SQL, incoming, 'SQLite tải từ server');
+    const backupFile = createSqliteSnapshot('before_sync_restore');
+    fs.writeFileSync(sqliteFile, incoming);
     const result = await loadReportsSqlite();
     return {
         ok: true,
         sqliteFile,
         backupFile,
+        beforeCount: before.reports.length,
+        afterCount: result.reports.length,
         count: result.reports.length,
         reports: result.reports
     };
@@ -756,6 +768,7 @@ async function restoreReportsFromGoogleSheet(options = {}) {
     });
     const sqliteFile = getSqliteFile();
     fs.mkdirSync(path.dirname(sqliteFile), { recursive: true });
+    const before = await loadReportsSqlite();
     const backupFile = createSqliteSnapshot('before_google_restore');
     if (fs.existsSync(sqliteFile)) {
         fs.unlinkSync(sqliteFile);
@@ -765,6 +778,8 @@ async function restoreReportsFromGoogleSheet(options = {}) {
     return {
         ok: true,
         spreadsheetUrl: data.spreadsheetUrl || '',
+        beforeCount: before.reports.length,
+        afterCount: result.reports.length,
         count: result.reports.length,
         projectCount: Number(data.projectCount) || result.reports.filter((report) => !isInvalidReportProject(report)).length,
         noProjectCount: Number(data.noProjectCount) || result.reports.filter((report) => isInvalidReportProject(report)).length,
@@ -896,13 +911,9 @@ function saveDb(db, sqliteFile) {
 function createSqliteSnapshot(label) {
     const sqliteFile = getSqliteFile();
     if (!fs.existsSync(sqliteFile)) return '';
-    const safeLabel = String(label || 'before_change').replace(/[^a-zA-Z0-9_.-]+/g, '_');
-    const snapshotFile = path.join(
-        path.dirname(sqliteFile),
-        `work_reports.${safeLabel}.${Date.now()}.sqlite`
-    );
+    const snapshotFile = snapshotPath(sqliteFile, sanitizeSnapshotLabel(label));
     fs.copyFileSync(sqliteFile, snapshotFile);
-    return snapshotFile;
+    return assertSnapshotFile(snapshotFile);
 }
 
 function serializeList(value) {
@@ -1119,7 +1130,6 @@ async function queryReportsByDateRange(dateFrom, dateTo) {
 }
 
 async function deleteReportsData(options = {}) {
-    const dataFile = getJsonFile();
     const backupFile = createSqliteSnapshot(options.all ? 'before_delete_all' : 'before_delete');
     const { db, sqliteFile } = await openReportsDb();
     const deleteAll = Boolean(options.all);
@@ -1141,9 +1151,10 @@ async function deleteReportsData(options = {}) {
 
     const result = await loadReportsSqlite();
     return {
-        dataFile,
         sqliteFile: result.sqliteFile,
         backupFile,
+        beforeCount,
+        afterCount: result.reports.length,
         reports: result.reports,
         deleted: deleteAll ? beforeCount : ids.length
     };
@@ -3188,14 +3199,12 @@ ipcMain.handle('save-reports', async (_event, payload) => {
         uniqueReports.push(report);
     });
 
-    const dataFile = getJsonFile();
     const sqliteFile = uniqueReports.length ? await insertReportsSqlite(uniqueReports) : existingResult.sqliteFile;
 
     return {
         count: uniqueReports.length,
         skippedDuplicates,
         skippedInvalidProjects,
-        dataFile,
         sqliteFile,
         reports: preparedReports
     };
@@ -3263,27 +3272,33 @@ ipcMain.handle('save-no-project-reports', async (_event, payload) => {
 });
 
 ipcMain.handle('load-reports', async () => {
-    const dataFile = getJsonFile();
     const sqliteFile = getSqliteFile();
-
+    const legacyJsonFile = getJsonFile();
     if (fs.existsSync(sqliteFile)) {
+        // SQLite is authoritative. Remove only the obsolete legacy copy;
+        // current report data is never written to JSON anymore.
+        try { fs.rmSync(legacyJsonFile, { force: true }); } catch (error) {
+            console.warn('Không xóa được work_reports.json cũ:', error.message || error);
+        }
         const result = await loadReportsSqlite();
-        return { dataFile, sqliteFile: result.sqliteFile, reports: result.reports };
+        return { sqliteFile: result.sqliteFile, reports: result.reports };
     }
 
-    if (!fs.existsSync(dataFile)) {
-        return { dataFile, sqliteFile, reports: [] };
+
+    if (!fs.existsSync(legacyJsonFile)) {
+        return { sqliteFile, reports: [] };
     }
 
     try {
-        const reports = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
-        const normalizedReports = Array.isArray(reports) ? reports : [];
-        if (normalizedReports.length) {
-            await insertReportsSqlite(normalizedReports);
-        }
-        return { dataFile, sqliteFile, reports: normalizedReports };
-    } catch (_error) {
-        return { dataFile, sqliteFile, reports: [] };
+        const reports = JSON.parse(fs.readFileSync(legacyJsonFile, 'utf8'));
+        if (!Array.isArray(reports)) throw new Error('Dữ liệu JSON cũ không phải là mảng báo cáo.');
+        await insertReportsSqlite(reports);
+        fs.rmSync(legacyJsonFile, { force: true });
+        const result = await loadReportsSqlite();
+        return { sqliteFile: result.sqliteFile, reports: result.reports, migratedLegacyJson: true };
+    } catch (error) {
+        console.error('Không thể migrate work_reports.json sang SQLite:', error);
+        return { sqliteFile, reports: [], migrationError: error.message || String(error) };
     }
 });
 

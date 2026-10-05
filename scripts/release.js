@@ -280,7 +280,11 @@ function main() {
 
     stageChanges(options.includeVscode);
     if (hasStagedChanges()) {
-        run('git', ['commit', '-m', options.message]);
+        const attribution = 'Co-Authored-By: Claude Code <noreply@anthropic.com>';
+        const fullMessage = options.message.includes(attribution)
+            ? options.message
+            : `${options.message}\n\n${attribution}`;
+        run('git', ['commit', '-m', fullMessage]);
     } else {
         console.log('Không có thay đổi staged để commit.');
     }
@@ -298,6 +302,7 @@ function main() {
     const repo = 'pokemon1742000-commits/DailyWorkReport';
     if (releaseExists(tag, ghEnv)) {
         run('gh', ['release', 'upload', tag, ...assets, '--repo', repo, '--clobber'], { env: ghEnv });
+        run('gh', ['release', 'edit', tag, '--repo', repo, '--draft=false', '--prerelease=false', '--title', `Daily Work Report ${tag}`, '--notes', options.notes], { env: ghEnv });
     } else {
         run('gh', [
             'release',
@@ -309,7 +314,9 @@ function main() {
             '--title',
             `Daily Work Report ${tag}`,
             '--notes',
-            options.notes
+            options.notes,
+            '--draft=false',
+            '--prerelease=false'
         ], { env: ghEnv });
     }
 

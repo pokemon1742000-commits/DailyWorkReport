@@ -3040,7 +3040,6 @@
             weeklyDeletedRowHistory: [],
             updatePromptDismissed: false,
             pendingUpdateInfo: null,
-            dataFile: '',
             sqliteFile: '',
             members: loadMembers(),
             learningMemory: loadLearningMemory(),
@@ -3079,8 +3078,12 @@
             handOpenResetStartedAt: 0,
             handPointers: [
                 { x: null, y: null, target: null, dwellStartedAt: 0, clickedTarget: null, lastUpdateAt: 0, lastTargetCheckAt: 0, lastTargetX: 0, lastTargetY: 0, pressing: false, lastClickAt: 0 },
-                { x: null, y: null, target: null, dwellStartedAt: 0, clickedTarget: null, lastUpdateAt: 0, lastTargetCheckAt: 0, lastTargetX: 0, lastTargetY: 0, pressing: false, lastClickAt: 0 }
-            ]
+                { x: null, y: null, target: null, clickedTarget: null, lastUpdateAt: 0, lastTargetCheckAt: 0, lastTargetX: 0, lastTargetY: 0, pressing: false, lastClickAt: 0 }
+            ],
+            operation: null,
+            operationDisabledButtons: new Map(),
+            searchRequestId: 0,
+            searchCache: new Map()
         };
 
         const els = {
@@ -3280,25 +3283,28 @@
                 setStatus('Vui lòng nhập dữ liệu trước khi xác nhận.', true);
                 return;
             }
-
-            state.saveReadyToClear = false;
-            const parsedReports = applyLearningToReports(sanitizePreviewReports(parseReport(raw)));
-            const splitReports = splitProjectAndNoProjectReports(parsedReports);
-            state.previewReports = parsedReports.map((report) => ({
-                ...report,
-                ai_original: {
-                    ma_du_an: report.ma_du_an,
-                    noi_dung_cong_viec: [...(report.noi_dung_cong_viec || [])],
-                    trang_thai: [...(report.trang_thai || [])],
-                    nguoi_thuc_hien: [...(report.nguoi_thuc_hien || [])]
-                }
-            }));
-            state.noProjectReports = mergeNoProjectReports(state.noProjectReports, splitReports.noProjectReports);
-            await validatePreviewProjectReferences();
-            renderPreview();
-            renderNoProjectReports();
-            const noProjectText = state.noProjectReports.length ? ` Có ${state.noProjectReports.length} nội dung không có mã dự án ở tab Không mã dự án.` : '';
-            setStatus(`Đã chuẩn hóa ${state.previewReports.length} dự án. Kiểm tra lại rồi lưu.${noProjectText}`);
+            await runOperation('xác nhận báo cáo', async ({ step }) => {
+                step('Đang phân tích nội dung nhập liệu...');
+                state.saveReadyToClear = false;
+                const parsedReports = applyLearningToReports(sanitizePreviewReports(parseReport(raw)));
+                const splitReports = splitProjectAndNoProjectReports(parsedReports);
+                state.previewReports = parsedReports.map((report) => ({
+                    ...report,
+                    ai_original: {
+                        ma_du_an: report.ma_du_an,
+                        noi_dung_cong_viec: [...(report.noi_dung_cong_viec || [])],
+                        trang_thai: [...(report.trang_thai || [])],
+                        nguoi_thuc_hien: [...(report.nguoi_thuc_hien || [])]
+                    }
+                }));
+                state.noProjectReports = mergeNoProjectReports(state.noProjectReports, splitReports.noProjectReports);
+                step(`Đang kiểm tra mã dự án (${state.previewReports.length} dòng)...`);
+                await validatePreviewProjectReferences();
+                renderPreview();
+                renderNoProjectReports();
+                const noProjectText = state.noProjectReports.length ? ` Có ${state.noProjectReports.length} nội dung không có mã dự án ở tab Không mã dự án.` : '';
+                setStatus(`Đã chuẩn hóa ${state.previewReports.length} dự án. Kiểm tra lại rồi lưu.${noProjectText}`);
+            });
         });
 
         els.saveBtn.addEventListener('click', async () => {
@@ -3317,22 +3323,28 @@
                 setStatus('Vui lòng chọn thư mục trước khi lưu.', true);
                 return;
             }
+            if (state.operation) {
+                setStatus(`Đang ${state.operation.message || state.operation.name}. Vui lòng chờ thao tác này hoàn tất.`, true);
+                return;
+            }
+            setOperationState('lưu báo cáo', 'Đang chuẩn bị lưu thư mục và SQLite...');
 
             try {
                 const noProjectReportsToSave = mergeNoProjectReports(state.noProjectReports, splitReports.noProjectReports);
+                setOperationState('lưu báo cáo', 'Đang tạo thư mục và lưu báo cáo dự án...');
                 const projectResult = splitReports.projectReports.length
                     ? await ipcRenderer.invoke('save-reports', {
                         rootFolder: state.rootFolder,
                         reports: sanitizePreviewReports(splitReports.projectReports)
                     })
                     : { count: 0, skippedDuplicates: 0, reports: [] };
+                setOperationState('lưu báo cáo', 'Đang lưu nội dung không mã dự án...');
                 const noProjectResult = noProjectReportsToSave.length
                     ? await ipcRenderer.invoke('save-no-project-reports', {
                         rootFolder: state.rootFolder,
                         reports: sanitizePreviewReports(noProjectReportsToSave)
                     })
                     : { count: 0 };
-                state.dataFile = projectResult.dataFile || '';
                 state.sqliteFile = projectResult.sqliteFile || noProjectResult.sqliteFile || '';
                 const reportKey = (report) => [
                     report && report.ma_du_an || '',
@@ -3361,15 +3373,18 @@
                 renderPreview();
                 updateSaveButton();
                 setStatus(`Đã lưu ${projectResult.count || 0} bản ghi và tạo folder thành công.${noProjectText}${skippedText}`);
-                showToast('Đã lưu', [state.sqliteFile || state.dataFile || 'Đã lưu thành công'], 10000);
+                showToast('Đã lưu', [state.sqliteFile || 'Đã lưu thành công'], 10000);
                 const currentNoProjectReports = noProjectResult.reports || noProjectReportsToSave;
-                await loadReports();
+                setOperationState('lưu báo cáo', 'Đang cập nhật danh sách báo cáo...');
+                await loadReports({ skipOperation: true });
                 state.noProjectReports = mergeNoProjectReports(state.noProjectReports, currentNoProjectReports);
                 renderNoProjectReports();
                 renderFolderStructure();
             } catch (error) {
                 console.error('Không lưu/tạo folder được:', error);
                 setStatus((error && (error.message || String(error))) || 'Không lưu được dữ liệu.', true);
+            } finally {
+                setOperationState('', '');
             }
         });
 
@@ -3402,8 +3417,11 @@
         });
 
         els.reloadBtn.addEventListener('click', async () => {
-            await loadReports();
-            renderSearch();
+            await runOperation('tải lại dữ liệu', async ({ step }) => {
+                step('Đang tải dữ liệu từ SQLite...');
+                await loadReports({ skipOperation: true });
+                renderSearch();
+            });
         });
 
         els.searchBtn.addEventListener('click', renderSearch);
@@ -3654,6 +3672,58 @@
         function setStatus(message, isError = false) {
             els.inputStatus.textContent = message;
             els.inputStatus.classList.toggle('error', isError);
+        }
+
+        const OPERATION_BUTTONS = [
+            'acceptBtn', 'saveBtn', 'saveNoProjectBtn', 'reloadBtn', 'deleteSelectedBtn', 'deleteAllBtn',
+            'confirmDeleteBtn', 'uploadSqliteBtn', 'downloadSqliteBtn', 'backupGoogleSheetBtn',
+            'restoreGoogleSheetBtn', 'quickGoogleSheetBackupBtn', 'loadWeeklyPreviewBtn',
+            'confirmWeeklyExportBtn', 'exportSetupTrackingBtn'
+        ];
+
+        function setOperationState(name, message = '', options = {}) {
+            const { statusTarget = 'input', isError = false } = options;
+            if (name) state.operation = { name, message };
+            OPERATION_BUTTONS.forEach((key) => {
+                const button = els[key];
+                if (!button) return;
+                if (name) {
+                    if (!state.operationDisabledButtons.has(key)) {
+                        state.operationDisabledButtons.set(key, button.disabled);
+                    }
+                    button.disabled = true;
+                } else {
+                    const wasDisabled = state.operationDisabledButtons.get(key);
+                    button.disabled = typeof wasDisabled === 'boolean' ? wasDisabled : false;
+                }
+            });
+            if (!name) state.operationDisabledButtons.clear();
+            if (!message) return;
+            if (statusTarget === 'sync') setSyncStatus(message, isError);
+            else if (statusTarget === 'weekly') setWeeklyStatus(message, isError);
+            else if (statusTarget === 'no-project') setNoProjectStatus(message, isError);
+            else setStatus(message, isError);
+        }
+
+        async function runOperation(name, task, options = {}) {
+            if (state.operation) {
+                const message = `Đang ${state.operation.message || state.operation.name}. Vui lòng chờ thao tác này hoàn tất.`;
+                if (options.statusTarget === 'sync') setSyncStatus(message, true);
+                else if (options.statusTarget === 'weekly') setWeeklyStatus(message, true);
+                else if (options.statusTarget === 'no-project') setNoProjectStatus(message, true);
+                else setStatus(message, true);
+                return null;
+            }
+            setOperationState(name, options.startMessage || `Đang ${name}...`, options);
+            try {
+                return await task({
+                    step: (message) => setOperationState(name, message, options)
+                });
+            } finally {
+                setOperationState('', '');
+                updateSaveButton();
+                updateSearchDeleteControls();
+            }
         }
 
         function showToast(title, lines = [], timeoutMs = 5200) {
@@ -5464,6 +5534,11 @@
                 setNoProjectStatus('Vui lòng chọn thư mục ở tab Nhập liệu trước khi lưu.', true);
                 return;
             }
+            if (state.operation) {
+                setNoProjectStatus(`Đang ${state.operation.message || state.operation.name}. Vui lòng chờ thao tác này hoàn tất.`, true);
+                return;
+            }
+            setOperationState('lưu không mã dự án', 'Đang tạo thư mục không mã dự án...', { statusTarget: 'no-project' });
             try {
                 const result = await ipcRenderer.invoke('save-no-project-reports', {
                     rootFolder: state.rootFolder,
@@ -5475,6 +5550,8 @@
                 setNoProjectStatus(`Đã lưu ${result.count || 0} nội dung không có mã dự án vào thư mục riêng.`);
             } catch (error) {
                 setNoProjectStatus(error.message || 'Không lưu được nội dung không có mã dự án.', true);
+            } finally {
+                setOperationState('', '');
             }
         }
 
@@ -6122,12 +6199,18 @@
                 }
                 els.uploadSqliteBtn.disabled = true;
                 setSyncStatus('Đang đẩy SQLite lên server...');
+                if (state.operation) {
+                    setSyncStatus(`Đang ${state.operation.message || state.operation.name}. Vui lòng chờ thao tác này hoàn tất.`, true);
+                    return;
+                }
+                setOperationState('đồng bộ SQLite', 'Đang đẩy SQLite lên server...', { statusTarget: 'sync' });
                 const result = await ipcRenderer.invoke('sync-sqlite-upload', payload);
                 setSyncStatus(`Đã đẩy lên server lúc ${result.uploadedAt}. Dung lượng: ${result.size} bytes.`);
             } catch (error) {
                 setSyncStatus(error.message || 'Không đẩy được SQLite lên server.', true);
             } finally {
                 els.uploadSqliteBtn.disabled = false;
+                setOperationState('', '');
             }
         }
 
@@ -6140,19 +6223,25 @@
                 }
                 const confirmed = confirm('Tải dữ liệu SQLite từ server sẽ thay thế dữ liệu hiện tại. File hiện tại sẽ được backup trước khi thay. Tiếp tục?');
                 if (!confirmed) return;
+                if (state.operation) {
+                    setSyncStatus(`Đang ${state.operation.message || state.operation.name}. Vui lòng chờ thao tác này hoàn tất.`, true);
+                    return;
+                }
                 els.downloadSqliteBtn.disabled = true;
-                setSyncStatus('Đang tải SQLite từ server...');
+                setOperationState('khôi phục SQLite', 'Đang tải SQLite từ server...', { statusTarget: 'sync' });
                 const result = await ipcRenderer.invoke('sync-sqlite-download', payload);
                 state.allReports = result.reports || [];
                 state.savedReports = state.allReports;
+                state.searchCache.clear();
                 await refreshReportCategories();
-                setSyncStatus(`Đã tải dữ liệu từ server. Tổng ${result.count || 0} bản ghi.`);
+                setSyncStatus(`Đã tải dữ liệu từ server: ${result.beforeCount || 0} → ${result.afterCount || result.count || 0} bản ghi.${result.backupFile ? ` Snapshot: ${result.backupFile}` : ''}`);
                 renderSearch();
                 updateCurrentDateTime();
             } catch (error) {
                 setSyncStatus(error.message || 'Không tải được SQLite từ server.', true);
             } finally {
                 els.downloadSqliteBtn.disabled = false;
+                setOperationState('', '');
             }
         }
 
@@ -6209,8 +6298,12 @@
                     setGoogleSheetStatus('Chưa nhập Google Apps Script Web App URL.', true);
                     return;
                 }
+                if (state.operation) {
+                    setGoogleSheetStatus(`Đang ${state.operation.message || state.operation.name}. Vui lòng chờ thao tác này hoàn tất.`, true);
+                    return;
+                }
                 els.backupGoogleSheetBtn.disabled = true;
-                setGoogleSheetStatus('Đang backup dữ liệu lên Google Sheet...');
+                setOperationState('backup Google Sheet', 'Đang backup dữ liệu lên Google Sheet...');
                 const result = await ipcRenderer.invoke('google-sheet-backup', payload);
                 if (result.noProjectSheetName !== 'Không mã dự án') {
                     throw new Error('Google Apps Script đang là bản cũ và chưa có sheet "Không mã dự án". Hãy Deploy lại phiên bản mới rồi thử lưu lại.');
@@ -6222,6 +6315,7 @@
                 setGoogleSheetStatus(error.message || 'Không backup được lên Google Sheet.', true);
             } finally {
                 els.backupGoogleSheetBtn.disabled = false;
+                setOperationState('', '');
             }
         }
 
@@ -6281,15 +6375,20 @@
                 }
                 const confirmed = confirm('Khôi phục từ Google Sheet sẽ thay thế dữ liệu SQLite hiện tại. File hiện tại sẽ được backup trước khi thay. Tiếp tục?');
                 if (!confirmed) return;
+                if (state.operation) {
+                    setGoogleSheetStatus(`Đang ${state.operation.message || state.operation.name}. Vui lòng chờ thao tác này hoàn tất.`, true);
+                    return;
+                }
                 els.restoreGoogleSheetBtn.disabled = true;
-                setGoogleSheetStatus('Đang tải dữ liệu từ Google Sheet...');
+                setOperationState('khôi phục Google Sheet', 'Đang tải dữ liệu từ Google Sheet...');
                 const result = await ipcRenderer.invoke('google-sheet-restore', payload);
                 state.googleSheetSettings.spreadsheetUrl = result.spreadsheetUrl || state.googleSheetSettings.spreadsheetUrl || '';
                 saveGoogleSheetSettings();
                 state.allReports = result.reports || [];
                 state.savedReports = state.allReports;
+                state.searchCache.clear();
                 await refreshReportCategories();
-                const restoreMessage = `Đã khôi phục ${result.count || 0} bản ghi: ${result.projectCount || 0} mã dự án, ${result.noProjectCount || 0} không mã dự án.`;
+                const restoreMessage = `Đã khôi phục ${result.beforeCount || 0} → ${result.afterCount || result.count || 0} bản ghi: ${result.projectCount || 0} mã dự án, ${result.noProjectCount || 0} không mã dự án.${result.backupFile ? ` Snapshot: ${result.backupFile}` : ''}`;
                 setGoogleSheetStatus(restoreMessage);
                 alert(restoreMessage);
                 renderSearch();
@@ -6298,6 +6397,7 @@
                 setGoogleSheetStatus(error.message || 'Không khôi phục được từ Google Sheet.', true);
             } finally {
                 els.restoreGoogleSheetBtn.disabled = false;
+                setOperationState('', '');
             }
         }
 
@@ -6848,14 +6948,20 @@
             }
             if (!syncWeeklyDateBounds()) return;
 
+            if (state.operation) {
+                setWeeklyStatus(`Đang ${state.operation.message || state.operation.name}. Vui lòng chờ thao tác này hoàn tất.`, true);
+                return;
+            }
+            setOperationState('tải báo cáo tuần', 'Đang tải dữ liệu báo cáo tuần...', { statusTarget: 'weekly' });
             cacheCurrentWeeklyRows();
             const rangeKey = getWeeklyRangeKey();
             state.weeklyDeletedRowHistory = [];
             updateWeeklyRestoreButton();
-            const result = await ipcRenderer.invoke('get-weekly-preview', {
-                dateFrom: els.weeklyDateFrom.value,
-                dateTo: els.weeklyDateTo.value
-            });
+            try {
+                const result = await ipcRenderer.invoke('get-weekly-preview', {
+                    dateFrom: els.weeklyDateFrom.value,
+                    dateTo: els.weeklyDateTo.value
+                });
 
             const cachedRows = state.weeklyRowsByRange.get(rangeKey) || [];
             state.weeklyRows = mergeWeeklyRowsKeepingEdits(cachedRows, buildWeeklyRows(result.reports || []));
@@ -6872,6 +6978,11 @@
             els.weeklyModal.classList.remove('open');
             activateTab('weeklyPage');
             setWeeklyStatus(`Đã tải ${state.weeklyRows.length} dòng dữ liệu.`);
+            } catch (error) {
+                setWeeklyStatus(error.message || 'Không tải được báo cáo tuần.', true);
+            } finally {
+                setOperationState('', '');
+            }
         }
 
         function getWeeklyRangeKey() {
@@ -8334,27 +8445,31 @@
                 if (!state.weeklyOutputFolder) return;
             }
 
-            const rows = state.weeklyRows.map((row) => ({
-                ...row,
-                noi_dung_cong_viec: textareaToList(row.noi_dung),
-                trang_thai: textareaToList(row.tien_do)
-            }));
+            await runOperation('xuất báo cáo tuần', async ({ step }) => {
+                step('Đang chuẩn bị dữ liệu và hình ảnh xuất Excel...');
+                const rows = state.weeklyRows.map((row) => ({
+                    ...row,
+                    noi_dung_cong_viec: textareaToList(row.noi_dung),
+                    trang_thai: textareaToList(row.tien_do)
+                }));
 
-            try {
-                const imagePayload = getWeeklyExportImagePayload();
-                const result = await ipcRenderer.invoke('export-weekly-report', {
-                    dateFrom: els.weeklyDateFrom.value,
-                    dateTo: els.weeklyDateTo.value,
-                    outputDir: state.weeklyOutputFolder,
-                    rows,
-                    columns: state.weeklyColumns,
-                    images: imagePayload.images,
-                    imageGroups: imagePayload.imageGroups
-                });
-                setWeeklyStatus(`Đã xuất: ${result.outputPath}`);
-            } catch (error) {
-                setWeeklyStatus(error.message || 'Không xuất được báo cáo tuần.', true);
-            }
+                try {
+                    const imagePayload = getWeeklyExportImagePayload();
+                    step('Đang tạo file Excel báo cáo tuần...');
+                    const result = await ipcRenderer.invoke('export-weekly-report', {
+                        dateFrom: els.weeklyDateFrom.value,
+                        dateTo: els.weeklyDateTo.value,
+                        outputDir: state.weeklyOutputFolder,
+                        rows,
+                        columns: state.weeklyColumns,
+                        images: imagePayload.images,
+                        imageGroups: imagePayload.imageGroups
+                    });
+                    setWeeklyStatus(`Đã xuất: ${result.outputPath}`);
+                } catch (error) {
+                    setWeeklyStatus(error.message || 'Không xuất được báo cáo tuần.', true);
+                }
+            }, { statusTarget: 'weekly' });
         }
 
         async function exportSetupTrackingReport() {
@@ -8377,24 +8492,28 @@
                 if (!state.weeklyOutputFolder) return;
             }
 
-            const rows = setupRows.map((row) => ({
-                ...row,
-                noi_dung_cong_viec: textareaToList(row.noi_dung),
-                trang_thai: textareaToList(row.tien_do)
-            }));
+            await runOperation('xuất Excel setup', async ({ step }) => {
+                step('Đang chuẩn bị dữ liệu setup...');
+                const rows = setupRows.map((row) => ({
+                    ...row,
+                    noi_dung_cong_viec: textareaToList(row.noi_dung),
+                    trang_thai: textareaToList(row.tien_do)
+                }));
 
-            try {
-                const result = await ipcRenderer.invoke('export-setup-tracking-report', {
-                    dateFrom: els.weeklyDateFrom.value,
-                    dateTo: els.weeklyDateTo.value,
-                    outputDir: state.weeklyOutputFolder,
-                    outputName: state.setupTrackingFileName,
-                    rows
-                });
-                setWeeklyStatus(`Đã xuất Excel setup: ${result.outputPath}`);
-            } catch (error) {
-                setWeeklyStatus(error.message || 'Không xuất được Excel setup.', true);
-            }
+                try {
+                    step('Đang ghi file Excel theo dõi setup...');
+                    const result = await ipcRenderer.invoke('export-setup-tracking-report', {
+                        dateFrom: els.weeklyDateFrom.value,
+                        dateTo: els.weeklyDateTo.value,
+                        outputDir: state.weeklyOutputFolder,
+                        outputName: state.setupTrackingFileName,
+                        rows
+                    });
+                    setWeeklyStatus(`Đã xuất Excel setup: ${result.outputPath}`);
+                } catch (error) {
+                    setWeeklyStatus(error.message || 'Không xuất được Excel setup.', true);
+                }
+            }, { statusTarget: 'weekly' });
         }
 
         function textareaToList(text) {
@@ -8413,11 +8532,15 @@
             return `file:///${String(filePath || '').replace(/\\/g, '/')}`;
         }
 
-        async function loadReports() {
+        async function loadReports(options = {}) {
+            if (!options.skipOperation && state.operation) {
+                setStatus(`Đang ${state.operation.message || state.operation.name}. Vui lòng chờ thao tác này hoàn tất.`, true);
+                return;
+            }
             const result = await ipcRenderer.invoke('load-reports');
             state.savedReports = result.reports;
             state.allReports = result.reports;
-            state.dataFile = result.dataFile;
+            state.searchCache.clear();
             state.sqliteFile = result.sqliteFile || '';
             learnFromAcceptedReports(result.reports, 'history');
             renderSearch();
@@ -8664,6 +8787,7 @@
         }
 
         async function renderSearch() {
+            const requestId = ++state.searchRequestId;
             const rawQuery = (els.searchInput.value || '').trim();
             const dateQuery = parseSearchDate(rawQuery);
             const displayQuery = dateQuery || rawQuery;
@@ -8674,7 +8798,13 @@
                 const queryPayload = dateQuery
                     ? { ngay: dateQuery }
                     : {};
-                const result = await ipcRenderer.invoke('query-reports', queryPayload);
+                const cacheKey = JSON.stringify(queryPayload);
+                let result = state.searchCache.get(cacheKey);
+                if (!result) {
+                    result = await ipcRenderer.invoke('query-reports', queryPayload);
+                    state.searchCache.set(cacheKey, result);
+                }
+                if (requestId !== state.searchRequestId) return;
                 state.savedReports = result.reports.filter((report) => !isNoProjectReport(report));
             } else {
                 state.savedReports = state.allReports.filter((report) => !isNoProjectReport(report));
@@ -8697,6 +8827,7 @@
                 }
                 return String(b.report.ngay_thuc_hien || '').localeCompare(String(a.report.ngay_thuc_hien || ''));
             }).map(({ report }) => report);
+            if (requestId !== state.searchRequestId) return;
             state.searchRows = rows;
             state.selectedSearchIds = new Set([...state.selectedSearchIds].filter((id) => rows.some((report) => report.id === id)));
 
@@ -8805,20 +8936,24 @@
             const payload = mode === 'all'
                 ? { all: true }
                 : { ids: selectedVisibleIds };
-            els.confirmDeleteBtn.disabled = true;
-            try {
+            await runOperation('xóa dữ liệu', async ({ step }) => {
+                step('Đang tạo snapshot và xóa dữ liệu SQLite...');
                 const result = await ipcRenderer.invoke('delete-reports', payload);
                 state.allReports = result.reports || [];
                 state.savedReports = state.allReports;
+                state.searchCache.clear();
                 state.selectedSearchIds.clear();
                 closeDeleteConfirm();
+                step('Đang cập nhật các danh mục và kết quả tìm kiếm...');
                 await refreshReportCategories();
                 renderSearch();
                 renderFolderStructure();
                 updateCurrentDateTime();
-            } finally {
-                els.confirmDeleteBtn.disabled = false;
-            }
+                showToast('Daily Work Report', [
+                    `Đã xóa ${result.deleted || 0} bản ghi (${result.beforeCount || 0} → ${result.afterCount || 0}).`,
+                    result.backupFile ? `Snapshot: ${result.backupFile}` : ''
+                ].filter(Boolean));
+            });
         }
 
         function debounce(fn, delay) {
