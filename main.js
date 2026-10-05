@@ -7,6 +7,20 @@ const { execFile, spawn } = require('child_process');
 const initSqlJs = require('sql.js');
 const ExcelJS = require('exceljs');
 const { autoUpdater } = require('electron-updater');
+const reportUtils = require('./src/reports/report-utils');
+const {
+    normalizeProjectCode,
+    reportDuplicateFingerprint,
+    isInvalidReportProject,
+    sanitizeFolderName,
+    folderDateNameFromReport
+} = reportUtils;
+const {
+    normalizeRootFolder,
+    resolveStoredFolderPath,
+    assertDirectory,
+    ensureDirectory
+} = require('./src/filesystem/path-utils');
 
 const DEFAULT_WEEKLY_LOGO = path.join(__dirname, 'assets', 'meiko-automation-logo.png');
 const APP_ICON_FILE = path.join(__dirname, 'assets', 'daily-work-report-icon.png');
@@ -310,8 +324,17 @@ async function updateFromGithubRelease() {
         const downloadedFiles = await autoUpdater.downloadUpdate();
         const downloadedFile = Array.isArray(downloadedFiles) ? downloadedFiles.join('; ') : String(downloadedFiles || '');
 
+        // electron-updater must own the shutdown/install sequence. Calling app.quit()
+        // here would only close the app and leave the downloaded update unapplied.
         setTimeout(() => {
-            requestUpdateShutdown();
+            try {
+                autoUpdater.quitAndInstall(true, true);
+            } catch (installError) {
+                updateShutdownRequested = false;
+                notifyRenderer('update-error', {
+                    message: `Không thể bắt đầu cài bản cập nhật ${latestVersion}: ${installError.message || installError}`
+                });
+            }
         }, 700);
 
         return {
@@ -322,7 +345,7 @@ async function updateFromGithubRelease() {
             latestVersion,
             releaseUrl: `${GITHUB_REPO_URL}/releases/tag/v${latestVersion}`,
             downloadedFile,
-            message: `Đã tải bản cập nhật ${latestVersion}. Phần mềm sẽ đóng và cài phần thay đổi bằng differential update.`
+            message: `Đã tải xong bản cập nhật ${latestVersion}. Ứng dụng sẽ tự đóng, cài đặt ngầm và mở lại sau khi cài xong.`
         };
     } catch (error) {
         const fallback = await updateFromGithubInstallerFallback();
@@ -357,9 +380,12 @@ function createUpdateInstallLauncher(installerFile, latestVersion) {
     const vbsPath = path.join(updatesDir, `install-daily-work-report-${latestVersion || 'latest'}-${token}.vbs`);
     const logPath = path.join(updatesDir, `install-daily-work-report-${latestVersion || 'latest'}-${token}.log`);
     const currentPid = process.pid;
+    // In a packaged app process.execPath is the installed executable. Keep the
+    // explicit path so the launcher reopens the new binary after NSIS exits.
     const currentExe = process.execPath;
     const ps1 = `
 $ErrorActionPreference = 'Continue'
+$ProgressPreference = 'SilentlyContinue'
 $installer = ${psQuote(installerFile)}
 $currentExe = ${psQuote(currentExe)}
 $logFile = ${psQuote(logPath)}
@@ -392,7 +418,7 @@ try { Unblock-File -LiteralPath $installer; Write-UpdateLog "Installer unblocked
 $installed = $false
 try {
     Write-UpdateLog "Starting silent installer."
-    $process = Start-Process -FilePath $installer -ArgumentList '/S' -Wait -PassThru -WindowStyle Normal
+    $process = Start-Process -FilePath $installer -ArgumentList '/S' -Wait -PassThru -WindowStyle Hidden
     $exitCode = if ($null -ne $process) { $process.ExitCode } else { -1 }
     Write-UpdateLog "Silent installer exited with code $exitCode."
     if ($exitCode -eq 0) {
@@ -415,9 +441,11 @@ if (-not $installed) {
     }
 }
 Start-Sleep -Seconds 2
-if (Test-Path -LiteralPath $currentExe) {
-    Write-UpdateLog "Reopening app: $currentExe"
+if ($installed -and (Test-Path -LiteralPath $currentExe)) {
+    Write-UpdateLog "Reopening updated app: $currentExe"
     Start-Process -FilePath $currentExe | Out-Null
+} elseif (-not $installed) {
+    Write-UpdateLog "Installation did not complete; app will not reopen automatically."
 } else {
     Write-UpdateLog "Current exe not found after install."
 }
@@ -895,80 +923,6 @@ function listText(value, mapper = (item) => item) {
     return list.map(mapper).filter(Boolean).join('; ');
 }
 
-function comparableText(value) {
-    return String(value || '')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/đ/g, 'd')
-        .replace(/Đ/g, 'D')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .toLowerCase();
-}
-
-function comparableList(value) {
-    return (Array.isArray(value) ? value : [value])
-        .map((item) => comparableText(item))
-        .filter(Boolean)
-        .join('\n');
-}
-
-function comparablePeople(value) {
-    return (Array.isArray(value) ? value : [value])
-        .map((person) => {
-            if (typeof person === 'string') return person;
-            return person && (person.displayName || person.name || person.folderName || '');
-        })
-        .map(comparableText)
-        .filter(Boolean)
-        .sort()
-        .join('\n');
-}
-
-function reportDuplicateFingerprint(report) {
-    return [
-        normalizeProjectCode(report && report.ma_du_an),
-        comparableList(report && report.noi_dung_cong_viec),
-        comparableList(report && report.thoi_gian),
-        comparablePeople(report && report.nguoi_thuc_hien),
-        comparableList(report && report.trang_thai),
-        comparableText(report && report.ngay_thuc_hien)
-    ].join('||');
-}
-
-function isInvalidReportProject(report) {
-    const rawProject = String(report && report.ma_du_an || '').trim().toUpperCase();
-    const project = normalizeProjectCode(rawProject);
-    return !project
-        || /^CHUA[_ ]?XAC[_ ]?DINH/.test(rawProject)
-        || /^KHONG[_ ]?CO[_ ]?MA[_ ]?DU[_ ]?AN/.test(rawProject)
-        || project.startsWith('CHUAXACDINH')
-        || project.startsWith('KHONGCOMADUAN');
-}
-
-function sanitizeFolderName(value) {
-    return String(value || '')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/đ/g, 'd')
-        .replace(/Đ/g, 'D')
-        .replace(/[^a-zA-Z0-9]+/g, '')
-        .trim();
-}
-
-function folderDateNameFromReport(report) {
-    const iso = String(report && report.ngay_thuc_hien || '').match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-    if (iso) {
-        const monthNames = [
-            'January', 'February', 'March', 'April', 'May', 'June',
-            'July', 'August', 'September', 'October', 'November', 'December'
-        ];
-        return `${iso[1]}${monthNames[Number(iso[2]) - 1] || 'Unknown'}${String(iso[3]).padStart(2, '0')}`;
-    }
-    const fallback = String(report && report.folder_ngay_name || '').trim();
-    return fallback && !/^unknown(date)?$/i.test(fallback) ? fallback : 'UnknownDate';
-}
-
 function reportToDbParams(report) {
     const peopleText = listText(report.nguoi_thuc_hien, (person) => person.displayName || person);
     const contentText = listText(report.noi_dung_cong_viec);
@@ -1205,10 +1159,6 @@ function formatReportTitleDate(isoDate) {
     const date = new Date(`${isoDate}T00:00:00`);
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return `${String(date.getDate()).padStart(2, '0')}-${months[date.getMonth()]}`;
-}
-
-function normalizeProjectCode(value) {
-    return String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 }
 
 function cellDisplayText(cell) {
@@ -3164,9 +3114,7 @@ ipcMain.handle('export-setup-tracking-report', async (_event, payload) => {
 });
 
 ipcMain.handle('save-reports', async (_event, payload) => {
-    const rootFolder = typeof (payload && payload.rootFolder) === 'string'
-        ? path.normalize(payload.rootFolder.trim())
-        : '';
+    const rootFolder = normalizeRootFolder(payload && payload.rootFolder);
     const reports = Array.isArray(payload && payload.reports) ? payload.reports : [];
 
     if (!rootFolder) {
@@ -3177,10 +3125,7 @@ ipcMain.handle('save-reports', async (_event, payload) => {
     }
 
     try {
-        fs.mkdirSync(rootFolder, { recursive: true });
-        if (!fs.statSync(rootFolder).isDirectory()) {
-            throw new Error('Đường dẫn đã chọn không phải là thư mục.');
-        }
+        ensureDirectory(rootFolder, 'thư mục gốc');
     } catch (error) {
         throw new Error(`Không tạo/truy cập được thư mục gốc:\n${rootFolder}\n\n${error.message || error}`);
     }
@@ -3257,9 +3202,7 @@ ipcMain.handle('save-reports', async (_event, payload) => {
 });
 
 ipcMain.handle('save-no-project-reports', async (_event, payload) => {
-    const rootFolder = typeof (payload && payload.rootFolder) === 'string'
-        ? path.normalize(payload.rootFolder.trim())
-        : '';
+    const rootFolder = normalizeRootFolder(payload && payload.rootFolder);
     const reports = Array.isArray(payload && payload.reports) ? payload.reports : [];
 
     if (rootFolder) {
@@ -3389,11 +3332,7 @@ ipcMain.handle('open-folder', async (_event, payload) => {
         return { ok: false, error: 'Chưa có đường dẫn thư mục.' };
     }
 
-    const folderPath = path.isAbsolute(requestedPath)
-        ? path.normalize(requestedPath)
-        : rootFolder
-            ? path.resolve(rootFolder, requestedPath)
-            : path.resolve(requestedPath);
+    const folderPath = resolveStoredFolderPath(requestedPath, rootFolder);
 
     if (!fs.existsSync(folderPath)) {
         return {
