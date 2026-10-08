@@ -12,6 +12,7 @@ const DEFAULT_WEEKLY_LOGO = path.join(__dirname, 'assets', 'meiko-automation-log
 const APP_ICON_FILE = path.join(__dirname, 'assets', 'daily-work-report-icon.png');
 const MACHINE_REFERENCE_FILE = path.join(__dirname, 'reference_files', 'Thamkhao.xlsm');
 const AUTJ_MACHINE_REFERENCE_FILE = path.join(__dirname, 'reference_files', 'Thamkhao2.xlsm');
+const THAMKHAO3_MACHINE_REFERENCE_FILE = path.join(__dirname, 'reference_files', 'Thamkhao3.xlsm');
 const SETUP_TRACKING_TEMPLATE_FILE = path.join(__dirname, 'reference_files', 'Theo_doi_setup_may_cho_khach_hang.xlsx');
 const DEFAULT_SETUP_TRACKING_OUTPUT_NAME = 'lắp đặt, sửa tính từ 22-06-2026.xlsx';
 const MACHINE_REFERENCE_SHEET_KEY = 'danhsachmay';
@@ -1276,7 +1277,13 @@ async function loadMachineReference() {
         machineNameColumn: 'F',
         projectNameColumn: 'E'
     });
-    Object.assign(reference, autjReference);
+    const thamkhao3Reference = await readMachineReferenceFile(THAMKHAO3_MACHINE_REFERENCE_FILE, {
+        sheetKey: MACHINE_REFERENCE_SHEET_KEY,
+        codeColumn: 'B',
+        machineNameColumn: 'AF',
+        projectNameColumn: 'AE'
+    });
+    Object.assign(reference, autjReference, thamkhao3Reference);
     machineReferenceCache = reference;
     return reference;
 }
