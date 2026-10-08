@@ -226,16 +226,15 @@ function collectReleaseAssets(version) {
     const distDir = path.join(rootDir, 'dist');
 
     const assets = [
-        // x64: from dist/x64/
-        path.join(distDir, 'x64', `${productName}-Setup-v${version}.exe`),
-        path.join(distDir, 'x64', `${productName}-Setup-v${version}.exe.blockmap`),
-        path.join(distDir, 'x64', `${productName}-v${version}.exe`),
+        // GitHub release asset names must be unique. Use the x64 aliases at dist root
+        // and the ia32 aliases with an explicit -ia32 suffix.
+        path.join(distDir, `${dashedName}-Setup-v${version}.exe`),
+        path.join(distDir, `${dashedName}-Setup-v${version}.exe.blockmap`),
+        path.join(distDir, `${productName}-v${version}.exe`),
         path.join(distDir, `${productName}-v${version}-x64-win-unpacked.zip`),
-        // ia32: from dist/ia32/
-        path.join(distDir, 'ia32', `${productName}-Setup-v${version}.exe`),
-        path.join(distDir, 'ia32', `${productName}-v${version}.exe`),
+        path.join(distDir, `${productName}-Setup-v${version}-ia32.exe`),
+        path.join(distDir, `${productName}-v${version}-ia32.exe`),
         path.join(distDir, `${productName}-v${version}-ia32-win-unpacked.zip`),
-        // latest.yml: from dist/x64/
         path.join(distDir, 'x64', 'latest.yml')
     ];
 
