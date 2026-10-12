@@ -3678,6 +3678,29 @@
         ipcRenderer.on('zalo-image-moved', (_event, payload) => {
             showToast('Daily Work Report', ['Đã chuyển']);
         });
+        ipcRenderer.on('update-download-progress', (_event, progress) => {
+            const formatMegabytes = (bytes) => `${(Number(bytes || 0) / (1024 * 1024)).toFixed(1)} MB`;
+            let message = 'Đang kết nối GitHub để tải bộ cài...';
+            if (progress.status === 'downloading') {
+                const size = progress.totalBytes
+                    ? `${formatMegabytes(progress.downloadedBytes)} / ${formatMegabytes(progress.totalBytes)}`
+                    : `${formatMegabytes(progress.downloadedBytes)} đã tải`;
+                message = `Đang tải ${progress.assetName || 'bản cập nhật'}: ${size}${progress.percent === null ? '' : ` (${progress.percent}%)`}`;
+            } else if (progress.status === 'installer-started') {
+                message = `Đã tải xong. Đang mở bộ cài: ${progress.installerFile || ''}\nLog: ${progress.installLog || ''}`;
+            } else if (progress.status === 'manual-install') {
+                message = `Đã tải xong gói portable: ${progress.installerFile || ''}`;
+            }
+
+            if (els.updateAppBtn.disabled) {
+                els.updateLog.style.display = 'block';
+                els.updateLog.textContent = message;
+            }
+            if (els.updateNowBtn.disabled) {
+                els.updatePromptLog.style.display = 'block';
+                els.updatePromptLog.textContent = message;
+            }
+        });
 
         function setStatus(message, isError = false) {
             els.inputStatus.textContent = message;

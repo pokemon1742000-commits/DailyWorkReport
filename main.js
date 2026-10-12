@@ -237,39 +237,87 @@ function requestGithubJson(url) {
     });
 }
 
-function downloadFile(url, destinationFile) {
+function downloadFile(url, destinationFile, onProgress, redirectCount = 0) {
     return new Promise((resolve, reject) => {
+        let settled = false;
+        let file = null;
+        let fileCreated = false;
+        let request = null;
+        const removePartialFile = () => {
+            if (!fileCreated) return;
+            try {
+                fs.rmSync(destinationFile, { force: true });
+            } catch (error) {
+                if (error.code !== 'ENOENT') console.error('Could not remove incomplete update download:', error);
+            }
+        };
+        const fail = (error) => {
+            if (settled) return;
+            settled = true;
+            if (file && !file.closed) {
+                file.once('close', removePartialFile);
+                file.destroy();
+            } else {
+                removePartialFile();
+            }
+            if (request && !request.destroyed) request.destroy();
+            reject(error);
+        };
+        if (redirectCount > 10) {
+            fail(new Error('Quá nhiều lần chuyển hướng khi tải bản cập nhật.'));
+            return;
+        }
         fs.mkdirSync(path.dirname(destinationFile), { recursive: true });
-        const file = fs.createWriteStream(destinationFile);
-        const request = https.get(url, {
+        request = https.get(url, {
             headers: { 'User-Agent': 'DailyWorkReportUpdater' }
         }, (response) => {
             if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
-                file.close();
-                fs.rmSync(destinationFile, { force: true });
                 response.resume();
-                downloadFile(response.headers.location, destinationFile).then(resolve, reject);
+                downloadFile(response.headers.location, destinationFile, onProgress, redirectCount + 1).then(resolve, reject);
                 return;
             }
 
             if (response.statusCode < 200 || response.statusCode >= 300) {
-                file.close();
-                fs.rmSync(destinationFile, { force: true });
                 response.resume();
-                reject(new Error(`Khong tai duoc file cap nhat. GitHub tra ve loi ${response.statusCode}.`));
+                fail(new Error(`Khong tai duoc file cap nhat. GitHub tra ve loi ${response.statusCode}.`));
                 return;
             }
 
+            const totalBytes = Number(response.headers['content-length']) || 0;
+            let downloadedBytes = 0;
+            let lastProgressAt = 0;
+            file = fs.createWriteStream(destinationFile);
+            fileCreated = true;
+            response.on('data', (chunk) => {
+                downloadedBytes += chunk.length;
+                const now = Date.now();
+                if (onProgress && now - lastProgressAt >= 250) {
+                    lastProgressAt = now;
+                    onProgress({ downloadedBytes, totalBytes });
+                }
+            });
+            response.once('aborted', () => fail(new Error('Kết nối tải bản cập nhật bị ngắt trước khi hoàn tất.')));
+            response.once('error', fail);
+            file.once('error', fail);
             response.pipe(file);
             file.on('finish', () => {
-                file.close(() => resolve(destinationFile));
+                file.close((error) => {
+                    if (error) {
+                        fail(error);
+                        return;
+                    }
+                    if (settled) return;
+                    settled = true;
+                    if (onProgress) onProgress({ downloadedBytes, totalBytes });
+                    resolve(destinationFile);
+                });
             });
         });
-        request.on('error', (error) => {
-            file.close();
-            fs.rmSync(destinationFile, { force: true });
-            reject(error);
+        request.setTimeout(30000, () => {
+            fail(new Error('Tải bản cập nhật bị gián đoạn quá lâu. Hãy kiểm tra kết nối mạng rồi thử lại.'));
+            request.destroy();
         });
+        request.once('error', fail);
     });
 }
 
@@ -322,6 +370,19 @@ function Write-UpdateLog([string]$message) {
     $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
     Add-Content -LiteralPath $logFile -Value "[$stamp] $message" -Encoding UTF8
 }
+function Show-UpdateError([string]$message) {
+    try {
+        Add-Type -AssemblyName System.Windows.Forms
+        [System.Windows.Forms.MessageBox]::Show(
+            $message + [Environment]::NewLine + [Environment]::NewLine + "Installer: $installer" + [Environment]::NewLine + "Log: $logFile",
+            "Daily Work Report update",
+            'OK',
+            'Error'
+        ) | Out-Null
+    } catch {
+        Write-UpdateLog "Could not display error dialog: $($_.Exception.Message)"
+    }
+}
 Write-UpdateLog "Launcher started. Installer=$installer CurrentExe=$currentExe CurrentPid=$currentPid"
 $closed = $false
 for ($attempt = 0; $attempt -lt 180; $attempt++) {
@@ -334,12 +395,17 @@ for ($attempt = 0; $attempt -lt 180; $attempt++) {
     Start-Sleep -Milliseconds 500
 }
 if (-not $closed) {
-    Write-UpdateLog "App process is still running after 90 seconds; installer will not start."
+    $message = "Ứng dụng cũ vẫn chạy sau 90 giây nên chưa thể mở bộ cài. Hãy đóng Daily Work Report rồi chạy lại cập nhật."
+    Write-UpdateLog $message
+    Show-UpdateError $message
+    Start-Process -FilePath 'explorer.exe' -ArgumentList ('/select,"' + $installer + '"') | Out-Null
     exit 3
 }
 Start-Sleep -Milliseconds 700
 if (-not (Test-Path -LiteralPath $installer)) {
-    Write-UpdateLog "Installer not found."
+    $message = "Không tìm thấy file cài đặt sau khi tải."
+    Write-UpdateLog $message
+    Show-UpdateError $message
     exit 2
 }
 try { Unblock-File -LiteralPath $installer; Write-UpdateLog "Installer unblocked." } catch { Write-UpdateLog "Unblock failed: $($_.Exception.Message)" }
@@ -351,12 +417,8 @@ try {
 } catch {
     $message = "Could not open installer: $($_.Exception.Message)"
     Write-UpdateLog $message
-    try {
-        Add-Type -AssemblyName System.Windows.Forms
-        [System.Windows.Forms.MessageBox]::Show($message + [Environment]::NewLine + [Environment]::NewLine + "Installer: $installer" + [Environment]::NewLine + "Log: $logFile", "Daily Work Report update", 'OK', 'Error') | Out-Null
-    } catch {
-        Write-UpdateLog "Could not display installer error dialog: $($_.Exception.Message)"
-    }
+    Show-UpdateError $message
+    Start-Process -FilePath 'explorer.exe' -ArgumentList ('/select,"' + $installer + '"') | Out-Null
 }
 Start-Sleep -Seconds 2
 if (Test-Path -LiteralPath $currentExe) {
@@ -416,7 +478,16 @@ async function downloadAndInstallGithubRelease() {
     const updatesDir = path.join(app.getPath('downloads'), 'DailyWorkReportUpdates');
     const safeAssetName = String(asset.name || `Daily Work Report-v${latestVersion || 'latest'}.exe`).replace(/[<>:"/\\|?*]/g, '_');
     const destinationFile = path.join(updatesDir, safeAssetName);
-    await downloadFile(asset.browser_download_url, destinationFile);
+    notifyRenderer('update-download-progress', { status: 'starting', assetName: asset.name });
+    await downloadFile(asset.browser_download_url, destinationFile, ({ downloadedBytes, totalBytes }) => {
+        notifyRenderer('update-download-progress', {
+            status: 'downloading',
+            assetName: asset.name,
+            downloadedBytes,
+            totalBytes,
+            percent: totalBytes ? Math.min(100, Math.floor(downloadedBytes / totalBytes * 100)) : null
+        });
+    });
     const assetType = /\.zip$/i.test(asset.name || '') ? 'zip' : 'exe';
     let installerStarted = false;
     let installLauncher = null;
@@ -425,7 +496,7 @@ async function downloadAndInstallGithubRelease() {
         const installerProcess = spawn('powershell.exe', powershellScriptArgs(installLauncher.ps1Path), {
             detached: true,
             stdio: 'ignore',
-            windowsHide: true
+            windowsHide: false
         });
         await new Promise((resolve, reject) => {
             installerProcess.once('spawn', resolve);
@@ -433,9 +504,20 @@ async function downloadAndInstallGithubRelease() {
         });
         installerProcess.unref();
         installerStarted = true;
+        notifyRenderer('update-download-progress', {
+            status: 'installer-started',
+            assetName: asset.name,
+            installerFile: destinationFile,
+            installLog: installLauncher.logPath
+        });
         setTimeout(() => requestUpdateShutdown(), 500);
     } else {
         shell.showItemInFolder(destinationFile);
+        notifyRenderer('update-download-progress', {
+            status: 'manual-install',
+            assetName: asset.name,
+            installerFile: destinationFile
+        });
     }
 
     return {
