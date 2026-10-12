@@ -6,7 +6,12 @@ const os = require('os');
 const { execFile, spawn } = require('child_process');
 const initSqlJs = require('sql.js');
 const ExcelJS = require('exceljs');
-const { autoUpdater } = require('electron-updater');
+const { lookupMachineReferenceByProjects } = require('./src/reports/machine-reference');
+const {
+    selectReleaseUpdateAsset,
+    powershellScriptArgs,
+    canAutoInstallUpdate
+} = require('./src/update/release-assets');
 const reportUtils = require('./src/reports/report-utils');
 const {
     normalizeProjectCode,
@@ -30,20 +35,13 @@ const {
 
 const DEFAULT_WEEKLY_LOGO = path.join(__dirname, 'assets', 'meiko-automation-logo.png');
 const APP_ICON_FILE = path.join(__dirname, 'assets', 'daily-work-report-icon.png');
-const MACHINE_REFERENCE_FILE = path.join(__dirname, 'reference_files', 'Thamkhao.xlsm');
-const AUTJ_MACHINE_REFERENCE_FILE = path.join(__dirname, 'reference_files', 'Thamkhao2.xlsm');
-const THAMKHAO3_MACHINE_REFERENCE_FILE = path.join(__dirname, 'reference_files', 'Thamkhao3.xlsm');
 const SETUP_TRACKING_TEMPLATE_FILE = path.join(__dirname, 'reference_files', 'Theo_doi_setup_may_cho_khach_hang.xlsx');
 const DEFAULT_SETUP_TRACKING_OUTPUT_NAME = 'lắp đặt, sửa tính từ 22-06-2026.xlsx';
-const MACHINE_REFERENCE_SHEET_KEY = 'danhsachmay';
-const AUTJ_REFERENCE_SHEET_KEY = 'duanle1';
 const GITHUB_OWNER = 'pokemon1742000-commits';
 const GITHUB_REPO = 'DailyWorkReport';
 const GITHUB_REPO_URL = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}`;
 
 let sqlPromise = null;
-let machineReferenceCache = null;
-let autoUpdaterConfigured = false;
 let updateShutdownRequested = false;
 const ZALO_IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.webp', '.heic', '.tif', '.tiff']);
 const zaloAutoMoveState = {
@@ -290,84 +288,8 @@ function compareVersions(left, right) {
     return 0;
 }
 
-function configureDifferentialUpdater() {
-    if (autoUpdaterConfigured) return;
-    autoUpdater.autoDownload = false;
-    autoUpdater.autoInstallOnAppQuit = false;
-    autoUpdater.allowPrerelease = false;
-    autoUpdater.allowDowngrade = false;
-    autoUpdater.setFeedURL({
-        provider: 'github',
-        owner: GITHUB_OWNER,
-        repo: GITHUB_REPO
-    });
-    autoUpdaterConfigured = true;
-}
-
-async function updateFromGithubRelease() {
-    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
-    const currentVersion = normalizeVersion(pkg.version || app.getVersion() || '0.0.0');
-
-    if (!app.isPackaged) {
-        return updateFromGithubInstallerFallback();
-    }
-
-    try {
-        configureDifferentialUpdater();
-        const checkResult = await autoUpdater.checkForUpdates();
-        const updateInfo = checkResult && checkResult.updateInfo || {};
-        const latestVersion = normalizeVersion(updateInfo.version || updateInfo.tag || '');
-
-        if (!latestVersion || compareVersions(latestVersion, currentVersion) <= 0) {
-            return {
-                mode: 'differential',
-                currentVersion,
-                latestVersion: latestVersion || currentVersion,
-                releaseUrl: GITHUB_REPO_URL,
-                message: `Bạn đang dùng phiên bản mới nhất (${currentVersion}).`
-            };
-        }
-
-        const downloadedFiles = await autoUpdater.downloadUpdate();
-        const downloadedFile = Array.isArray(downloadedFiles) ? downloadedFiles.join('; ') : String(downloadedFiles || '');
-
-        // electron-updater must own the shutdown/install sequence. Calling app.quit()
-        // here would only close the app and leave the downloaded update unapplied.
-        setTimeout(() => {
-            try {
-                autoUpdater.quitAndInstall(true, true);
-            } catch (installError) {
-                updateShutdownRequested = false;
-                notifyRenderer('update-error', {
-                    message: `Không thể bắt đầu cài bản cập nhật ${latestVersion}: ${installError.message || installError}`
-                });
-            }
-        }, 700);
-
-        return {
-            mode: 'differential',
-            assetType: 'nsis-differential',
-            installerStarted: true,
-            currentVersion,
-            latestVersion,
-            releaseUrl: `${GITHUB_REPO_URL}/releases/tag/v${latestVersion}`,
-            downloadedFile,
-            message: `Đã tải xong bản cập nhật ${latestVersion}. Ứng dụng sẽ tự đóng, cài đặt ngầm và mở lại sau khi cài xong.`
-        };
-    } catch (error) {
-        const fallback = await updateFromGithubInstallerFallback();
-        fallback.mode = 'installer-fallback';
-        fallback.message = `${fallback.message || ''}\nUpdater vi sai lỗi nên đã chuyển sang tải installer đầy đủ. Lỗi: ${error.message || error}`;
-        return fallback;
-    }
-}
-
 function psQuote(value) {
     return `'${String(value || '').replace(/'/g, "''")}'`;
-}
-
-function vbsQuote(value) {
-    return `"${String(value || '').replace(/"/g, '""')}"`;
 }
 
 function requestUpdateShutdown() {
@@ -384,7 +306,6 @@ function createUpdateInstallLauncher(installerFile, latestVersion) {
     const updatesDir = path.dirname(installerFile);
     const token = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     const ps1Path = path.join(updatesDir, `install-daily-work-report-${latestVersion || 'latest'}-${token}.ps1`);
-    const vbsPath = path.join(updatesDir, `install-daily-work-report-${latestVersion || 'latest'}-${token}.vbs`);
     const logPath = path.join(updatesDir, `install-daily-work-report-${latestVersion || 'latest'}-${token}.log`);
     const currentPid = process.pid;
     // In a packaged app process.execPath is the installed executable. Keep the
@@ -458,33 +379,21 @@ if ($installed -and (Test-Path -LiteralPath $currentExe)) {
 }
 Start-Sleep -Seconds 2
 try { Remove-Item -LiteralPath ${psQuote(ps1Path)} -Force } catch {}
-try { Remove-Item -LiteralPath ${psQuote(vbsPath)} -Force } catch {}
-`;
-    const vbs = `
-Option Explicit
-Dim shell, command
-Set shell = CreateObject("WScript.Shell")
-command = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File " & ${vbsQuote(ps1Path)}
-shell.Run command, 0, False
 `;
     fs.writeFileSync(ps1Path, ps1, 'utf8');
-    fs.writeFileSync(vbsPath, vbs, 'utf8');
-    return { ps1Path, vbsPath, logPath };
+    return { ps1Path, logPath };
 }
 
-async function updateFromGithubInstallerFallback() {
+async function downloadAndInstallGithubRelease() {
     const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
     const currentVersion = normalizeVersion(pkg.version || app.getVersion() || '0.0.0');
     const release = await requestGithubJson(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`);
     const latestVersion = normalizeVersion(release.tag_name || release.name || '');
     const assets = Array.isArray(release.assets) ? release.assets : [];
-    const asset = assets.find((item) => /setup.*\.exe$/i.test(item.name || '') && item.browser_download_url)
-        || assets.find((item) => /\.exe$/i.test(item.name || '') && item.browser_download_url)
-        || assets.find((item) => /win-unpacked\.zip$/i.test(item.name || '') && item.browser_download_url)
-        || assets.find((item) => /\.zip$/i.test(item.name || '') && item.browser_download_url);
+    const asset = selectReleaseUpdateAsset(assets);
 
     if (!asset) {
-        throw new Error('Khong tim thay file .exe hoac .zip trong GitHub Releases.');
+        throw new Error(`Không tìm thấy installer hoặc gói ứng dụng phù hợp với kiến trúc ${process.arch} trong GitHub Releases.`);
     }
 
     if (latestVersion && compareVersions(latestVersion, currentVersion) <= 0) {
@@ -493,7 +402,26 @@ async function updateFromGithubInstallerFallback() {
             currentVersion,
             latestVersion,
             releaseUrl: release.html_url || GITHUB_REPO_URL,
-            message: `Ban dang dung phien ban moi nhat (${currentVersion}).`
+            message: `Bạn đang dùng phiên bản mới nhất (${currentVersion}).`
+        };
+    }
+
+    const releaseUrl = release.html_url || GITHUB_REPO_URL;
+    const isPortable = Boolean(process.env.PORTABLE_EXECUTABLE_FILE || process.env.PORTABLE_EXECUTABLE_DIR);
+    if (!canAutoInstallUpdate({
+        platform: process.platform,
+        packaged: app.isPackaged,
+        portable: isPortable
+    })) {
+        return {
+            mode: 'manual',
+            installerStarted: false,
+            requiresManualInstall: true,
+            currentVersion,
+            latestVersion,
+            releaseUrl,
+            assetName: asset.name,
+            message: 'Bản cài hiện tại là bản portable hoặc chưa được cài bằng bộ cài Windows. Hãy tải installer từ trang release và chạy thủ công.'
         };
     }
 
@@ -506,11 +434,16 @@ async function updateFromGithubInstallerFallback() {
     let installLauncher = null;
     if (assetType === 'exe') {
         installLauncher = createUpdateInstallLauncher(destinationFile, latestVersion || 'latest');
-        spawn('wscript.exe', [installLauncher.vbsPath], {
+        const installerProcess = spawn('powershell.exe', powershellScriptArgs(installLauncher.ps1Path), {
             detached: true,
             stdio: 'ignore',
             windowsHide: true
-        }).unref();
+        });
+        await new Promise((resolve, reject) => {
+            installerProcess.once('spawn', resolve);
+            installerProcess.once('error', reject);
+        });
+        installerProcess.unref();
         installerStarted = true;
         setTimeout(() => requestUpdateShutdown(), 500);
     } else {
@@ -523,14 +456,15 @@ async function updateFromGithubInstallerFallback() {
         installerStarted,
         currentVersion,
         latestVersion,
-        releaseUrl: release.html_url || GITHUB_REPO_URL,
+        releaseUrl,
         downloadedFile: destinationFile,
-        installLauncher: installLauncher && installLauncher.vbsPath || '',
+        installLauncher: installLauncher && installLauncher.ps1Path || '',
         installLog: installLauncher && installLauncher.logPath || '',
         assetName: asset.name,
+        requiresManualInstall: assetType === 'zip',
         message: assetType === 'zip'
-            ? `Da tai goi win-unpacked ${latestVersion || ''} ve: ${destinationFile}. Hay giai nen va chay Daily Work Report.exe.`
-            : `Da tai ban cap nhat ${latestVersion || ''} ve: ${destinationFile}. Phan mem se dong, tu cai dat silent; neu silent loi se tu mo installer de cai dat.`
+            ? `Đã tải gói win-unpacked ${latestVersion || ''} về: ${destinationFile}. Hãy giải nén và chạy Daily Work Report.exe.`
+            : `Đã tải bản cập nhật ${latestVersion || ''} về: ${destinationFile}. Phần mềm sẽ đóng, tự cài đặt im lặng; nếu cài im lặng thất bại sẽ tự mở trình cài đặt để tiếp tục.`
     };
 }
 
@@ -540,10 +474,7 @@ async function checkGithubReleaseUpdate() {
     const release = await requestGithubJson(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`);
     const latestVersion = normalizeVersion(release.tag_name || release.name || '');
     const assets = Array.isArray(release.assets) ? release.assets : [];
-    const asset = assets.find((item) => /setup.*\.exe$/i.test(item.name || '') && item.browser_download_url)
-        || assets.find((item) => /\.exe$/i.test(item.name || '') && item.browser_download_url)
-        || assets.find((item) => /win-unpacked\.zip$/i.test(item.name || '') && item.browser_download_url)
-        || assets.find((item) => /\.zip$/i.test(item.name || '') && item.browser_download_url);
+    const asset = selectReleaseUpdateAsset(assets);
 
     return {
         currentVersion,
@@ -558,28 +489,7 @@ async function checkGithubReleaseUpdate() {
 }
 
 async function updateFromGithub() {
-    return updateFromGithubRelease();
-
-    const before = await getGitInfo();
-    const packageBefore = fs.existsSync(path.join(__dirname, 'package-lock.json'))
-        ? fs.readFileSync(path.join(__dirname, 'package-lock.json'), 'utf8')
-        : '';
-    const pull = await execFileText('git', ['pull', '--ff-only']);
-    const packageAfter = fs.existsSync(path.join(__dirname, 'package-lock.json'))
-        ? fs.readFileSync(path.join(__dirname, 'package-lock.json'), 'utf8')
-        : '';
-    let installOutput = '';
-    if (packageBefore !== packageAfter) {
-        const install = await execFileText('npm.cmd', ['install'], { timeout: 120000 });
-        installOutput = install.stdout || install.stderr || '';
-    }
-    const after = await getGitInfo();
-    return {
-        before,
-        after,
-        message: pull.stdout || pull.stderr || 'Đã kiểm tra cập nhật.',
-        installOutput
-    };
+    return downloadAndInstallGithubRelease();
 }
 
 function getDataDir() {
@@ -1194,264 +1104,16 @@ function normalizeReferenceSheetName(value) {
         .toLowerCase();
 }
 
-async function readMachineReferenceFile(filePath, options = {}) {
-    const reference = {};
-    if (!fs.existsSync(filePath)) {
-        return reference;
-    }
-
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(filePath);
-    const sheetKey = options.sheetKey || MACHINE_REFERENCE_SHEET_KEY;
-    const sheet = workbook.worksheets.find((worksheet) => (
-        normalizeReferenceSheetName(worksheet.name) === sheetKey
-    )) || workbook.worksheets[0];
-    if (!sheet) {
-        return reference;
-    }
-
-    const codeColumn = options.codeColumn || 'B';
-    const machineNameColumn = options.machineNameColumn || 'AD';
-    const projectNameColumn = options.projectNameColumn || 'AC';
-    const prefixFilter = options.prefix ? new RegExp(`^${String(options.prefix).toUpperCase()}`) : null;
-    for (let rowNumber = 5; rowNumber <= sheet.rowCount; rowNumber += 1) {
-        const row = sheet.getRow(rowNumber);
-        const code = cellDisplayText(row.getCell(codeColumn)).trim();
-        const key = normalizeProjectCode(code);
-        if (!key || key === '-') continue;
-        if (prefixFilter && !prefixFilter.test(key)) continue;
-        reference[key] = {
-            machineName: cellDisplayText(row.getCell(machineNameColumn)).trim(),
-            projectName: cellDisplayText(row.getCell(projectNameColumn)).trim()
-        };
-    }
-
-    return reference;
-}
-
-async function loadMachineReference() {
-    if (machineReferenceCache) return machineReferenceCache;
-    const reference = await readMachineReferenceFile(MACHINE_REFERENCE_FILE);
-    const autjReference = await readMachineReferenceFile(AUTJ_MACHINE_REFERENCE_FILE, {
-        sheetKey: AUTJ_REFERENCE_SHEET_KEY,
-        codeColumn: 'B',
-        machineNameColumn: 'F',
-        projectNameColumn: 'E'
-    });
-    const thamkhao3Reference = await readMachineReferenceFile(THAMKHAO3_MACHINE_REFERENCE_FILE, {
-        sheetKey: MACHINE_REFERENCE_SHEET_KEY,
-        codeColumn: 'B',
-        machineNameColumn: 'AF',
-        projectNameColumn: 'AE'
-    });
-    Object.assign(reference, autjReference, thamkhao3Reference);
-    machineReferenceCache = reference;
-    return reference;
-}
-
 async function enrichReportsWithMachineReference(reports) {
-    const reference = await loadMachineReference();
-    return reports.map((report) => {
-        const info = reference[normalizeProjectCode(report.ma_du_an)] || {};
-        return {
-            ...report,
-            ten_may: info.machineName || '',
-            ghi_chu: info.projectName || ''
-        };
-    });
-}
-
-async function lookupMachineReferenceByProjects(projects) {
-    const reference = await loadMachineReference();
-    const referenceCodes = Object.keys(reference);
-    return (projects || []).map((project) => {
-        const code = String(project || '').trim();
-        const key = normalizeProjectCode(code);
-        const info = reference[key] || {};
-        const lookupKeys = projectLookupCandidates(code);
-        return {
-            project: code,
-            found: Boolean(reference[key]),
-            ten_may: info.machineName || '',
-            ghi_chu: info.projectName || '',
-            suggestions: reference[key] ? [] : buildProjectSuggestions(lookupKeys, referenceCodes, reference)
-        };
-    });
-}
-
-function buildProjectSuggestions(projectKeys, referenceCodes, reference) {
-    const keys = (Array.isArray(projectKeys) ? projectKeys : [projectKeys])
-        .map(normalizeProjectCode)
-        .filter(Boolean);
-    if (!keys.length) return [];
-    return referenceCodes
-        .map((code) => {
-            const score = Math.max(...keys.map((projectKey) => projectSimilarityScore(projectKey, code)));
-            return {
-                code,
-                score,
-                info: reference[code] || {}
-            };
-        })
-        .filter((item) => item.score > 0)
-        .sort((a, b) => b.score - a.score || a.code.localeCompare(b.code))
-        .slice(0, 8)
-        .map((item) => ({
-            project: item.code,
-            ten_may: item.info.machineName || '',
-            ghi_chu: item.info.projectName || ''
-        }));
-}
-
-function projectLookupCandidates(text) {
-    const raw = String(text || '').toUpperCase();
-    const candidates = new Set();
-    const direct = normalizeProjectCode(raw);
-    if (direct && direct.length <= 24) candidates.add(direct);
-
-    const codePattern = /\b(?:AUT[A-Z]?|MEC)\s*[:\-]?\s*[A-Z0-9]{4,12}\b/gi;
-    let match;
-    while ((match = codePattern.exec(raw)) !== null) {
-        const code = normalizeProjectCode(match[0]);
-        if (code) candidates.add(code);
-    }
-
-    const prefixGroupPattern = /\b(AUT[A-Z]?|MEC)\s*[:：]\s*([A-Z0-9,\s.\-]{4,60})/gi;
-    while ((match = prefixGroupPattern.exec(raw)) !== null) {
-        const prefix = normalizeProjectCode(match[1]);
-        String(match[2] || '')
-            .split(/[,;.\s]+/)
-            .map(normalizeProjectCode)
-            .filter((part) => part.length >= 4 && part.length <= 12)
-            .forEach((part) => candidates.add(`${prefix}${part}`));
-    }
-
-    if (!candidates.size && direct) candidates.add(direct.slice(0, 24));
-    return [...candidates];
-}
-
-function projectSimilarityScore(a, b) {
-    if (!a || !b) return 0;
-    if (a === b) return 1000;
-    const prefixA = (a.match(/^[A-Z]+/) || [''])[0];
-    const prefixB = (b.match(/^[A-Z]+/) || [''])[0];
-    const digitA = a.replace(/^[A-Z]+/, '');
-    const digitB = b.replace(/^[A-Z]+/, '');
-    const compactA = projectComparableCore(a);
-    const compactB = projectComparableCore(b);
-    const commonPrefix = commonPrefixLength(a, b);
-    const commonDigitPrefix = commonPrefixLength(digitA, digitB);
-    const commonCorePrefix = commonPrefixLength(compactA, compactB);
-    const commonCoreSuffix = commonSuffixLength(compactA, compactB);
-    const contains = a.includes(b) || b.includes(a) ? 80 : 0;
-    const coreContains = compactA && compactB && (compactA.includes(compactB) || compactB.includes(compactA)) ? 180 : 0;
-    const coreExact = compactA && compactB && compactA === compactB ? 520 : 0;
-    const coreVariantExact = !coreExact ? projectCoreVariantExactScore(compactA, compactB) : 0;
-    const samePrefix = prefixA && prefixA === prefixB ? 70 : 0;
-    const crossKnownPrefix = prefixA && prefixB && prefixA !== prefixB && isKnownProjectPrefix(prefixA) && isKnownProjectPrefix(prefixB) ? 35 : 0;
-    const distance = levenshteinDistance(a, b);
-    const distanceScore = Math.max(0, 80 - distance * 10);
-    const coreDistance = compactA && compactB ? projectCoreDistance(compactA, compactB) : 99;
-    const coreDistanceScore = Math.max(0, 220 - coreDistance * 36);
-    const lengthPenalty = Math.abs(String(compactA).length - String(compactB).length) * 8;
-    return samePrefix
-        + crossKnownPrefix
-        + coreExact
-        + coreVariantExact
-        + commonPrefix * 8
-        + commonDigitPrefix * 16
-        + commonCorePrefix * 22
-        + commonCoreSuffix * 18
-        + contains
-        + coreContains
-        + distanceScore
-        + coreDistanceScore
-        - lengthPenalty;
-}
-
-function commonPrefixLength(a, b) {
-    let index = 0;
-    while (index < a.length && index < b.length && a[index] === b[index]) index += 1;
-    return index;
-}
-
-function commonSuffixLength(a, b) {
-    let count = 0;
-    while (
-        count < a.length
-        && count < b.length
-        && a[a.length - 1 - count] === b[b.length - 1 - count]
-    ) {
-        count += 1;
-    }
-    return count;
-}
-
-function isKnownProjectPrefix(prefix) {
-    return /^(?:AUT[A-Z]?|MEC)$/.test(String(prefix || '').toUpperCase());
-}
-
-function projectComparableCore(project) {
-    const text = String(project || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-    const withoutPrefix = text.replace(/^(?:AUT[A-Z]?|MEC)/, '');
-    const digits = withoutPrefix.replace(/[^0-9]/g, '');
-    if (digits.length >= 4) return digits;
-    return withoutPrefix || text;
-}
-
-function projectCoreVariantExactScore(a, b) {
-    if (!a || !b) return 0;
-    return Math.max(projectCoreDeletionScore(a, b), projectCoreDeletionScore(b, a));
-}
-
-function projectCoreDeletionScore(longer, target) {
-    if (!longer || !target || longer.length <= target.length) return 0;
-    let best = 0;
-    for (let index = 0; index < longer.length; index += 1) {
-        const variant = `${longer.slice(0, index)}${longer.slice(index + 1)}`;
-        if (variant === target) {
-            best = Math.max(best, longer[index] === '0' ? 620 : 360);
-        }
-    }
-    return best;
-}
-
-function projectCoreDistance(a, b) {
-    const variantsA = projectCoreVariants(a);
-    const variantsB = projectCoreVariants(b);
-    let best = levenshteinDistance(a, b);
-    variantsA.forEach((variant) => {
-        best = Math.min(best, levenshteinDistance(variant, b));
-    });
-    variantsB.forEach((variant) => {
-        best = Math.min(best, levenshteinDistance(a, variant));
-    });
-    return best;
-}
-
-function projectCoreVariants(core) {
-    const text = String(core || '');
-    const variants = new Set([text]);
-    for (let index = 0; index < text.length; index += 1) {
-        variants.add(`${text.slice(0, index)}${text.slice(index + 1)}`);
-    }
-    return variants;
-}
-
-function levenshteinDistance(a, b) {
-    const previous = Array.from({ length: b.length + 1 }, (_, index) => index);
-    for (let i = 1; i <= a.length; i += 1) {
-        const current = [i];
-        for (let j = 1; j <= b.length; j += 1) {
-            current[j] = Math.min(
-                previous[j] + 1,
-                current[j - 1] + 1,
-                previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
-            );
-        }
-        for (let j = 0; j < current.length; j += 1) previous[j] = current[j];
-    }
-    return previous[b.length];
+    const references = await lookupMachineReferenceByProjects(
+        reports.map((report) => report.ma_du_an),
+        { includeSuggestions: false }
+    );
+    return reports.map((report, index) => ({
+        ...report,
+        ten_may: references[index] ? references[index].ten_may : '',
+        ghi_chu: references[index] ? references[index].ghi_chu : ''
+    }));
 }
 
 function normalizeWeeklyRows(rows) {
@@ -2822,7 +2484,14 @@ async function exportSetupTrackingReport(payload) {
         throw new Error('Không tìm thấy template theo dõi setup nội bộ.');
     }
 
-    const reference = await loadMachineReference();
+    const referenceResults = await lookupMachineReferenceByProjects(
+        rows.map((row) => row.du_an),
+        { includeSuggestions: false }
+    );
+    const reference = Object.fromEntries(referenceResults.map((item) => [
+        normalizeProjectCode(item.project),
+        { machineName: item.ten_may, projectName: item.ghi_chu }
+    ]));
     fs.mkdirSync(outputDir, { recursive: true });
     const outputName = normalizeSetupTrackingOutputName(payload.outputName);
     const outputPath = path.join(outputDir, outputName);

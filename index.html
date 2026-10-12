@@ -3298,12 +3298,22 @@
                     }
                 }));
                 state.noProjectReports = mergeNoProjectReports(state.noProjectReports, splitReports.noProjectReports);
-                step(`Đang kiểm tra mã dự án (${state.previewReports.length} dòng)...`);
-                await validatePreviewProjectReferences();
                 renderPreview();
                 renderNoProjectReports();
                 const noProjectText = state.noProjectReports.length ? ` Có ${state.noProjectReports.length} nội dung không có mã dự án ở tab Không mã dự án.` : '';
-                setStatus(`Đã chuẩn hóa ${state.previewReports.length} dự án. Kiểm tra lại rồi lưu.${noProjectText}`);
+                setStatus(`Đã chuẩn hóa ${state.previewReports.length} dự án. Có thể lưu ngay; đang kiểm tra mã dự án...${noProjectText}`);
+            });
+            const reportsToValidate = state.previewReports;
+            if (!reportsToValidate.length) return;
+            void validatePreviewProjectReferences(reportsToValidate).then((validated) => {
+                if (state.previewReports !== reportsToValidate || state.saveReadyToClear || state.operation) return;
+                if (!validated) {
+                    setStatus('Không kiểm tra được mã dự án với file tham khảo. Bạn vẫn có thể lưu dữ liệu.');
+                    return;
+                }
+                renderPreview();
+                const noProjectText = state.noProjectReports.length ? ` Có ${state.noProjectReports.length} nội dung không có mã dự án ở tab Không mã dự án.` : '';
+                setStatus(`Đã chuẩn hóa ${reportsToValidate.length} dự án. Kiểm tra lại rồi lưu.${noProjectText}`);
             });
         });
 
@@ -3324,7 +3334,7 @@
                 return;
             }
             if (state.operation) {
-                setStatus(`Đang ${state.operation.message || state.operation.name}. Vui lòng chờ thao tác này hoàn tất.`, true);
+                setStatus(operationWaitMessage(state.operation), true);
                 return;
             }
             setOperationState('lưu báo cáo', 'Đang chuẩn bị lưu thư mục và SQLite...');
@@ -3674,6 +3684,12 @@
             els.inputStatus.classList.toggle('error', isError);
         }
 
+        function operationWaitMessage(operation) {
+            const message = String(operation && (operation.message || operation.name) || '').trim();
+            const progress = /^đang\b/i.test(message) ? message : `Đang ${message}`;
+            return `${progress}. Vui lòng chờ thao tác này hoàn tất.`;
+        }
+
         const OPERATION_BUTTONS = [
             'acceptBtn', 'saveBtn', 'saveNoProjectBtn', 'reloadBtn', 'deleteSelectedBtn', 'deleteAllBtn',
             'confirmDeleteBtn', 'uploadSqliteBtn', 'downloadSqliteBtn', 'backupGoogleSheetBtn',
@@ -3707,7 +3723,7 @@
 
         async function runOperation(name, task, options = {}) {
             if (state.operation) {
-                const message = `Đang ${state.operation.message || state.operation.name}. Vui lòng chờ thao tác này hoàn tất.`;
+                const message = operationWaitMessage(state.operation);
                 if (options.statusTarget === 'sync') setSyncStatus(message, true);
                 else if (options.statusTarget === 'weekly') setWeeklyStatus(message, true);
                 else if (options.statusTarget === 'no-project') setNoProjectStatus(message, true);
@@ -4201,7 +4217,9 @@
             try {
                 const result = await ipcRenderer.invoke('update-app-from-github');
                 els.updateLog.textContent = [
-                    result.installerStarted ? 'Đã tải xong; đang chuẩn bị cài đặt ngầm và tự mở lại sau khi hoàn tất.' : 'Cập nhật hoàn tất.',
+                    result.installerStarted
+                        ? 'Đã tải xong; đang chuẩn bị cài đặt ngầm và tự mở lại sau khi hoàn tất.'
+                        : result.requiresManualInstall ? 'Bản này cần cài đặt thủ công.' : 'Đã kiểm tra cập nhật.',
                     result.message || '',
                     result.downloadedFile ? `\nFile cập nhật: ${result.downloadedFile}` : '',
                     result.installLog ? `\nLog cài đặt: ${result.installLog}` : '',
@@ -4242,13 +4260,16 @@
             try {
                 const result = await ipcRenderer.invoke('update-app-from-github');
                 els.updatePromptLog.textContent = [
-                    result.installerStarted ? 'Đã tải xong; ứng dụng sẽ tự đóng, cài đặt ngầm và mở lại sau khi hoàn tất.' : 'Đã tải bản cập nhật.',
+                    result.installerStarted
+                        ? 'Đã tải xong; ứng dụng sẽ tự đóng, cài đặt ngầm và mở lại sau khi hoàn tất.'
+                        : result.requiresManualInstall ? 'Bản cài hiện tại cần cài đặt thủ công.' : 'Không có bản mới hơn.',
                     result.message || '',
                     result.downloadedFile ? `File: ${result.downloadedFile}` : '',
                     result.installLog ? `Log cài đặt: ${result.installLog}` : '',
                     result.releaseUrl ? `Release: ${result.releaseUrl}` : ''
                 ].filter(Boolean).join('\n');
                 if (!result.installerStarted) {
+                    els.updateNowBtn.disabled = false;
                     els.updateLaterBtn.disabled = false;
                 }
             } catch (error) {
@@ -4396,12 +4417,16 @@
                 .trim();
         }
 
-        async function validatePreviewProjectReferences() {
-            const projects = state.previewReports.map(projectLookupText).filter(Boolean);
-            if (!projects.length) return;
+        let previewReferenceValidationId = 0;
+
+        async function validatePreviewProjectReferences(reports = state.previewReports) {
+            const validationId = ++previewReferenceValidationId;
+            const projects = reports.map(projectLookupText).filter(Boolean);
+            if (!projects.length) return true;
             try {
                 const references = await ipcRenderer.invoke('lookup-machine-reference', { projects });
-                state.previewReports.forEach((report, index) => {
+                if (validationId !== previewReferenceValidationId || state.previewReports !== reports || state.operation) return false;
+                reports.forEach((report, index) => {
                     const warnings = (report.warning || []).filter((item) => !/file tham khảo|thamkhao|tham khảo|gợi ý mã/i.test(item));
                     const info = (references || [])[index];
                     const allowUnreferenced = isAllowedUnreferencedProject(report.ma_du_an);
@@ -4411,8 +4436,10 @@
                         ? [...warnings, 'Mã dự án không có trong file tham khảo. Hãy kiểm tra hoặc chọn mã gợi ý.']
                         : warnings;
                 });
+                return true;
             } catch (error) {
                 console.error('Không kiểm tra được mã dự án với file tham khảo:', error);
+                return false;
             }
         }
 
@@ -5535,7 +5562,7 @@
                 return;
             }
             if (state.operation) {
-                setNoProjectStatus(`Đang ${state.operation.message || state.operation.name}. Vui lòng chờ thao tác này hoàn tất.`, true);
+                setNoProjectStatus(operationWaitMessage(state.operation), true);
                 return;
             }
             setOperationState('lưu không mã dự án', 'Đang tạo thư mục không mã dự án...', { statusTarget: 'no-project' });
@@ -6200,7 +6227,7 @@
                 els.uploadSqliteBtn.disabled = true;
                 setSyncStatus('Đang đẩy SQLite lên server...');
                 if (state.operation) {
-                    setSyncStatus(`Đang ${state.operation.message || state.operation.name}. Vui lòng chờ thao tác này hoàn tất.`, true);
+                    setSyncStatus(operationWaitMessage(state.operation), true);
                     return;
                 }
                 setOperationState('đồng bộ SQLite', 'Đang đẩy SQLite lên server...', { statusTarget: 'sync' });
@@ -6224,7 +6251,7 @@
                 const confirmed = confirm('Tải dữ liệu SQLite từ server sẽ thay thế dữ liệu hiện tại. File hiện tại sẽ được backup trước khi thay. Tiếp tục?');
                 if (!confirmed) return;
                 if (state.operation) {
-                    setSyncStatus(`Đang ${state.operation.message || state.operation.name}. Vui lòng chờ thao tác này hoàn tất.`, true);
+                    setSyncStatus(operationWaitMessage(state.operation), true);
                     return;
                 }
                 els.downloadSqliteBtn.disabled = true;
@@ -6299,7 +6326,7 @@
                     return;
                 }
                 if (state.operation) {
-                    setGoogleSheetStatus(`Đang ${state.operation.message || state.operation.name}. Vui lòng chờ thao tác này hoàn tất.`, true);
+                    setGoogleSheetStatus(operationWaitMessage(state.operation), true);
                     return;
                 }
                 els.backupGoogleSheetBtn.disabled = true;
@@ -6376,7 +6403,7 @@
                 const confirmed = confirm('Khôi phục từ Google Sheet sẽ thay thế dữ liệu SQLite hiện tại. File hiện tại sẽ được backup trước khi thay. Tiếp tục?');
                 if (!confirmed) return;
                 if (state.operation) {
-                    setGoogleSheetStatus(`Đang ${state.operation.message || state.operation.name}. Vui lòng chờ thao tác này hoàn tất.`, true);
+                    setGoogleSheetStatus(operationWaitMessage(state.operation), true);
                     return;
                 }
                 els.restoreGoogleSheetBtn.disabled = true;
@@ -6949,7 +6976,7 @@
             if (!syncWeeklyDateBounds()) return;
 
             if (state.operation) {
-                setWeeklyStatus(`Đang ${state.operation.message || state.operation.name}. Vui lòng chờ thao tác này hoàn tất.`, true);
+                setWeeklyStatus(operationWaitMessage(state.operation), true);
                 return;
             }
             setOperationState('tải báo cáo tuần', 'Đang tải dữ liệu báo cáo tuần...', { statusTarget: 'weekly' });
@@ -8534,7 +8561,7 @@
 
         async function loadReports(options = {}) {
             if (!options.skipOperation && state.operation) {
-                setStatus(`Đang ${state.operation.message || state.operation.name}. Vui lòng chờ thao tác này hoàn tất.`, true);
+                setStatus(operationWaitMessage(state.operation), true);
                 return;
             }
             const result = await ipcRenderer.invoke('load-reports');
