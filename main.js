@@ -343,39 +343,27 @@ if (-not (Test-Path -LiteralPath $installer)) {
     exit 2
 }
 try { Unblock-File -LiteralPath $installer; Write-UpdateLog "Installer unblocked." } catch { Write-UpdateLog "Unblock failed: $($_.Exception.Message)" }
-$installed = $false
 try {
-    Write-UpdateLog "Starting silent installer."
-    $process = Start-Process -FilePath $installer -ArgumentList '/S' -Wait -PassThru -WindowStyle Hidden
+    Write-UpdateLog "Opening installer visibly."
+    $process = Start-Process -FilePath $installer -Wait -PassThru -WindowStyle Normal
     $exitCode = if ($null -ne $process) { $process.ExitCode } else { -1 }
-    Write-UpdateLog "Silent installer exited with code $exitCode."
-    if ($exitCode -eq 0) {
-        $installed = $true
-    }
+    Write-UpdateLog "Installer exited with code $exitCode."
 } catch {
-    Write-UpdateLog "Silent installer failed: $($_.Exception.Message)"
-}
-if (-not $installed) {
+    $message = "Could not open installer: $($_.Exception.Message)"
+    Write-UpdateLog $message
     try {
-        Write-UpdateLog "Opening installer visibly for manual confirmation."
-        $process = Start-Process -FilePath $installer -Wait -PassThru -WindowStyle Normal
-        $exitCode = if ($null -ne $process) { $process.ExitCode } else { -1 }
-        Write-UpdateLog "Visible installer exited with code $exitCode."
-        if ($exitCode -eq 0) {
-            $installed = $true
-        }
+        Add-Type -AssemblyName System.Windows.Forms
+        [System.Windows.Forms.MessageBox]::Show($message + [Environment]::NewLine + [Environment]::NewLine + "Installer: $installer" + [Environment]::NewLine + "Log: $logFile", "Daily Work Report update", 'OK', 'Error') | Out-Null
     } catch {
-        Write-UpdateLog "Visible installer failed: $($_.Exception.Message)"
+        Write-UpdateLog "Could not display installer error dialog: $($_.Exception.Message)"
     }
 }
 Start-Sleep -Seconds 2
-if ($installed -and (Test-Path -LiteralPath $currentExe)) {
-    Write-UpdateLog "Reopening updated app: $currentExe"
+if (Test-Path -LiteralPath $currentExe) {
+    Write-UpdateLog "Reopening app after installer exit: $currentExe"
     Start-Process -FilePath $currentExe | Out-Null
-} elseif (-not $installed) {
-    Write-UpdateLog "Installation did not complete; app will not reopen automatically."
 } else {
-    Write-UpdateLog "Current exe not found after install."
+    Write-UpdateLog "Application executable not found after installer exit."
 }
 Start-Sleep -Seconds 2
 try { Remove-Item -LiteralPath ${psQuote(ps1Path)} -Force } catch {}
@@ -464,7 +452,7 @@ async function downloadAndInstallGithubRelease() {
         requiresManualInstall: assetType === 'zip',
         message: assetType === 'zip'
             ? `Đã tải gói win-unpacked ${latestVersion || ''} về: ${destinationFile}. Hãy giải nén và chạy Daily Work Report.exe.`
-            : `Đã tải bản cập nhật ${latestVersion || ''} về: ${destinationFile}. Phần mềm sẽ đóng, tự cài đặt im lặng; nếu cài im lặng thất bại sẽ tự mở trình cài đặt để tiếp tục.`
+            : `Đã tải bản cập nhật ${latestVersion || ''} về: ${destinationFile}. Phần mềm sẽ đóng rồi tự mở trình cài đặt. Xác nhận hộp thoại Windows nếu được hỏi.`
     };
 }
 

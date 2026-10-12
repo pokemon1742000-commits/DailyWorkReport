@@ -4218,7 +4218,7 @@
                 const result = await ipcRenderer.invoke('update-app-from-github');
                 els.updateLog.textContent = [
                     result.installerStarted
-                        ? 'Đã tải xong; đang chuẩn bị cài đặt ngầm và tự mở lại sau khi hoàn tất.'
+                        ? 'Đã tải xong; ứng dụng sẽ đóng và tự mở trình cài đặt. Hãy xác nhận hộp thoại Windows nếu được hỏi.'
                         : result.requiresManualInstall ? 'Bản này cần cài đặt thủ công.' : 'Đã kiểm tra cập nhật.',
                     result.message || '',
                     result.downloadedFile ? `\nFile cập nhật: ${result.downloadedFile}` : '',
@@ -4261,7 +4261,7 @@
                 const result = await ipcRenderer.invoke('update-app-from-github');
                 els.updatePromptLog.textContent = [
                     result.installerStarted
-                        ? 'Đã tải xong; ứng dụng sẽ tự đóng, cài đặt ngầm và mở lại sau khi hoàn tất.'
+                        ? 'Đã tải xong; ứng dụng sẽ tự đóng rồi mở trình cài đặt. Hãy xác nhận hộp thoại Windows nếu được hỏi.'
                         : result.requiresManualInstall ? 'Bản cài hiện tại cần cài đặt thủ công.' : 'Không có bản mới hơn.',
                     result.message || '',
                     result.downloadedFile ? `File: ${result.downloadedFile}` : '',
