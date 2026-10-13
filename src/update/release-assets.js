@@ -16,12 +16,8 @@ function selectReleaseUpdateAsset(assets, architecture = process.arch) {
     });
 }
 
-function powershellScriptArgs(scriptPath) {
-    return ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath];
-}
-
 function canAutoInstallUpdate({ platform, packaged, portable }) {
     return platform === 'win32' && packaged === true && portable !== true;
 }
 
-module.exports = { selectReleaseUpdateAsset, powershellScriptArgs, canAutoInstallUpdate };
+module.exports = { selectReleaseUpdateAsset, canAutoInstallUpdate };

@@ -2,7 +2,6 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 const {
     selectReleaseUpdateAsset,
-    powershellScriptArgs,
     canAutoInstallUpdate
 } = require('../src/update/release-assets');
 
@@ -26,17 +25,6 @@ test('release update uses only the matching unpacked archive when no installer i
 test('release update does not choose an installer for a different architecture', () => {
     assert.equal(selectReleaseUpdateAsset([assets[0]], 'ia32'), undefined);
     assert.equal(selectReleaseUpdateAsset([assets[1]], 'x64'), undefined);
-});
-
-test('PowerShell launcher passes update script paths with spaces as one argument', () => {
-    const scriptPath = 'C:\\Users\\Daily User\\Downloads\\DailyWorkReportUpdates\\install update.ps1';
-    assert.deepEqual(powershellScriptArgs(scriptPath), [
-        '-NoProfile',
-        '-ExecutionPolicy',
-        'Bypass',
-        '-File',
-        scriptPath
-    ]);
 });
 
 test('automatic installation is limited to packaged Windows installer builds', () => {

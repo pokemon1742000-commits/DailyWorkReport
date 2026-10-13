@@ -3687,7 +3687,7 @@
                     : `${formatMegabytes(progress.downloadedBytes)} đã tải`;
                 message = `Đang tải ${progress.assetName || 'bản cập nhật'}: ${size}${progress.percent === null ? '' : ` (${progress.percent}%)`}`;
             } else if (progress.status === 'installer-started') {
-                message = `Đã tải xong. Đang mở bộ cài: ${progress.installerFile || ''}\nLog: ${progress.installLog || ''}`;
+                message = `Đã tải xong và Windows đã nhận lệnh mở bộ cài: ${progress.installerFile || ''}\nNếu cửa sổ cài đặt chưa hiện, hãy mở file này từ thư mục tải xuống.`;
             } else if (progress.status === 'manual-install') {
                 message = `Đã tải xong gói portable: ${progress.installerFile || ''}`;
             }

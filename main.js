@@ -9,10 +9,9 @@ const ExcelJS = require('exceljs');
 const { lookupMachineReferenceByProjects } = require('./src/reports/machine-reference');
 const {
     selectReleaseUpdateAsset,
-    powershellScriptArgs,
     canAutoInstallUpdate
 } = require('./src/update/release-assets');
-const { waitForLauncherReady } = require('./src/update/launcher-readiness');
+const { openDownloadedInstaller } = require('./src/update/installer-launch');
 const reportUtils = require('./src/reports/report-utils');
 const {
     normalizeProjectCode,
@@ -337,10 +336,6 @@ function compareVersions(left, right) {
     return 0;
 }
 
-function psQuote(value) {
-    return `'${String(value || '').replace(/'/g, "''")}'`;
-}
-
 function requestUpdateShutdown() {
     if (updateShutdownRequested) return;
     updateShutdownRequested = true;
@@ -349,90 +344,6 @@ function requestUpdateShutdown() {
     });
     setTimeout(() => app.quit(), 120);
     setTimeout(() => app.exit(0), 2500);
-}
-
-function createUpdateInstallLauncher(installerFile, latestVersion) {
-    const updatesDir = path.dirname(installerFile);
-    const token = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    const ps1Path = path.join(updatesDir, `install-daily-work-report-${latestVersion || 'latest'}-${token}.ps1`);
-    const logPath = path.join(updatesDir, `install-daily-work-report-${latestVersion || 'latest'}-${token}.log`);
-    const currentPid = process.pid;
-    // In a packaged app process.execPath is the installed executable. Keep the
-    // explicit path so the launcher reopens the new binary after NSIS exits.
-    const currentExe = process.execPath;
-    const ps1 = `
-$ErrorActionPreference = 'Continue'
-$ProgressPreference = 'SilentlyContinue'
-$installer = ${psQuote(installerFile)}
-$currentExe = ${psQuote(currentExe)}
-$logFile = ${psQuote(logPath)}
-$currentPid = ${currentPid}
-function Write-UpdateLog([string]$message) {
-    $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
-    Add-Content -LiteralPath $logFile -Value "[$stamp] $message" -Encoding UTF8
-}
-function Show-UpdateError([string]$message) {
-    try {
-        Add-Type -AssemblyName System.Windows.Forms
-        [System.Windows.Forms.MessageBox]::Show(
-            $message + [Environment]::NewLine + [Environment]::NewLine + "Installer: $installer" + [Environment]::NewLine + "Log: $logFile",
-            "Daily Work Report update",
-            'OK',
-            'Error'
-        ) | Out-Null
-    } catch {
-        Write-UpdateLog "Could not display error dialog: $($_.Exception.Message)"
-    }
-}
-Write-UpdateLog "Launcher started. Installer=$installer CurrentExe=$currentExe CurrentPid=$currentPid"
-$closed = $false
-for ($attempt = 0; $attempt -lt 180; $attempt++) {
-    $process = Get-Process -Id $currentPid -ErrorAction SilentlyContinue
-    if ($null -eq $process) {
-        $closed = $true
-        Write-UpdateLog "App process closed after $attempt checks."
-        break
-    }
-    Start-Sleep -Milliseconds 500
-}
-if (-not $closed) {
-    $message = "Ứng dụng cũ vẫn chạy sau 90 giây nên chưa thể mở bộ cài. Hãy đóng Daily Work Report rồi chạy lại cập nhật."
-    Write-UpdateLog $message
-    Show-UpdateError $message
-    Start-Process -FilePath 'explorer.exe' -ArgumentList ('/select,"' + $installer + '"') | Out-Null
-    exit 3
-}
-Start-Sleep -Milliseconds 700
-if (-not (Test-Path -LiteralPath $installer)) {
-    $message = "Không tìm thấy file cài đặt sau khi tải."
-    Write-UpdateLog $message
-    Show-UpdateError $message
-    exit 2
-}
-try { Unblock-File -LiteralPath $installer; Write-UpdateLog "Installer unblocked." } catch { Write-UpdateLog "Unblock failed: $($_.Exception.Message)" }
-try {
-    Write-UpdateLog "Opening installer visibly."
-    $process = Start-Process -FilePath $installer -Wait -PassThru -WindowStyle Normal
-    $exitCode = if ($null -ne $process) { $process.ExitCode } else { -1 }
-    Write-UpdateLog "Installer exited with code $exitCode."
-} catch {
-    $message = "Could not open installer: $($_.Exception.Message)"
-    Write-UpdateLog $message
-    Show-UpdateError $message
-    Start-Process -FilePath 'explorer.exe' -ArgumentList ('/select,"' + $installer + '"') | Out-Null
-}
-Start-Sleep -Seconds 2
-if (Test-Path -LiteralPath $currentExe) {
-    Write-UpdateLog "Reopening app after installer exit: $currentExe"
-    Start-Process -FilePath $currentExe | Out-Null
-} else {
-    Write-UpdateLog "Application executable not found after installer exit."
-}
-Start-Sleep -Seconds 2
-try { Remove-Item -LiteralPath ${psQuote(ps1Path)} -Force } catch {}
-`;
-    fs.writeFileSync(ps1Path, ps1, 'utf8');
-    return { ps1Path, logPath };
 }
 
 async function downloadAndInstallGithubRelease() {
@@ -491,35 +402,20 @@ async function downloadAndInstallGithubRelease() {
     });
     const assetType = /\.zip$/i.test(asset.name || '') ? 'zip' : 'exe';
     let installerStarted = false;
-    let installLauncher = null;
     if (assetType === 'exe') {
-        installLauncher = createUpdateInstallLauncher(destinationFile, latestVersion || 'latest');
-        fs.writeFileSync(installLauncher.logPath, 'Waiting for PowerShell launcher startup confirmation.\r\n', 'utf8');
-        const installerProcess = spawn('powershell.exe', powershellScriptArgs(installLauncher.ps1Path), {
-            detached: true,
-            stdio: 'ignore',
-            windowsHide: false
-        });
-        await new Promise((resolve, reject) => {
-            installerProcess.once('spawn', resolve);
-            installerProcess.once('error', reject);
-        });
         try {
-            await waitForLauncherReady(installLauncher.logPath, installerProcess);
+            await openDownloadedInstaller(shell, destinationFile);
         } catch (error) {
-            installerProcess.kill();
             shell.showItemInFolder(destinationFile);
-            throw new Error(`${error.message || error}\n\nỨng dụng vẫn được giữ mở. Hãy mở file cài đặt tại:\n${destinationFile}\nLog: ${installLauncher.logPath}`);
+            throw new Error(`Windows không mở được bộ cài:\n${destinationFile}\n\n${error.message || error}\n\nỨng dụng vẫn đang chạy. Hãy mở file này thủ công.`);
         }
-        installerProcess.unref();
         installerStarted = true;
         notifyRenderer('update-download-progress', {
             status: 'installer-started',
             assetName: asset.name,
-            installerFile: destinationFile,
-            installLog: installLauncher.logPath
+            installerFile: destinationFile
         });
-        setTimeout(() => requestUpdateShutdown(), 300);
+        setTimeout(() => requestUpdateShutdown(), 1500);
     } else {
         shell.showItemInFolder(destinationFile);
         notifyRenderer('update-download-progress', {
@@ -537,8 +433,6 @@ async function downloadAndInstallGithubRelease() {
         latestVersion,
         releaseUrl,
         downloadedFile: destinationFile,
-        installLauncher: installLauncher && installLauncher.ps1Path || '',
-        installLog: installLauncher && installLauncher.logPath || '',
         assetName: asset.name,
         requiresManualInstall: assetType === 'zip',
         message: assetType === 'zip'
