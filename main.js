@@ -12,6 +12,7 @@ const {
     powershellScriptArgs,
     canAutoInstallUpdate
 } = require('./src/update/release-assets');
+const { waitForLauncherReady } = require('./src/update/launcher-readiness');
 const reportUtils = require('./src/reports/report-utils');
 const {
     normalizeProjectCode,
@@ -493,6 +494,7 @@ async function downloadAndInstallGithubRelease() {
     let installLauncher = null;
     if (assetType === 'exe') {
         installLauncher = createUpdateInstallLauncher(destinationFile, latestVersion || 'latest');
+        fs.writeFileSync(installLauncher.logPath, 'Waiting for PowerShell launcher startup confirmation.\r\n', 'utf8');
         const installerProcess = spawn('powershell.exe', powershellScriptArgs(installLauncher.ps1Path), {
             detached: true,
             stdio: 'ignore',
@@ -502,6 +504,13 @@ async function downloadAndInstallGithubRelease() {
             installerProcess.once('spawn', resolve);
             installerProcess.once('error', reject);
         });
+        try {
+            await waitForLauncherReady(installLauncher.logPath, installerProcess);
+        } catch (error) {
+            installerProcess.kill();
+            shell.showItemInFolder(destinationFile);
+            throw new Error(`${error.message || error}\n\nỨng dụng vẫn được giữ mở. Hãy mở file cài đặt tại:\n${destinationFile}\nLog: ${installLauncher.logPath}`);
+        }
         installerProcess.unref();
         installerStarted = true;
         notifyRenderer('update-download-progress', {
@@ -510,7 +519,7 @@ async function downloadAndInstallGithubRelease() {
             installerFile: destinationFile,
             installLog: installLauncher.logPath
         });
-        setTimeout(() => requestUpdateShutdown(), 500);
+        setTimeout(() => requestUpdateShutdown(), 300);
     } else {
         shell.showItemInFolder(destinationFile);
         notifyRenderer('update-download-progress', {
