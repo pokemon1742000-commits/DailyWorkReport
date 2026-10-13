@@ -1,68 +1,20 @@
 const fs = require('fs');
 const path = require('path');
 const { parentPort } = require('worker_threads');
-const ExcelJS = require('exceljs');
 const { normalizeProjectCode } = require('./report-utils');
+const { parseMachineReferenceMarkdown } = require('./machine-reference-data');
 
 const REFERENCE_FOLDER = path.join(__dirname, '..', '..', 'reference_files');
-const MACHINE_REFERENCE_FILE = path.join(REFERENCE_FOLDER, 'Thamkhao.xlsm');
-const AUTJ_MACHINE_REFERENCE_FILE = path.join(REFERENCE_FOLDER, 'Thamkhao2.xlsm');
-const THAMKHAO3_MACHINE_REFERENCE_FILE = path.join(REFERENCE_FOLDER, 'Thamkhao3.xlsm');
-const MACHINE_REFERENCE_SHEET_KEY = 'danhsachmay';
-const AUTJ_REFERENCE_SHEET_KEY = 'duanle1';
+const MACHINE_REFERENCE_FILE = path.join(REFERENCE_FOLDER, 'Thamkhao.md');
+const AUTJ_MACHINE_REFERENCE_FILE = path.join(REFERENCE_FOLDER, 'Thamkhao2.md');
+const THAMKHAO3_MACHINE_REFERENCE_FILE = path.join(REFERENCE_FOLDER, 'Thamkhao3.md');
 
 let machineReferenceCache = null;
 let machineReferencePromise = null;
 
-function cellDisplayText(cell) {
-    const value = cell && cell.value;
-    if (value && typeof value === 'object') {
-        if (value.result !== undefined && value.result !== null) return String(value.result);
-        if (value.text) return String(value.text);
-        if (Array.isArray(value.richText)) return value.richText.map((item) => item.text || '').join('');
-        if (value.hyperlink && value.text) return String(value.text);
-    }
-    return value === undefined || value === null ? '' : String(value);
-}
-
-function normalizeReferenceSheetName(value) {
-    return String(value || '')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/\u0111/g, 'd')
-        .replace(/\u0110/g, 'D')
-        .replace(/[^a-z0-9]/gi, '')
-        .toLowerCase();
-}
-
-async function readMachineReferenceFile(filePath, options = {}) {
-    const reference = {};
-    if (!fs.existsSync(filePath)) return reference;
-
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(filePath);
-    const sheetKey = options.sheetKey || MACHINE_REFERENCE_SHEET_KEY;
-    const sheet = workbook.worksheets.find((worksheet) => (
-        normalizeReferenceSheetName(worksheet.name) === sheetKey
-    )) || workbook.worksheets[0];
-    if (!sheet) return reference;
-
-    const codeColumn = options.codeColumn || 'B';
-    const machineNameColumn = options.machineNameColumn || 'AD';
-    const projectNameColumn = options.projectNameColumn || 'AC';
-    const prefixFilter = options.prefix ? new RegExp(`^${String(options.prefix).toUpperCase()}`) : null;
-    for (let rowNumber = 5; rowNumber <= sheet.rowCount; rowNumber += 1) {
-        const row = sheet.getRow(rowNumber);
-        const code = cellDisplayText(row.getCell(codeColumn)).trim();
-        const key = normalizeProjectCode(code);
-        if (!key || key === '-') continue;
-        if (prefixFilter && !prefixFilter.test(key)) continue;
-        reference[key] = {
-            machineName: cellDisplayText(row.getCell(machineNameColumn)).trim(),
-            projectName: cellDisplayText(row.getCell(projectNameColumn)).trim()
-        };
-    }
-    return reference;
+async function readMachineReferenceFile(filePath) {
+    const markdown = await fs.promises.readFile(filePath, 'utf8');
+    return parseMachineReferenceMarkdown(markdown);
 }
 
 async function loadMachineReference() {
@@ -71,18 +23,8 @@ async function loadMachineReference() {
 
     machineReferencePromise = Promise.all([
         readMachineReferenceFile(MACHINE_REFERENCE_FILE),
-        readMachineReferenceFile(AUTJ_MACHINE_REFERENCE_FILE, {
-            sheetKey: AUTJ_REFERENCE_SHEET_KEY,
-            codeColumn: 'B',
-            machineNameColumn: 'F',
-            projectNameColumn: 'E'
-        }),
-        readMachineReferenceFile(THAMKHAO3_MACHINE_REFERENCE_FILE, {
-            sheetKey: MACHINE_REFERENCE_SHEET_KEY,
-            codeColumn: 'B',
-            machineNameColumn: 'AF',
-            projectNameColumn: 'AE'
-        })
+        readMachineReferenceFile(AUTJ_MACHINE_REFERENCE_FILE),
+        readMachineReferenceFile(THAMKHAO3_MACHINE_REFERENCE_FILE)
     ]).then(([reference, autjReference, thamkhao3Reference]) => {
         Object.assign(reference, autjReference, thamkhao3Reference);
         machineReferenceCache = reference;

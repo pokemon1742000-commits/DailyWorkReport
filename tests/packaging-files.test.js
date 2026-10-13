@@ -14,6 +14,7 @@ test('electron-builder files configuration includes src and all required local m
     assert.ok(files.includes('index.html'), 'package.json build.files must include "index.html"');
     assert.ok(files.includes('assets/**/*'), 'package.json build.files must include "assets/**/*"');
     assert.ok(files.includes('reference_files/**/*'), 'package.json build.files must include "reference_files/**/*"');
+    assert.ok(files.includes('!reference_files/**/*.xlsm'), 'package.json build.files must exclude source .xlsm files');
 
     // Parse all local require() calls in main.js
     const mainContent = fs.readFileSync(path.join(rootDir, 'main.js'), 'utf8');

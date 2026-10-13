@@ -3736,7 +3736,10 @@
                     button.disabled = typeof wasDisabled === 'boolean' ? wasDisabled : false;
                 }
             });
-            if (!name) state.operationDisabledButtons.clear();
+            if (!name) {
+                state.operation = null;
+                state.operationDisabledButtons.clear();
+            }
             if (!message) return;
             if (statusTarget === 'sync') setSyncStatus(message, isError);
             else if (statusTarget === 'weekly') setWeeklyStatus(message, isError);

@@ -75,6 +75,18 @@ npm run build
 
 Bản cài đặt NSIS và bản portable nằm trong `dist`. Bản chạy thử unpacked nằm trong `dist/win-unpacked`; có thể chạy `Daily Work Report.exe` trong thư mục này mà không cần cài đặt.
 
+## Machine-reference data
+
+Ứng dụng tra cứu từ các file Markdown rút gọn trong `reference_files`; các workbook `.xlsm` gốc vẫn được giữ trong repository nhưng không được đưa vào bản build.
+Khi cập nhật workbook, cài MarkItDown và tạo lại dữ liệu:
+
+```bash
+python -m pip install "markitdown[xlsx]"
+python scripts/convert-machine-references.py
+```
+
+The converter uses [Microsoft MarkItDown](https://github.com/microsoft/markitdown) and only keeps the project code, machine name, and project name columns used by the app.
+
 Dữ liệu báo cáo được lưu duy nhất trong file SQLite `work_reports.sqlite` ở thư mục `userData` của Electron, thường là `%APPDATA%/daily_work_report/data`. Ứng dụng không tạo thêm JSON cho báo cáo. Nếu còn `work_reports.json` từ phiên bản cũ, lần mở đầu tiên sẽ migrate sang SQLite rồi xóa file JSON sau khi migrate thành công; JSON lỗi sẽ được giữ lại để không mất dữ liệu. Build hoặc cập nhật không xóa dữ liệu này. Khi restore/xóa dữ liệu, ứng dụng tạo snapshot SQLite trước thao tác nếu file hiện tại tồn tại.
 
 ## Release GitHub
