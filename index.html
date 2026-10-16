@@ -714,10 +714,241 @@
             margin-top: 10px;
             color: var(--muted);
             font-size: 13px;
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
         }
 
+        .status-line::before {
+            content: attr(data-status-icon);
+            font-weight: 700;
+        }
+
+        .status-line::after {
+            content: attr(data-updated-at);
+            margin-left: auto;
+            color: var(--muted);
+            font-size: 11px;
+            white-space: nowrap;
+        }
+
+        .status-line.success,
+        .status-line[data-level="success"] {
+            color: var(--green);
+        }
+
+        .status-line.success::before,
+        .status-line[data-level="success"]::before {
+            content: "✓";
+        }
+
+        .status-line.warning,
+        .status-line[data-level="warning"] {
+            color: var(--amber);
+        }
+
+        .status-line.warning::before,
+        .status-line[data-level="warning"]::before {
+            content: "⚠";
+        }
+
+        .status-line.info::before,
+        .status-line[data-level="info"]::before {
+            content: "ⓘ";
+        }
+
+        .status-line.info,
+        .status-line[data-level="info"] {
+            color: var(--blue);
+        }
+
+        .status-line.error,
+        .status-line[data-level="error"],
         .status-line.error {
             color: var(--red);
+        }
+
+        .status-line.error::before,
+        .status-line[data-level="error"]::before {
+            content: "!";
+        }
+
+        .operation-progress {
+            display: none;
+            height: 3px;
+            overflow: hidden;
+            background: color-mix(in srgb, var(--blue) 18%, transparent);
+        }
+
+        .operation-progress.visible {
+            display: block;
+        }
+
+        .operation-progress::before {
+            display: block;
+            width: 35%;
+            height: 100%;
+            content: "";
+            background: var(--blue);
+            animation: operation-progress-slide 1.2s ease-in-out infinite;
+        }
+
+        @keyframes operation-progress-slide {
+            from { transform: translateX(-110%); }
+            to { transform: translateX(310%); }
+        }
+
+        .btn-loading {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+        }
+
+        .btn-loading::before {
+            width: 12px;
+            height: 12px;
+            border: 2px solid currentColor;
+            border-right-color: transparent;
+            border-radius: 50%;
+            content: "";
+            animation: button-spinner .7s linear infinite;
+        }
+
+        @keyframes button-spinner {
+            to { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            display: grid;
+            justify-items: center;
+            gap: 8px;
+            padding: 22px 14px;
+            color: var(--muted);
+            text-align: center;
+        }
+
+        .empty-state-icon {
+            width: 32px;
+            height: 32px;
+            color: var(--blue);
+        }
+
+        .empty-state strong {
+            color: var(--text);
+        }
+
+        .empty-state p {
+            margin: 0;
+        }
+
+        .path-compact {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .folder-path-box {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .weekly-preview-wrap.print-paper-mode {
+            background: #fff;
+            border-color: #fff;
+        }
+
+        .weekly-preview-wrap.print-paper-mode .excel-shell {
+            background: #fff;
+        }
+
+        .weekly-preview-wrap.print-paper-mode .excel-corner,
+        .weekly-preview-wrap.print-paper-mode .excel-cols,
+        .weekly-preview-wrap.print-paper-mode .excel-rows {
+            background: #f8fafc;
+        }
+
+        .weekly-row-editing td:first-child {
+            border-left: 4px solid var(--blue);
+        }
+
+        .weekly-row-editing td {
+            background-color: color-mix(in srgb, var(--blue) 7%, #fff);
+        }
+
+        .weekly-table-footer {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            padding: 8px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .toast-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .toast-actions button {
+            padding: 5px 9px;
+            font-size: 12px;
+        }
+
+        .toast-actions button:first-child {
+            border-color: var(--blue);
+            background: var(--blue);
+            color: #fff;
+        }
+
+        .weekly-table-footer[hidden] {
+            display: none;
+        }
+
+        .weekly-undo-snackbar {
+            position: fixed;
+            z-index: 10040;
+            right: 20px;
+            bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: var(--panel);
+            color: var(--text);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .weekly-undo-snackbar[hidden] {
+            display: none;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body[data-theme="dark"] .weekly-preview-toolbar,
+            body[data-theme="dark"] .image-preview-title {
+                color: var(--text);
+            }
+        }
+
+        body[data-theme="dark"] .weekly-preview-wrap:not(.print-paper-mode) {
+            background: var(--bg);
+            border-color: var(--line);
+        }
+
+        body[data-theme="dark"] .weekly-preview-wrap:not(.print-paper-mode) .excel-shell,
+        body[data-theme="dark"] .weekly-preview-wrap:not(.print-paper-mode) .excel-corner,
+        body[data-theme="dark"] .weekly-preview-wrap:not(.print-paper-mode) .excel-cols,
+        body[data-theme="dark"] .weekly-preview-wrap:not(.print-paper-mode) .excel-rows {
+            background: var(--panel);
+            color: var(--text);
+            border-color: var(--line);
         }
 
         .summary {
@@ -981,6 +1212,13 @@
             height: 38px;
         }
 
+        .folder-path-box > span {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         .muted {
             color: var(--muted);
         }
@@ -1203,7 +1441,9 @@
             gap: 14px;
             overflow-x: auto;
             overflow-y: hidden;
-            scroll-behavior: smooth;
+            scroll-behavior: auto;
+            overscroll-behavior-x: contain;
+            -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
             padding: 2px 34px 8px;
             white-space: nowrap;
@@ -1363,6 +1603,29 @@
         #weeklyModal #weeklyStatus {
             display: none;
         }
+
+        .weekly-preview-table thead th { position: sticky; top: 0; z-index: 8; background: #f8fafc; }
+        .weekly-report-head.is-compact { height: 54px; padding-top: 4px; grid-template-columns: 180px 1fr; }
+        .weekly-report-head.is-compact .weekly-logo-preview { max-height: 30px; }
+        .weekly-report-head.is-compact .weekly-report-title { padding-top: 8px; font-size: 20px; }
+        .weekly-row-unresolved td { box-shadow: inset 0 0 0 1px rgba(220,38,38,.25); }
+        .weekly-row-unresolved td:nth-child(8), .weekly-row-unresolved td:nth-child(9) { background: #fff1f2 !important; }
+        .weekly-project-edit.reference-missing { background: #fff7cc !important; outline: 1px solid #eab308; }
+        .weekly-row-drag { display:inline-block; cursor:grab; padding:0 4px; color:#64748b; user-select:none; }
+        .weekly-row-drag:active { cursor:grabbing; }
+        .weekly-row-select { width:14px !important; margin:0 2px; vertical-align:middle; }
+        .weekly-preview-toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; padding:8px 0; }
+        .weekly-preview-toolbar input { min-width:220px; flex:1; }
+        .weekly-filter-chip { border:1px solid #cbd5e1; border-radius:999px; padding:5px 10px; background:#fff; cursor:pointer; }
+        .weekly-filter-chip.active { background:#dbeafe; border-color:#60a5fa; }
+        .weekly-expand-btn { display:block; margin:2px auto; font-size:11px; padding:2px 5px; }
+        .weekly-text-overlay { position:fixed; inset:0; background:rgba(15,23,42,.55); z-index:10020; display:none; align-items:center; justify-content:center; padding:24px; }
+        .weekly-text-overlay.open { display:flex; }
+        .weekly-text-dialog { background:#fff; border-radius:12px; padding:16px; width:min(900px,96vw); height:min(80vh,720px); display:flex; flex-direction:column; gap:10px; }
+        .weekly-text-dialog textarea { flex:1; width:100%; resize:none; padding:12px; }
+        .weekly-text-dialog footer { display:flex; justify-content:flex-end; gap:8px; }
+        .weekly-row-dragging { opacity:.45; }
+        @media print { body * { visibility:hidden !important; } #weeklyPage, #weeklyPage * { visibility:visible !important; } #weeklyPage { position:absolute; inset:0; width:100%; } .weekly-actions, .weekly-preview-toolbar, .weekly-table-footer, .weekly-undo-snackbar, .weekly-row-delete, .weekly-row-select, .weekly-row-drag, .weekly-expand-btn, .weekly-col-resizer, .weekly-row-resizer { display:none !important; } .weekly-preview-wrap { overflow:visible !important; border:0 !important; } .weekly-preview-table thead th { position:static !important; } }
 
         .weekly-preview-wrap {
             max-height: none;
@@ -2334,27 +2597,16 @@
         <div class="header-actions">
             <button id="weeklyReportBtn" title="Xuất báo cáo tuần">Báo cáo tuần</button>
             <div class="theme-dots" aria-label="Chọn theme">
-                <button class="theme-dot" data-theme-option="light" style="--swatch: linear-gradient(135deg, #dbeafe, #ffffff)" title="Theme sáng"></button>
-                <button class="theme-dot" data-theme-option="dark" style="--swatch: linear-gradient(135deg, #111827, #5aa9ff)" title="Theme tối"></button>
-                <button class="theme-dot" data-theme-option="garden" style="--swatch: linear-gradient(135deg, #c9f7d5, #31a24c, #169b8f)" title="Theme hoa lá"></button>
-                <button class="theme-dot" data-theme-option="blossom" style="--swatch: linear-gradient(135deg, #ffd8ed, #e2559d, #1fae88)" title="Theme hoa hồng"></button>
-                <button class="theme-dot" data-theme-option="sunrise" style="--swatch: linear-gradient(135deg, #ffe29a, #ee7b34, #22a06b)" title="Theme nắng mới"></button>
-                <button class="theme-dot" data-theme-option="ocean" style="--swatch: linear-gradient(135deg, #bcefff, #1488c8, #00a889)" title="Theme biển sáng"></button>
-                <button class="theme-dot" data-theme-option="lime" style="--swatch: linear-gradient(135deg, #dcf86f, #6aa80f, #24a148)" title="Theme xanh non"></button>
+                <button class="theme-dot" data-theme-option="light" style="--swatch: linear-gradient(135deg, #e5e7eb, #ffffff)" title="Theme sáng"></button>
+                <button class="theme-dot" data-theme-option="dark" style="--swatch: linear-gradient(135deg, #0b0c0f, #4b5563)" title="Theme tối"></button>
+                <button class="theme-dot" data-theme-option="garden" style="--swatch: linear-gradient(135deg, #dcf86f, #61ac12)" title="Theme hoa lá"></button>
             </div>
-            <button id="handTrackingBtn" class="icon-btn hand-tracking-btn" title="Hand Tracking" aria-label="Mở Hand Tracking">◉</button>
             <button id="infoBtn" class="icon-btn info-btn" title="Thông tin phần mềm" aria-label="Thông tin phần mềm">i</button>
             <button id="settingsBtn" class="icon-btn" title="Cài đặt" aria-label="Cài đặt">⚙</button>
         </div>
     </header>
+    <div id="operationProgress" class="operation-progress" role="progressbar" aria-label="Đang xử lý" aria-hidden="true"></div>
 
-    <div id="handCameraRuntime" class="hand-camera-runtime" aria-hidden="true">
-        <video id="handCameraVideo" playsinline muted></video>
-        <canvas id="handCameraCanvas"></canvas>
-        <span id="handTrackingStatus">Camera đang tắt</span>
-    </div>
-    <div id="handPointerOne" class="hand-pointer hand-pointer-one" aria-hidden="true"></div>
-    <div id="handPointerTwo" class="hand-pointer hand-pointer-two" aria-hidden="true"></div>
 
     <nav class="tabs">
         <button class="tab active" data-tab="inputPage">Nhập liệu</button>
@@ -2377,12 +2629,13 @@
 
                         <label style="margin-top: 12px;" for="rootFolder">Thư mục lưu ảnh / tài liệu</label>
                         <div class="field-row">
-                            <input id="rootFolder" type="text" readonly placeholder="Chọn thư mục gốc để tạo folder ngày và người thực hiện">
+                            <input id="rootFolder" class="path-compact" type="text" readonly placeholder="Chọn thư mục gốc để tạo folder ngày và người thực hiện">
+                            <button id="clearRootFolderBtn" type="button" title="Bỏ chọn thư mục hiện tại" aria-label="Bỏ chọn thư mục">×</button>
                             <button id="chooseFolderBtn">Chọn thư mục</button>
                         </div>
 
-                        <button id="acceptBtn" class="primary">Accept / Xác nhận</button>
-                        <div class="status-line" id="inputStatus">Sẵn sàng.</div>
+                        <button id="acceptBtn" class="primary" title="Phân tích nội dung vừa dán và tạo bảng xem trước đã chuẩn hóa">Accept / Xác nhận</button>
+                        <div class="status-line" id="inputStatus" data-level="info">Sẵn sàng.</div>
                     </div>
                 </section>
 
@@ -2395,10 +2648,10 @@
                         <h2>Bảng chuẩn hóa</h2>
                         <div class="summary">
                             <span class="pill" id="totalPill">Tổng: 0</span>
-                            <button id="saveBtn">Lưu</button>
-                            <button id="quickGoogleSheetBackupBtn">Backup Google Sheet</button>
-                            <button id="clearPreviewBtn">Clear</button>
-                            <button id="excelBtn" class="excel-action">Thêm vào Excel</button>
+                            <button id="saveBtn" title="Lưu dữ liệu trong bảng chuẩn hóa vào thư mục và SQLite">Lưu</button>
+                            <button id="quickGoogleSheetBackupBtn" title="Sao lưu dữ liệu hiện tại lên Google Sheet">Backup Google Sheet</button>
+                            <button id="clearPreviewBtn" title="Xóa nội dung khỏi bảng xem trước">Clear</button>
+                            <button id="excelBtn" class="excel-action" title="Thêm các công việc đã chọn vào file Excel">Thêm vào Excel</button>
                         </div>
                     </div>
                     <div class="panel-body">
@@ -2461,7 +2714,7 @@
                             </tbody>
                         </table>
                     </div>
-                    <div class="status-line" id="noProjectStatus">Sẵn sàng.</div>
+                    <div class="status-line" id="noProjectStatus" data-level="info">Sẵn sàng.</div>
                 </div>
             </section>
         </section>
@@ -2502,7 +2755,7 @@
                     <div class="summary">
                         <button id="deleteSelectedBtn" disabled>Xóa đã chọn</button>
                         <button id="deleteAllBtn">Xóa tất cả</button>
-                        <button id="reloadBtn">Tải lại JSON</button>
+                        <button id="reloadBtn" title="Tải lại danh sách báo cáo từ SQLite">Tải lại JSON</button>
                     </div>
                 </div>
                 <div class="panel-body">
@@ -2543,6 +2796,21 @@
                 </div>
                 <div class="panel-body">
                     <div id="weeklyWorkspace" class="weekly-workspace">
+                        <div class="weekly-preview-toolbar">
+                            <input id="weeklyTableSearch" type="search" placeholder="Tìm nội dung, khó khăn, hướng giải quyết hoặc mã dự án..." aria-label="Tìm trong bảng báo cáo tuần" title="Lọc nhanh các dòng báo cáo tuần theo nội dung hoặc mã dự án">
+                            <button type="button" id="clearWeeklySearchBtn" title="Xóa nội dung tìm kiếm và bỏ lọc">× Xóa tìm kiếm</button>
+                            <button type="button" id="deleteSelectedWeeklyRowsBtn" title="Xóa các dòng đã chọn sau khi xác nhận">Xóa dòng đã chọn</button>
+                            <button type="button" id="toggleWeeklyHeaderBtn" title="Thu gọn hoặc mở rộng phần tiêu đề báo cáo">Thu gọn tiêu đề</button>
+                            <button type="button" id="printWeeklyReportBtn" title="Mở hộp thoại in báo cáo tuần">In báo cáo tuần</button>
+                            <button type="button" id="toggleWeeklyPaperModeBtn" title="Bật nền giấy sáng cho bảng xem trước">In giấy: Tắt</button>
+                        </div>
+                        <div class="weekly-preview-toolbar" id="weeklyCategoryFilters">
+                            <button type="button" class="weekly-filter-chip active" data-weekly-category-filter="">Tất cả</button>
+                            <button type="button" class="weekly-filter-chip" data-weekly-category-filter="Lắp máy mới">Lắp máy mới</button>
+                            <button type="button" class="weekly-filter-chip" data-weekly-category-filter="Sửa máy">Sửa máy</button>
+                            <button type="button" class="weekly-filter-chip" data-weekly-category-filter="Lắp đặt tại line">Setup</button>
+                            <button type="button" class="weekly-filter-chip" data-weekly-category-filter="Cải tiến">Cải tiến</button>
+                        </div>
                         <div id="weeklyPreviewWrap" class="weekly-preview-wrap">
                             <div class="excel-shell">
                                 <div class="excel-corner"></div>
@@ -2581,6 +2849,11 @@
                                         </thead>
                                         <tbody id="weeklyPreviewBody"></tbody>
                                     </table>
+                                    <div id="weeklyTableFooter" class="weekly-table-footer" hidden>
+                                        <span id="weeklyTableRange">0 dòng</span>
+                                        <button type="button" id="weeklyPreviousPageBtn" title="Hiển thị 50 dòng trước">‹ Trước</button>
+                                        <button type="button" id="weeklyNextPageBtn" title="Hiển thị 50 dòng tiếp theo">Sau ›</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -2588,18 +2861,18 @@
                         <div class="image-preview-title">Xem trước hình ảnh</div>
                         <div id="weeklyImageList" class="image-list"></div>
                         <div class="weekly-actions">
-                            <button id="addWeeklyImagesBtn">Load hình ảnh</button>
-                            <button id="chooseWeeklyOutputBtn">Chọn nơi lưu</button>
-                            <button id="exportSetupTrackingBtn">Thêm vào Excel setup</button>
-                            <button id="restoreWeeklyBtn" disabled>Khôi phục</button>
-                            <button id="confirmWeeklyExportBtn">Xác nhận xuất Excel</button>
+                            <button id="addWeeklyImagesBtn" title="Tải hình ảnh liên quan đến các dự án trong báo cáo tuần">Load hình ảnh</button>
+                            <button id="chooseWeeklyOutputBtn" title="Chọn thư mục lưu file Excel báo cáo tuần">Chọn nơi lưu</button>
+                            <button id="exportSetupTrackingBtn" title="Thêm dữ liệu hạng mục Lắp đặt tại line và Sửa máy vào file Excel theo dõi setup">Thêm vào Excel setup</button>
+                            <button id="restoreWeeklyBtn" disabled title="Khôi phục dòng báo cáo tuần vừa xóa">Khôi phục</button>
+                            <button id="confirmWeeklyExportBtn" title="Xuất bảng xem trước thành file Excel">Xác nhận xuất Excel</button>
                         </div>
                         <div class="field-row" style="margin-top: 14px;">
-                            <input id="weeklyOutputFolder" type="text" readonly placeholder="Chọn thư mục lưu báo cáo tuần">
+                            <input id="weeklyOutputFolder" class="path-compact" type="text" readonly placeholder="Chọn thư mục lưu báo cáo tuần">
                         </div>
-                        <div class="status-line" id="weeklyStatus"></div>
+                        <div class="status-line" id="weeklyStatus" data-level="info"></div>
                     </div>
-                    <div id="weeklyEmptyState" class="empty">Bấm nút Báo cáo tuần trên thanh tiêu đề để chọn khoảng ngày và tạo bảng xem trước.</div>
+                    <div id="weeklyEmptyState" class="empty"></div>
                 </div>
             </section>
         </section>
@@ -2666,8 +2939,8 @@
                     <h3>Danh sách thành viên</h3>
                     <p class="muted">Danh sách này dùng để tham chiếu tên người thực hiện trong bảng chuẩn hóa.</p>
                     <div class="field-row">
-                        <input id="memberNameInput" type="text" placeholder="Nhập tên thành viên, ví dụ: Nguyễn Bá Tân">
-                        <button id="addMemberBtn">Thêm</button>
+                        <input id="memberNameInput" type="search" placeholder="Nhập tên thành viên, ví dụ: Nguyễn Bá Tân">
+                        <button id="addMemberBtn" title="Thêm thành viên vào danh sách gợi ý người thực hiện">Thêm</button>
                     </div>
                     <div id="memberList" class="member-list"></div>
                 </section>
@@ -2677,8 +2950,8 @@
                     <p class="muted">Danh sách lấy từ cột Dự án trong bảng báo cáo tuần. Bấm - để bỏ hàng dự án, bấm + để thêm hàng dự án.</p>
                     <p id="weeklyProjectRangeHint" class="muted" style="font-style: italic;">Chưa tải báo cáo tuần. Danh sách hiện đang rỗng cho khoảng ngày hiện tại.</p>
                     <div class="field-row">
-                        <input id="weeklyProjectInput" type="text" placeholder="Nhập mã dự án, ví dụ: AUTM2602E8, AUTS260202, AUTJ260202">
-                        <button id="addWeeklyProjectBtn">+</button>
+                        <input id="weeklyProjectInput" type="search" placeholder="Nhập mã dự án, ví dụ: AUTM2602E8, AUTS260202, AUTJ260202">
+                        <button id="addWeeklyProjectBtn" title="Thêm mã dự án vào bảng báo cáo tuần">+</button>
                     </div>
                     <div id="weeklyProjectList" class="member-list"></div>
                 </section>
@@ -2687,8 +2960,8 @@
                     <h3>Cột hiển thị báo cáo tuần</h3>
                     <p class="muted">Có thể thêm/bớt cột và chỉnh độ rộng cột trong bảng xem trước.</p>
                     <div class="field-row">
-                        <input id="weeklyColumnInput" type="text" placeholder="Tên cột mới, ví dụ: Ghi chú">
-                        <button id="addWeeklyColumnBtn">+</button>
+                        <input id="weeklyColumnInput" type="search" placeholder="Tên cột mới, ví dụ: Ghi chú">
+                        <button id="addWeeklyColumnBtn" title="Thêm cột thông tin vào bảng báo cáo tuần">+</button>
                     </div>
                     <div id="weeklyColumnList" class="member-list"></div>
                 </section>
@@ -2741,22 +3014,26 @@
                     <label>Địa chỉ server</label>
                     <div class="field-row">
                         <input id="syncServerUrlInput" type="text" placeholder="Ví dụ: http://192.168.1.10:3959">
-                        <button id="testSyncServerBtn">Kiểm tra</button>
+                        <button id="testSyncServerBtn" title="Kiểm tra kết nối đến máy chủ đồng bộ">Kiểm tra</button>
                     </div>
                     <label style="margin-top: 10px;">Token bảo vệ</label>
                     <input id="syncTokenInput" type="password" placeholder="Có thể để trống khi chạy trong mạng nội bộ">
                     <label style="margin-top: 10px;">Mã thiết bị</label>
                     <input id="syncDeviceIdInput" type="text" placeholder="Để trống sẽ dùng tên máy tự động">
                     <div class="about-actions">
-                        <button id="uploadSqliteBtn" class="primary">Đẩy SQLite lên server</button>
-                        <button id="downloadSqliteBtn">Tải dữ liệu từ server</button>
+                        <button id="uploadSqliteBtn" class="primary" title="Gửi bản sao dữ liệu SQLite hiện tại lên server">Đẩy SQLite lên server</button>
+                        <button id="downloadSqliteBtn" title="Tải dữ liệu SQLite mới nhất từ server về máy này">Tải dữ liệu từ server</button>
                     </div>
-                    <div id="syncStatus" class="about-box">Chưa đồng bộ.</div>
+                    <div class="about-box">
+                        <h3>Trạng thái</h3>
+                        <div id="syncStatus" class="status-line" data-level="info">Chưa đồng bộ.</div>
+                    </div>
                     <hr style="margin: 18px 0; border: 0; border-top: 1px solid var(--line);">
                     <div class="about-actions">
-                        <button id="backupGoogleSheetBtn" class="primary">Backup lên Google Sheet</button>
-                        <button id="restoreGoogleSheetBtn">Khôi phục từ Google Sheet</button>
+                        <button id="backupGoogleSheetBtn" class="primary" title="Sao lưu dữ liệu SQLite hiện tại lên Google Sheet">Backup lên Google Sheet</button>
+                        <button id="restoreGoogleSheetBtn" title="Khôi phục dữ liệu từ Google Sheet; dữ liệu hiện tại sẽ được sao lưu trước">Khôi phục từ Google Sheet</button>
                     </div>
+                    <div id="googleSheetStatus" class="status-line" data-level="info">Chưa đồng bộ Google Sheet.</div>
                 </section>
             </div>
         </section>
@@ -2814,7 +3091,7 @@
                         <label for="weeklyDateTo">Đến ngày</label>
                         <input id="weeklyDateTo" type="date">
                     </div>
-                    <button id="loadWeeklyPreviewBtn">Xem trước</button>
+                    <button id="loadWeeklyPreviewBtn" title="Tải dữ liệu báo cáo tuần trong khoảng ngày đã chọn">Xem trước</button>
                 </div>
 
                 <div id="weeklyWorkspace" class="weekly-workspace">
@@ -2865,18 +3142,24 @@
                     <div id="weeklyImageList" class="image-list"></div>
                     <div class="field-row" style="margin-top: 14px;">
                         <input id="weeklyOutputFolder" type="text" readonly placeholder="Chọn thư mục lưu báo cáo tuần">
-                        <button id="chooseWeeklyOutputBtn">Chọn nơi lưu</button>
+                        <button id="chooseWeeklyOutputBtn" title="Chọn thư mục lưu file Excel báo cáo tuần">Chọn nơi lưu</button>
                     </div>
-                    <button id="confirmWeeklyExportBtn" class="primary">Xác nhận xuất Excel</button>
+                    <button id="confirmWeeklyExportBtn" class="primary" title="Xuất dữ liệu đã xem trước thành file Excel">Xác nhận xuất Excel</button>
                 </div>
-                <div class="status-line" id="weeklyStatus"></div>
+                <div class="status-line" id="weeklyStatus" data-level="info"></div>
             </div>
         </section>
+    </div>
+
+    <div id="weeklyUndoSnackbar" class="weekly-undo-snackbar" role="status" aria-live="polite" hidden>
+        <span id="weeklyUndoMessage"></span>
+        <button type="button" id="weeklyUndoBtn">Hoàn tác</button>
     </div>
 
     <div id="projectContextMenu" class="project-context-menu">
         <button id="projectDetailMenuBtn" type="button">Detail</button>
         <button id="projectAddRowMenuBtn" type="button">Thêm dòng</button>
+        <button id="projectDuplicateRowMenuBtn" type="button">Nhân bản dòng</button>
         <button id="projectDeleteMenuBtn" type="button">Xóa dòng</button>
     </div>
 
@@ -2962,11 +3245,18 @@
         <option value="Chờ"></option>
     </datalist>
 
+    <datalist id="weeklyProjectDatalist"></datalist>
+
+    <div id="weeklyTextOverlay" class="weekly-text-overlay" role="dialog" aria-modal="true" aria-label="Bung rộng nội dung">
+        <div class="weekly-text-dialog">
+            <strong id="weeklyTextOverlayTitle">Chỉnh sửa nội dung</strong>
+            <textarea id="weeklyTextOverlayInput"></textarea>
+            <footer><button type="button" id="cancelWeeklyTextOverlayBtn">Hủy</button><button type="button" id="saveWeeklyTextOverlayBtn" class="primary">Lưu nội dung</button></footer>
+        </div>
+    </div>
+
     <script>
-        const { clipboard, ipcRenderer } = require('electron');
-        const { Hands } = require('@mediapipe/hands');
-        const HAND_DWELL_MS = 850;
-        const HAND_SELECTABLE_SELECTOR = 'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [role="button"], [tabindex]:not([tabindex="-1"])';
+        const { clipboard, ipcRenderer, shell } = require('electron');
         const WEEKLY_CATEGORY_OPTIONS = ['Lắp máy mới', 'Chỉnh máy', 'Lắp đặt tại line', 'Sửa máy', 'Cải tiến', 'Hỗ trợ'];
         const WEEKLY_PROGRESS_PERCENT_OPTIONS = Array.from({ length: 20 }, (_, index) => `${(index + 1) * 5}%`);
         const WEEKLY_PROGRESS_STATUS_OPTIONS = ['Hoàn thành', 'Đang thực hiện', 'Bắt đầu làm.', 'Tạm dừng', 'Đang xử lý', 'Hoàn thiện', 'Chờ'];
@@ -3032,6 +3322,11 @@
             noProjectReports: [],
             outsideProjectReports: [],
             saveReadyToClear: false,
+            dirty: false,
+            acceptedRawInput: '',
+            rawInputDirty: false,
+            previewDirty: false,
+            noProjectDirty: false,
             allReports: [],
             savedReports: [],
             searchRows: [],
@@ -3040,6 +3335,14 @@
             pendingWeeklyDeleteIndex: -1,
             weeklyContextMenuIndex: -1,
             weeklyDeletedRowHistory: [],
+            selectedWeeklyRows: new Set(),
+            weeklySearchText: '',
+            weeklyCategoryFilter: '',
+            weeklyTextOverlayTarget: null,
+            weeklyDraggedRowIndex: -1,
+            weeklyPageIndex: 0,
+            pendingDeletePayload: null,
+            weeklyUndoTimer: null,
             updatePromptDismissed: false,
             pendingUpdateInfo: null,
             sqliteFile: '',
@@ -3070,18 +3373,6 @@
             folderPinned: localStorage.getItem('dailyWorkReportFolderPinned') !== 'false',
             detailImages: [],
             detailImageIndex: 0,
-            handTrackingActive: false,
-            handTrackingBusy: false,
-            handTrackingFrame: 0,
-            handTrackingLastFrameAt: 0,
-            handTrackingStream: null,
-            handDetector: null,
-            handDrag: null,
-            handOpenResetStartedAt: 0,
-            handPointers: [
-                { x: null, y: null, target: null, dwellStartedAt: 0, clickedTarget: null, lastUpdateAt: 0, lastTargetCheckAt: 0, lastTargetX: 0, lastTargetY: 0, pressing: false, lastClickAt: 0 },
-                { x: null, y: null, target: null, clickedTarget: null, lastUpdateAt: 0, lastTargetCheckAt: 0, lastTargetX: 0, lastTargetY: 0, pressing: false, lastClickAt: 0 }
-            ],
             operation: null,
             operationDisabledButtons: new Map(),
             searchRequestId: 0,
@@ -3093,7 +3384,9 @@
             rawInput: document.getElementById('rawInput'),
             rawInputContextMenu: document.getElementById('rawInputContextMenu'),
             toastStack: document.getElementById('toastStack'),
+            operationProgress: document.getElementById('operationProgress'),
             rootFolder: document.getElementById('rootFolder'),
+            clearRootFolderBtn: document.getElementById('clearRootFolderBtn'),
             chooseFolderBtn: document.getElementById('chooseFolderBtn'),
             acceptBtn: document.getElementById('acceptBtn'),
             saveBtn: document.getElementById('saveBtn'),
@@ -3118,15 +3411,6 @@
             folderStructureBody: document.getElementById('folderStructureBody'),
             currentDateTime: document.getElementById('currentDateTime'),
             weeklyReportBtn: document.getElementById('weeklyReportBtn'),
-            handTrackingBtn: document.getElementById('handTrackingBtn'),
-            handCameraRuntime: document.getElementById('handCameraRuntime'),
-            handCameraVideo: document.getElementById('handCameraVideo'),
-            handCameraCanvas: document.getElementById('handCameraCanvas'),
-            handTrackingStatus: document.getElementById('handTrackingStatus'),
-            handPointers: [
-                document.getElementById('handPointerOne'),
-                document.getElementById('handPointerTwo')
-            ],
             infoBtn: document.getElementById('infoBtn'),
             infoModal: document.getElementById('infoModal'),
             closeInfoBtn: document.getElementById('closeInfoBtn'),
@@ -3176,6 +3460,7 @@
             uploadSqliteBtn: document.getElementById('uploadSqliteBtn'),
             downloadSqliteBtn: document.getElementById('downloadSqliteBtn'),
             syncStatus: document.getElementById('syncStatus'),
+            googleSheetStatus: document.getElementById('googleSheetStatus'),
             backupGoogleSheetBtn: document.getElementById('backupGoogleSheetBtn'),
             restoreGoogleSheetBtn: document.getElementById('restoreGoogleSheetBtn'),
             reloadBtn: document.getElementById('reloadBtn'),
@@ -3203,6 +3488,10 @@
             weeklyExcelRows: document.getElementById('weeklyExcelRows'),
             weeklyPreviewTitle: document.getElementById('weeklyPreviewTitle'),
             weeklyPreviewBody: document.getElementById('weeklyPreviewBody'),
+            weeklyTableFooter: document.getElementById('weeklyTableFooter'),
+            weeklyTableRange: document.getElementById('weeklyTableRange'),
+            weeklyPreviousPageBtn: document.getElementById('weeklyPreviousPageBtn'),
+            weeklyNextPageBtn: document.getElementById('weeklyNextPageBtn'),
             weeklyImageList: document.getElementById('weeklyImageList'),
             weeklyEmptyState: document.getElementById('weeklyEmptyState'),
             weeklyOutputFolder: document.getElementById('weeklyOutputFolder'),
@@ -3211,9 +3500,14 @@
             confirmWeeklyExportBtn: document.getElementById('confirmWeeklyExportBtn'),
             weeklyStatus: document.getElementById('weeklyStatus'),
             restoreWeeklyBtn: document.getElementById('restoreWeeklyBtn'),
+            weeklyUndoSnackbar: document.getElementById('weeklyUndoSnackbar'),
+            weeklyUndoMessage: document.getElementById('weeklyUndoMessage'),
+            weeklyUndoBtn: document.getElementById('weeklyUndoBtn'),
+            toggleWeeklyPaperModeBtn: document.getElementById('toggleWeeklyPaperModeBtn'),
             projectContextMenu: document.getElementById('projectContextMenu'),
             projectDetailMenuBtn: document.getElementById('projectDetailMenuBtn'),
             projectAddRowMenuBtn: document.getElementById('projectAddRowMenuBtn'),
+            projectDuplicateRowMenuBtn: document.getElementById('projectDuplicateRowMenuBtn'),
             projectDeleteMenuBtn: document.getElementById('projectDeleteMenuBtn'),
             projectDetailDrawer: document.getElementById('projectDetailDrawer'),
             detailResizeHandle: document.getElementById('detailResizeHandle'),
@@ -3233,9 +3527,14 @@
         els.rawInput.value = '';
         if (state.rootFolder) {
             els.rootFolder.value = state.rootFolder;
+            els.rootFolder.title = state.rootFolder;
         }
+        els.clearRootFolderBtn.disabled = !state.rootFolder;
         if (state.weeklyOutputFolder) {
-            els.weeklyOutputFolder.value = state.weeklyOutputFolder;
+            document.querySelectorAll('#weeklyOutputFolder').forEach((input) => {
+                input.value = state.weeklyOutputFolder;
+                input.title = state.weeklyOutputFolder;
+            });
         }
         refreshAppInfo();
         renderLearningSettings();
@@ -3243,6 +3542,12 @@
         renderSetupExcelSettings();
         renderSyncSettings();
         renderGoogleSheetSettings();
+        els.weeklyEmptyState.innerHTML = emptyStateMarkup(
+            'Chưa có bản xem trước',
+            'Chọn khoảng ngày rồi tải dữ liệu để tạo bảng báo cáo tuần.',
+            'Chọn khoảng ngày',
+            'open-weekly-picker'
+        );
         if (state.zaloAutoMoveSettings.enabled) {
             startZaloAutoMove(false);
         }
@@ -3255,7 +3560,7 @@
                 // Status polling is only informational.
             }
         }, 700);
-        applyTheme(localStorage.getItem('dailyWorkReportTheme') || 'light');
+        applyTheme(localStorage.getItem('dailyWorkReportTheme') || 'garden');
         applyFolderPinState();
         updateCurrentDateTime();
         renderFolderStructure();
@@ -3264,8 +3569,26 @@
 
         document.querySelectorAll('.tab').forEach((tab) => {
             tab.addEventListener('click', () => {
+                if (!confirmTabNavigation(tab.dataset.tab)) return;
                 activateTab(tab.dataset.tab);
             });
+        });
+        els.rawInput.addEventListener('input', () => {
+            state.rawInputDirty = els.rawInput.value.trim() !== state.acceptedRawInput.trim();
+            refreshDirtyState();
+        });
+        // Electron không hiện hộp thoại mặc định của beforeunload: chỉ chặn đóng và im lặng
+        // => không thoát được app. Ở đây tự hỏi người dùng bằng confirm() rồi mới cho đóng.
+        let allowWindowClose = false;
+        window.addEventListener('beforeunload', (event) => {
+            if (allowWindowClose || !hasUnsavedWork()) return;
+            event.returnValue = false; // chặn lần đóng này
+            setTimeout(() => {
+                if (window.confirm('Có thay đổi chưa lưu. Bạn vẫn muốn thoát phần mềm?')) {
+                    allowWindowClose = true;
+                    window.close();
+                }
+            }, 0);
         });
 
         els.chooseFolderBtn.addEventListener('click', async () => {
@@ -3273,12 +3596,25 @@
             if (folder) {
                 state.rootFolder = folder;
                 els.rootFolder.value = folder;
+                els.rootFolder.title = folder;
+                els.clearRootFolderBtn.disabled = false;
                 localStorage.setItem('dailyWorkReportRootFolder', folder);
                 setStatus(`Đã chọn thư mục: ${folder}`);
                 updateSaveButton();
                 renderNoProjectReports();
                 renderFolderStructure();
             }
+        });
+
+        els.clearRootFolderBtn.addEventListener('click', () => {
+            state.rootFolder = '';
+            els.rootFolder.value = '';
+            els.rootFolder.title = '';
+            els.clearRootFolderBtn.disabled = true;
+            localStorage.removeItem('dailyWorkReportRootFolder');
+            updateSaveButton();
+            renderFolderStructure();
+            setStatus('Đã bỏ chọn thư mục lưu.');
         });
 
         els.acceptBtn.addEventListener('click', async () => {
@@ -3302,6 +3638,11 @@
                     }
                 }));
                 state.noProjectReports = mergeNoProjectReports(state.noProjectReports, splitReports.noProjectReports);
+                state.acceptedRawInput = raw;
+                state.rawInputDirty = false;
+                state.previewDirty = state.previewReports.length > 0;
+                state.noProjectDirty = state.noProjectDirty || splitReports.noProjectReports.length > 0;
+                refreshDirtyState();
                 renderPreview();
                 renderNoProjectReports();
                 const noProjectText = state.noProjectReports.length ? ` Có ${state.noProjectReports.length} nội dung không có mã dự án ở tab Không mã dự án.` : '';
@@ -3384,10 +3725,12 @@
                 const skippedText = projectResult.skippedDuplicates ? ` Bỏ qua ${projectResult.skippedDuplicates} bản ghi trùng 100%.` : '';
                 const noProjectText = noProjectResult.count ? ` Đã chuyển ${noProjectResult.count} nội dung sang Không mã dự án.` : '';
                 state.saveReadyToClear = true;
+                state.previewDirty = false;
+                state.noProjectDirty = false;
+                refreshDirtyState();
                 renderPreview();
                 updateSaveButton();
                 setStatus(`Đã lưu ${projectResult.count || 0} bản ghi và tạo folder thành công.${noProjectText}${skippedText}`);
-                showToast('Đã lưu', [state.sqliteFile || 'Đã lưu thành công'], 10000);
                 const currentNoProjectReports = noProjectResult.reports || noProjectReportsToSave;
                 setOperationState('lưu báo cáo', 'Đang cập nhật danh sách báo cáo...');
                 await loadReports({ skipOperation: true });
@@ -3412,6 +3755,11 @@
             state.noProjectReports = [];
             state.outsideProjectReports = [];
             state.saveReadyToClear = false;
+            state.acceptedRawInput = '';
+            state.rawInputDirty = false;
+            state.previewDirty = false;
+            state.noProjectDirty = false;
+            refreshDirtyState();
             renderPreview();
             renderNoProjectReports();
             setStatus('Đã clear bảng chuẩn hóa.');
@@ -3421,6 +3769,8 @@
 
         els.clearNoProjectBtn.addEventListener('click', () => {
             state.noProjectReports = [];
+            state.noProjectDirty = false;
+            refreshDirtyState();
             renderNoProjectReports();
             setNoProjectStatus('Đã clear nội dung không có mã dự án.');
         });
@@ -3475,10 +3825,9 @@
             });
         });
 
-        els.handTrackingBtn.addEventListener('click', toggleHandTracking);
-        window.addEventListener('beforeunload', stopHandTracking);
 
         els.weeklyReportBtn.addEventListener('click', () => {
+            if (hasUnsavedWork() && !window.confirm('Có thay đổi chưa lưu. Tiếp tục sang báo cáo tuần?')) return;
             setDefaultWeeklyDates();
             setWeeklyStatus('');
             els.weeklyModal.classList.add('open');
@@ -3505,6 +3854,22 @@
         els.confirmWeeklyExportBtn.addEventListener('click', exportWeeklyReport);
         els.restoreWeeklyBtn.addEventListener('click', undoLastWeeklyRowDeletion);
         els.weeklyPreviewBody.addEventListener('click', handleWeeklyPreviewClick);
+        els.weeklyPreviewBody.addEventListener('focusin', (event) => {
+            const row = event.target.closest('tr[data-weekly-index]');
+            if (row) row.classList.add('weekly-row-editing');
+        });
+        els.weeklyPreviewBody.addEventListener('focusout', (event) => {
+            const row = event.target.closest('tr[data-weekly-index]');
+            if (row && !row.contains(event.relatedTarget)) row.classList.remove('weekly-row-editing');
+        });
+        els.weeklyPreviewBody.addEventListener('dblclick', (event) => {
+            const projectInput = event.target.closest('[data-weekly-project-edit]');
+            if (!projectInput) return;
+            const project = String(projectInput.value || '').trim();
+            if (!project) return;
+            clipboard.writeText(project);
+            showToast('Đã sao chép mã dự án', [project]);
+        });
         els.weeklyPreviewBody.addEventListener('contextmenu', handleProjectContextMenu);
         els.projectDetailMenuBtn.addEventListener('click', () => {
             hideProjectContextMenu();
@@ -3520,6 +3885,52 @@
             hideProjectContextMenu();
             openWeeklyRowDeleteConfirm(index);
         });
+        els.projectDuplicateRowMenuBtn.addEventListener('click', () => {
+            const index = state.weeklyContextMenuIndex;
+            hideProjectContextMenu();
+            duplicateWeeklyRow(index);
+        });
+        document.getElementById('weeklyTableSearch').addEventListener('input', (event) => { state.weeklySearchText = event.target.value || ''; state.weeklyPageIndex = 0; renderWeeklyPreview(); });
+        document.getElementById('clearWeeklySearchBtn').addEventListener('click', () => { state.weeklySearchText = ''; state.weeklyPageIndex = 0; document.getElementById('weeklyTableSearch').value = ''; renderWeeklyPreview(); });
+        document.getElementById('weeklyCategoryFilters').addEventListener('click', (event) => {
+            const button = event.target.closest('[data-weekly-category-filter]'); if (!button) return;
+            state.weeklyCategoryFilter = button.dataset.weeklyCategoryFilter || '';
+            state.weeklyPageIndex = 0;
+            document.querySelectorAll('[data-weekly-category-filter]').forEach((item) => item.classList.toggle('active', item === button));
+            renderWeeklyPreview();
+        });
+        document.getElementById('deleteSelectedWeeklyRowsBtn').addEventListener('click', () => deleteSelectedWeeklyRows());
+        document.getElementById('printWeeklyReportBtn').addEventListener('click', () => window.print());
+        window.addEventListener('beforeprint', () => renderWeeklyPreview({ preserveScroll: false, showAll: true }));
+        window.addEventListener('afterprint', () => renderWeeklyPreview({ preserveScroll: false }));
+        document.getElementById('toggleWeeklyHeaderBtn').addEventListener('click', (event) => {
+            const head = document.querySelector('#weeklyPage .weekly-report-head'); if (!head) return;
+            const compact = head.classList.toggle('is-compact'); event.currentTarget.textContent = compact ? 'Mở rộng tiêu đề' : 'Thu gọn tiêu đề'; scheduleWeeklyFrameUpdate();
+        });
+        els.toggleWeeklyPaperModeBtn.addEventListener('click', () => {
+            const enabled = els.weeklyPreviewWrap.classList.toggle('print-paper-mode');
+            els.toggleWeeklyPaperModeBtn.textContent = `In giấy: ${enabled ? 'Bật' : 'Tắt'}`;
+        });
+        els.weeklyPreviousPageBtn.addEventListener('click', () => {
+            state.weeklyPageIndex = Math.max(0, state.weeklyPageIndex - 1);
+            renderWeeklyPreview({ preserveScroll: false });
+            els.weeklyPreviewWrap.scrollTop = 0;
+        });
+        els.weeklyNextPageBtn.addEventListener('click', () => {
+            state.weeklyPageIndex += 1;
+            renderWeeklyPreview({ preserveScroll: false });
+            els.weeklyPreviewWrap.scrollTop = 0;
+        });
+        els.weeklyUndoBtn.addEventListener('click', () => {
+            const count = Number(els.weeklyUndoSnackbar.dataset.undoCount) || 1;
+            undoLastWeeklyRowDeletion(count);
+        });
+        document.getElementById('cancelWeeklyTextOverlayBtn').addEventListener('click', closeWeeklyTextOverlay);
+        document.getElementById('saveWeeklyTextOverlayBtn').addEventListener('click', saveWeeklyTextOverlay);
+        document.getElementById('weeklyPreviewBody').addEventListener('dragstart', handleWeeklyRowDragStart);
+        document.getElementById('weeklyPreviewBody').addEventListener('dragover', handleWeeklyRowDragOver);
+        document.getElementById('weeklyPreviewBody').addEventListener('drop', handleWeeklyRowDrop);
+        document.getElementById('weeklyPreviewBody').addEventListener('dragend', () => { state.weeklyDraggedRowIndex = -1; document.querySelectorAll('.weekly-row-dragging').forEach((row) => row.classList.remove('weekly-row-dragging')); });
         els.closeProjectDetailBtn.addEventListener('click', closeProjectDetail);
         els.detailWeekPicker.addEventListener('change', handleDetailWeekChange);
         els.detailDateFrom.addEventListener('change', loadProjectDetail);
@@ -3534,6 +3945,17 @@
         document.addEventListener('click', hideProjectContextMenu);
         document.addEventListener('click', handleWeeklyDeleteOutsideClick);
         document.addEventListener('click', (event) => {
+            const actionButton = event.target.closest('[data-empty-action]');
+            if (!actionButton) return;
+            if (actionButton.dataset.emptyAction === 'open-weekly-picker') {
+                els.weeklyReportBtn.click();
+                return;
+            }
+            if (actionButton.dataset.emptyAction === 'focus') {
+                document.getElementById(actionButton.dataset.emptyTarget)?.focus();
+            }
+        });
+        document.addEventListener('click', (event) => {
             if (!event.target.closest('#rawInputContextMenu')) hideRawInputContextMenu();
         });
         document.addEventListener('mousemove', handleGlobalMouseMove);
@@ -3547,14 +3969,66 @@
         document.addEventListener('keydown', (event) => {
             if (isImeInput(event)) return;
             const editingTarget = event.target && event.target.closest('input, textarea, select, [contenteditable="true"]');
+            const modifier = event.ctrlKey || event.metaKey;
+            if (event.key === 'Escape') {
+                if (els.projectContextMenu.classList.contains('open')) hideProjectContextMenu();
+                if (document.getElementById('weeklyTextOverlay').classList.contains('open')) closeWeeklyTextOverlay();
+                if (els.imageViewer.classList.contains('open')) closeImageViewer();
+                if (els.weeklyModal.classList.contains('open')) els.weeklyModal.classList.remove('open');
+                if (els.deleteConfirmModal.classList.contains('open')) closeDeleteConfirm();
+                if (els.settingsModal.classList.contains('open')) els.settingsModal.classList.remove('open');
+                if (els.infoModal.classList.contains('open')) els.infoModal.classList.remove('open');
+                if (els.updatePromptModal.classList.contains('open')) els.updatePromptModal.classList.remove('open');
+                closeWeeklyProgressMenu();
+                hideRawInputContextMenu();
+                return;
+            }
+            if (!editingTarget && modifier && event.key.toLowerCase() === 's') {
+                event.preventDefault();
+                if (!state.saveReadyToClear) els.saveBtn.click();
+                return;
+            }
+            if (!editingTarget && modifier && event.key === 'Enter') {
+                event.preventDefault();
+                if (document.getElementById('weeklyPage').classList.contains('active')) {
+                    els.confirmWeeklyExportBtn.click();
+                } else {
+                    els.acceptBtn.click();
+                }
+                return;
+            }
+            if (!editingTarget && modifier && event.key.toLowerCase() === 'l') {
+                event.preventDefault();
+                if (!confirmTabNavigation('searchPage')) return;
+                activateTab('searchPage');
+                els.searchInput.focus();
+                return;
+            }
+            if (!editingTarget && event.key === 'F5') {
+                event.preventDefault();
+                els.reloadBtn.click();
+                return;
+            }
+            if (!editingTarget && modifier && event.key === 'Home' && document.getElementById('weeklyPage').classList.contains('active')) {
+                event.preventDefault();
+                state.weeklyPageIndex = 0;
+                renderWeeklyPreview({ preserveScroll: false });
+                requestAnimationFrame(() => { els.weeklyPreviewWrap.scrollTop = 0; });
+                return;
+            }
+            if (!editingTarget && modifier && event.key === 'End' && document.getElementById('weeklyPage').classList.contains('active')) {
+                event.preventDefault();
+                state.weeklyPageIndex = Number.MAX_SAFE_INTEGER;
+                renderWeeklyPreview({ preserveScroll: false });
+                requestAnimationFrame(() => { els.weeklyPreviewWrap.scrollTop = els.weeklyPreviewWrap.scrollHeight; });
+                return;
+            }
             if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && !editingTarget) {
                 event.preventDefault();
                 undoLastWeeklyRowDeletion();
                 return;
             }
-            if (event.key === 'Escape') hideRawInputContextMenu();
             if (!els.imageViewer.classList.contains('open')) return;
-            if (event.key === 'Escape') closeImageViewer();
             if (event.key === 'ArrowLeft') moveDetailImage(-1);
             if (event.key === 'ArrowRight') moveDetailImage(1);
         });
@@ -3677,7 +4151,7 @@
                 if (next && zone.contains(next)) return;
                 stopSettingsCardScroll();
             });
-            zone.addEventListener('click', () => scrollSettingsCards(zone.dataset.settingsScroll, 220));
+            zone.addEventListener('click', () => scrollSettingsCards(zone.dataset.settingsScroll, 220, true));
         });
         document.addEventListener('pointermove', (event) => {
             state.lastPointer = { x: event.clientX, y: event.clientY };
@@ -3712,8 +4186,39 @@
         });
 
         function setStatus(message, isError = false) {
-            els.inputStatus.textContent = message;
-            els.inputStatus.classList.toggle('error', isError);
+            setStatusLevel(els.inputStatus, getStatusLevel(message, isError, els.inputStatus), message);
+        }
+
+        function getStatusLevel(message, isError, element) {
+            if (isError) return 'error';
+            const text = String(message || '').trim();
+            if (/Đã\s+/i.test(text)) return 'success';
+            if (element && element.dataset.level === 'error' && !/^(Đang|Chưa|Vui lòng|Không)\b/i.test(text)) return 'success';
+            if (/^(Chưa|Vui lòng|Không có|Không tìm thấy)\b/i.test(text)) return 'warning';
+            return 'info';
+        }
+
+        function setStatusLevel(element, level, message, actions = []) {
+            if (!element) return;
+            const previousLevel = element.dataset.level || '';
+            element.textContent = String(message || '');
+            element.title = String(message || '');
+            element.setAttribute('role', 'status');
+            element.setAttribute('aria-live', 'polite');
+            element.dataset.level = level;
+            element.dataset.updatedAt = `Cập nhật lúc ${new Date().toLocaleString('vi-VN', {
+                hour: '2-digit',
+                minute: '2-digit',
+                day: '2-digit',
+                month: '2-digit'
+            })}`;
+            element.classList.toggle('error', level === 'error');
+            ['success', 'warning', 'info'].forEach((statusClass) => {
+                element.classList.toggle(statusClass, level === statusClass);
+            });
+            if (level === 'success' && (/Đã\s+/i.test(String(message || '')) || previousLevel === 'error')) {
+                showToast('Daily Work Report', [message], actions.length ? 10000 : 5200, actions);
+            }
         }
 
         function operationWaitMessage(operation) {
@@ -3732,6 +4237,10 @@
         function setOperationState(name, message = '', options = {}) {
             const { statusTarget = 'input', isError = false } = options;
             if (name) state.operation = { name, message };
+            if (els.operationProgress) {
+                els.operationProgress.classList.toggle('visible', Boolean(name));
+                els.operationProgress.setAttribute('aria-hidden', String(!name));
+            }
             OPERATION_BUTTONS.forEach((key) => {
                 const button = els[key];
                 if (!button) return;
@@ -3740,9 +4249,13 @@
                         state.operationDisabledButtons.set(key, button.disabled);
                     }
                     button.disabled = true;
+                    if (button.classList) button.classList.add('btn-loading');
+                    if (typeof button.setAttribute === 'function') button.setAttribute('aria-busy', 'true');
                 } else {
                     const wasDisabled = state.operationDisabledButtons.get(key);
                     button.disabled = typeof wasDisabled === 'boolean' ? wasDisabled : false;
+                    if (button.classList) button.classList.remove('btn-loading');
+                    if (typeof button.removeAttribute === 'function') button.removeAttribute('aria-busy');
                 }
             });
             if (!name) {
@@ -3751,6 +4264,7 @@
             }
             if (!message) return;
             if (statusTarget === 'sync') setSyncStatus(message, isError);
+            else if (statusTarget === 'google-sheet') setGoogleSheetStatus(message, isError);
             else if (statusTarget === 'weekly') setWeeklyStatus(message, isError);
             else if (statusTarget === 'no-project') setNoProjectStatus(message, isError);
             else setStatus(message, isError);
@@ -3760,6 +4274,7 @@
             if (state.operation) {
                 const message = operationWaitMessage(state.operation);
                 if (options.statusTarget === 'sync') setSyncStatus(message, true);
+                else if (options.statusTarget === 'google-sheet') setGoogleSheetStatus(message, true);
                 else if (options.statusTarget === 'weekly') setWeeklyStatus(message, true);
                 else if (options.statusTarget === 'no-project') setNoProjectStatus(message, true);
                 else setStatus(message, true);
@@ -3777,7 +4292,7 @@
             }
         }
 
-        function showToast(title, lines = [], timeoutMs = 5200) {
+        function showToast(title, lines = [], timeoutMs = 5200, actions = []) {
             if (!els.toastStack) return;
             const toast = document.createElement('div');
             toast.className = 'toast';
@@ -3786,416 +4301,60 @@
                 <strong>${escapeHtml(title || 'Thông báo')}</strong>
                 ${safeLines.filter(Boolean).map((line) => `<div title="${escapeHtml(line)}">${escapeHtml(line)}</div>`).join('')}
             `;
+            if (actions.length) {
+                const actionRow = document.createElement('div');
+                actionRow.className = 'toast-actions';
+                actions.forEach(({ label, onClick }) => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.textContent = label;
+                    button.addEventListener('click', async (event) => {
+                        event.stopPropagation();
+                        try {
+                            await onClick();
+                        } catch (error) {
+                            showToast('Không thể hoàn tất thao tác', [error.message || String(error)]);
+                        }
+                        removeToast();
+                    });
+                    actionRow.appendChild(button);
+                });
+                toast.appendChild(actionRow);
+            }
             els.toastStack.appendChild(toast);
             const removeToast = () => {
                 toast.style.opacity = '0';
                 toast.style.transform = 'translateY(10px)';
                 setTimeout(() => toast.remove(), 160);
             };
-            toast.addEventListener('click', removeToast);
+            toast.addEventListener('click', (event) => {
+                if (!event.target.closest('button')) removeToast();
+            });
             setTimeout(removeToast, timeoutMs);
         }
 
-        function handAssetUrl(fileName) {
-            return `app-resource://mediapipe/${encodeURIComponent(fileName)}`;
+        function confirmTabNavigation(tabId) {
+            const currentTab = document.querySelector('.tab.active')?.dataset.tab;
+            return !hasUnsavedWork() || currentTab === tabId || window.confirm('Có thay đổi chưa lưu. Bạn vẫn muốn chuyển tab?');
         }
 
-        async function verifyHandTrackingAssets() {
-            const response = await fetch(handAssetUrl('hands.binarypb'));
-            if (!response.ok) {
-                throw new Error(`Không tải được model Hand Tracking (${response.status})`);
-            }
+        function hasUnsavedWork() {
+            return state.dirty;
         }
 
-        async function toggleHandTracking() {
-            if (state.handTrackingActive || state.handTrackingStream) {
-                stopHandTracking();
-                return;
-            }
-            await startHandTracking();
-        }
-
-        async function startHandTracking() {
-            els.handTrackingStatus.textContent = 'Đang mở camera...';
-            els.handTrackingBtn.title = 'Đang mở Hand Tracking';
-            try {
-                await verifyHandTrackingAssets();
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    audio: false,
-                    video: {
-                        width: { ideal: 480, max: 640 },
-                        height: { ideal: 360, max: 480 },
-                        frameRate: { ideal: 30, max: 30 },
-                        facingMode: 'user'
-                    }
-                });
-                state.handTrackingStream = stream;
-                els.handCameraVideo.srcObject = stream;
-                await els.handCameraVideo.play();
-
-                if (!state.handDetector) {
-                    state.handDetector = new Hands({ locateFile: handAssetUrl });
-                    state.handDetector.setOptions({
-                        maxNumHands: 2,
-                        modelComplexity: 0,
-                        minDetectionConfidence: 0.5,
-                        minTrackingConfidence: 0.55,
-                        selfieMode: true
-                    });
-                    state.handDetector.onResults(handleHandTrackingResults);
-                }
-
-                state.handTrackingActive = true;
-                state.handTrackingBusy = false;
-                state.handTrackingLastFrameAt = 0;
-                els.handCameraRuntime.classList.add('active');
-                els.handTrackingBtn.classList.add('active');
-                els.handTrackingBtn.title = 'Tắt Hand Tracking';
-                els.handTrackingStatus.textContent = 'Đang nhận diện tay';
-                runHandTrackingFrame(performance.now());
-            } catch (error) {
-                console.error('Hand Tracking camera error:', error);
-                stopHandTracking();
-                els.handTrackingStatus.textContent = error && error.name === 'NotAllowedError'
-                    ? 'Camera chưa được cấp quyền'
-                    : `Camera: ${(error && error.message) || 'Không mở được'}`;
-                els.handTrackingBtn.title = els.handTrackingStatus.textContent;
-            }
-        }
-
-        function stopHandTracking() {
-            state.handTrackingActive = false;
-            state.handTrackingBusy = false;
-            if (state.handTrackingFrame) cancelAnimationFrame(state.handTrackingFrame);
-            state.handTrackingFrame = 0;
-            if (state.handTrackingStream) {
-                state.handTrackingStream.getTracks().forEach((track) => track.stop());
-            }
-            state.handTrackingStream = null;
-            endHandDrag();
-            state.handOpenResetStartedAt = 0;
-            els.handCameraRuntime.classList.remove('active');
-            els.handCameraVideo.pause();
-            els.handCameraVideo.srcObject = null;
-            const context = els.handCameraCanvas.getContext('2d');
-            context.clearRect(0, 0, els.handCameraCanvas.width, els.handCameraCanvas.height);
-            hideAllHandPointers();
-            els.handTrackingBtn.classList.remove('active');
-            els.handTrackingBtn.title = 'Hand Tracking';
-            els.handTrackingStatus.textContent = 'Camera đang tắt';
-        }
-
-        async function runHandTrackingFrame(timestamp) {
-            if (!state.handTrackingActive) return;
-            if (!state.handTrackingBusy && timestamp - state.handTrackingLastFrameAt >= 45 && els.handCameraVideo.readyState >= 2) {
-                state.handTrackingBusy = true;
-                state.handTrackingLastFrameAt = timestamp;
-                try {
-                    await state.handDetector.send({ image: els.handCameraVideo });
-                } catch (error) {
-                    console.error('MediaPipe Hands error:', error);
-                    stopHandTracking();
-                    els.handTrackingStatus.textContent = `MediaPipe: ${(error && error.message) || 'Không khởi tạo được'}`;
-                    els.handTrackingBtn.title = els.handTrackingStatus.textContent;
-                } finally {
-                    state.handTrackingBusy = false;
-                }
-            }
-            state.handTrackingFrame = requestAnimationFrame(runHandTrackingFrame);
-        }
-
-        function handleHandTrackingResults(results) {
-            const hands = results.multiHandLandmarks || [];
-            drawHandTrackingOverlay(hands);
-            if (!hands.length) {
-                hideAllHandPointers();
-                endHandDrag();
-                els.handTrackingStatus.textContent = 'Chưa nhận diện được tay';
-                return;
-            }
-            const now = performance.now();
-            hands.slice(0, 2).forEach((landmarks, index) => {
-                updateHandPointer(index, landmarks, now);
-            });
-            for (let index = hands.length; index < 2; index += 1) {
-                hideHandPointer(index);
-            }
-            handleTwoOpenHandsReset(hands, now);
-            els.handTrackingStatus.textContent = `Đang nhận diện ${Math.min(hands.length, 2)} tay`;
-        }
-
-        function drawHandTrackingOverlay(hands) {
-            const canvas = els.handCameraCanvas;
-            const rect = canvas.getBoundingClientRect();
-            const width = Math.max(1, Math.floor(rect.width * window.devicePixelRatio));
-            const height = Math.max(1, Math.floor(rect.height * window.devicePixelRatio));
-            if (canvas.width !== width || canvas.height !== height) {
-                canvas.width = width;
-                canvas.height = height;
-            }
-            const context = canvas.getContext('2d');
-            context.clearRect(0, 0, width, height);
-            context.save();
-            context.scale(window.devicePixelRatio, window.devicePixelRatio);
-            const drawWidth = rect.width;
-            const drawHeight = rect.height;
-            const connections = [
-                [0, 1], [1, 2], [2, 3], [3, 4],
-                [0, 5], [5, 6], [6, 7], [7, 8],
-                [0, 9], [9, 10], [10, 11], [11, 12],
-                [0, 13], [13, 14], [14, 15], [15, 16],
-                [0, 17], [17, 18], [18, 19], [19, 20],
-                [5, 9], [9, 13], [13, 17]
-            ];
-            hands.slice(0, 2).forEach((landmarks, handIndex) => {
-                const color = handIndex === 0 ? '#2af06f' : '#36b7ff';
-                context.lineWidth = 1.5;
-                context.strokeStyle = color;
-                context.globalAlpha = 0.62;
-                connections.forEach(([from, to]) => {
-                    const a = landmarks[from];
-                    const b = landmarks[to];
-                    if (!a || !b) return;
-                    context.beginPath();
-                    context.moveTo(a.x * drawWidth, a.y * drawHeight);
-                    context.lineTo(b.x * drawWidth, b.y * drawHeight);
-                    context.stroke();
-                });
-                landmarks.forEach((point, pointIndex) => {
-                    context.beginPath();
-                    context.fillStyle = pointIndex === 8 ? '#ffdf3d' : color;
-                    context.arc(point.x * drawWidth, point.y * drawHeight, pointIndex === 8 ? 3.6 : 2.2, 0, Math.PI * 2);
-                    context.fill();
-                });
-                context.globalAlpha = 1;
-            });
-            context.restore();
-        }
-
-        function mapHandPointToScreen(point) {
-            const normalizedX = Math.min(1, Math.max(0, (point.x - 0.08) / 0.84));
-            const normalizedY = Math.min(1, Math.max(0, (point.y - 0.08) / 0.84));
-            return {
-                x: normalizedX * window.innerWidth,
-                y: normalizedY * window.innerHeight
-            };
-        }
-
-        function updateHandPointer(index, landmarks, now) {
-            const pointerState = state.handPointers[index];
-            const pointerElement = els.handPointers[index];
-            const fingerTip = landmarks[8];
-            const mapped = mapHandPointToScreen(fingerTip);
-            if (pointerState.x === null || pointerState.y === null) {
-                pointerState.x = mapped.x;
-                pointerState.y = mapped.y;
-            } else {
-                const distance = Math.hypot(mapped.x - pointerState.x, mapped.y - pointerState.y);
-                const deltaMs = Math.max(16, now - (pointerState.lastUpdateAt || now));
-                const speedBoost = Math.min(0.74, distance / Math.max(140, deltaMs * 4));
-                const alpha = Math.min(0.72, Math.max(0.22, 0.26 + speedBoost));
-                pointerState.x += (mapped.x - pointerState.x) * alpha;
-                pointerState.y += (mapped.y - pointerState.y) * alpha;
-            }
-            pointerState.lastUpdateAt = now;
-            pointerElement.style.left = `${pointerState.x}px`;
-            pointerElement.style.top = `${pointerState.y}px`;
-            pointerElement.classList.add('visible');
-
-            const targetCheckDistance = Math.hypot(pointerState.x - pointerState.lastTargetX, pointerState.y - pointerState.lastTargetY);
-            const shouldCheckTarget = !pointerState.target || targetCheckDistance > 10 || now - pointerState.lastTargetCheckAt > 90;
-            const target = shouldCheckTarget ? findHandSelectableTarget(pointerState.x, pointerState.y) : pointerState.target;
-            if (shouldCheckTarget) {
-                pointerState.lastTargetCheckAt = now;
-                pointerState.lastTargetX = pointerState.x;
-                pointerState.lastTargetY = pointerState.y;
-            }
-            if (target !== pointerState.target) {
-                pointerState.target = target;
-                pointerState.dwellStartedAt = now;
-                pointerState.clickedTarget = null;
-            }
-            if (!target) {
-                pointerElement.style.setProperty('--dwell-angle', '0deg');
-                pointerState.pressing = false;
-                return;
-            }
-
-            pointerElement.style.setProperty('--dwell-angle', '0deg');
-            handleHandGestureMouse(index, landmarks, pointerState, target);
-        }
-
-        function findHandSelectableTarget(x, y) {
-            const element = document.elementFromPoint(x, y);
-            if (!element) return null;
-            const target = element.closest(HAND_SELECTABLE_SELECTOR);
-            if (!target || target.disabled || target.getAttribute('aria-hidden') === 'true') return null;
-            return target;
-        }
-
-        function activateHandTarget(target) {
-            if (target.matches('input:not([type="checkbox"]):not([type="radio"]), textarea, select')) {
-                target.focus({ preventScroll: false });
-                if (target.tagName === 'SELECT') target.click();
-                return;
-            }
-            target.click();
-        }
-
-        function handGestureState(landmarks) {
-            const fingerTips = [8, 12, 16, 20];
-            const fingerPips = [6, 10, 14, 18];
-            const folded = fingerTips.filter((tip, index) => landmarks[tip].y > landmarks[fingerPips[index]].y + 0.015).length;
-            const extended = fingerTips.filter((tip, index) => landmarks[tip].y < landmarks[fingerPips[index]].y - 0.02).length;
-            const thumbOpen = Math.abs(landmarks[4].x - landmarks[2].x) > 0.055;
-            const indexExtended = landmarks[8].y < landmarks[6].y - 0.035;
-            const middleFolded = landmarks[12].y > landmarks[10].y + 0.005;
-            const ringFolded = landmarks[16].y > landmarks[14].y + 0.005;
-            const pinkyFolded = landmarks[20].y > landmarks[18].y + 0.005;
-            const pointing = indexExtended && middleFolded && ringFolded && pinkyFolded;
-            const indexPressDistance = Math.hypot(landmarks[8].x - landmarks[5].x, landmarks[8].y - landmarks[5].y);
-            return {
-                fist: folded >= 3,
-                openPalm: extended >= 4 && thumbOpen,
-                pointing,
-                press: pointing || indexPressDistance < 0.105
-            };
-        }
-
-        function handleHandGestureMouse(index, landmarks, pointerState, target) {
-            const gesture = handGestureState(landmarks);
-            if (gesture.fist) {
-                pointerState.pressing = false;
-                if (!state.handDrag && target) {
-                    state.handDrag = {
-                        index,
-                        target,
-                        startedAt: performance.now()
-                    };
-                    dispatchSyntheticMouse(target, 'mousedown', pointerState.x, pointerState.y);
-                    target.classList.add('hand-dragging');
-                } else if (state.handDrag && state.handDrag.index === index) {
-                    dispatchSyntheticMouse(state.handDrag.target, 'mousemove', pointerState.x, pointerState.y);
-                    document.dispatchEvent(new MouseEvent('mousemove', {
-                        bubbles: true,
-                        clientX: pointerState.x,
-                        clientY: pointerState.y
-                    }));
-                }
-                pointerState.clickedTarget = target;
-                return;
-            }
-
-            if (state.handDrag && state.handDrag.index === index) {
-                dispatchSyntheticMouse(state.handDrag.target, 'mouseup', pointerState.x, pointerState.y);
-                document.dispatchEvent(new MouseEvent('mouseup', {
-                    bubbles: true,
-                    clientX: pointerState.x,
-                    clientY: pointerState.y
-                }));
-                state.handDrag.target.classList.remove('hand-dragging');
-                state.handDrag = null;
-            }
-
-            if (gesture.press && target && !pointerState.pressing && performance.now() - pointerState.lastClickAt > 420) {
-                pointerState.pressing = true;
-                pointerState.lastClickAt = performance.now();
-                pointerState.clickedTarget = target;
-                pulseHandPointer(index);
-                activateHandTarget(target);
-                return;
-            }
-
-            if (!gesture.press) {
-                pointerState.pressing = false;
-            }
-        }
-
-        function pulseHandPointer(index) {
-            const pointerElement = els.handPointers[index];
-            pointerElement.animate([
-                { transform: 'translate(-50%, -50%) scale(1)' },
-                { transform: 'translate(-50%, -50%) scale(0.72)' },
-                { transform: 'translate(-50%, -50%) scale(1)' }
-            ], {
-                duration: 180,
-                easing: 'ease-out'
-            });
-        }
-
-        function dispatchSyntheticMouse(target, type, x, y) {
-            if (!target) return;
-            target.dispatchEvent(new MouseEvent(type, {
-                bubbles: true,
-                cancelable: true,
-                view: window,
-                clientX: x,
-                clientY: y,
-                buttons: type === 'mouseup' ? 0 : 1,
-                button: 0
-            }));
-        }
-
-        function endHandDrag() {
-            if (!state.handDrag) return;
-            state.handDrag.target.classList.remove('hand-dragging');
-            state.handDrag = null;
-        }
-
-        function handleTwoOpenHandsReset(hands, now) {
-            if (hands.length < 2 || !hands.slice(0, 2).every((landmarks) => handGestureState(landmarks).openPalm)) {
-                state.handOpenResetStartedAt = 0;
-                return;
-            }
-            if (!state.handOpenResetStartedAt) {
-                state.handOpenResetStartedAt = now;
-                return;
-            }
-            if (now - state.handOpenResetStartedAt < 650) return;
-            resetHandControlledView();
-            state.handOpenResetStartedAt = now + 1800;
-        }
-
-        function resetHandControlledView() {
-            endHandDrag();
-            state.weeklyZoom = 1;
-            localStorage.setItem('dailyWorkReportWeeklyZoom', '1');
-            applyWeeklyZoom();
-            if (els.projectDetailDrawer.classList.contains('open')) {
-                document.documentElement.style.setProperty('--detail-width', '420px');
-            }
-            showToast('Daily Work Report', ['Đã reset hiển thị mặc định.']);
-        }
-
-        function hideHandPointer(index) {
-            const pointerState = state.handPointers[index];
-            const pointerElement = els.handPointers[index];
-            pointerElement.classList.remove('visible');
-            pointerElement.style.setProperty('--dwell-angle', '0deg');
-            pointerState.target = null;
-            pointerState.dwellStartedAt = 0;
-            pointerState.clickedTarget = null;
-            pointerState.x = null;
-            pointerState.y = null;
-            pointerState.lastUpdateAt = 0;
-            pointerState.lastTargetCheckAt = 0;
-            pointerState.lastTargetX = 0;
-            pointerState.lastTargetY = 0;
-            pointerState.pressing = false;
-            pointerState.lastClickAt = 0;
-        }
-
-        function hideAllHandPointers() {
-            hideHandPointer(0);
-            hideHandPointer(1);
+        function refreshDirtyState() {
+            state.dirty = Boolean(state.rawInputDirty || state.previewDirty || state.noProjectDirty);
         }
 
         function activateTab(tabId) {
+            const isKnownTab = Array.from(document.querySelectorAll('.tab')).some((tab) => tab.dataset.tab === tabId);
+            if (!isKnownTab || !document.getElementById(tabId)) return;
             document.querySelectorAll('.tab').forEach((item) => {
                 item.classList.toggle('active', item.dataset.tab === tabId);
             });
             document.querySelectorAll('.page').forEach((item) => item.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
+            localStorage.setItem('dailyWorkReportActiveTab', tabId);
             if (tabId === 'searchPage') {
                 renderSearch();
             } else if (tabId === 'outsideProjectPage') {
@@ -4324,18 +4483,26 @@
             if (sectionName === 'learning') renderLearningSettings();
         }
 
-        function scrollSettingsCards(direction, amount = 26) {
+        function scrollSettingsCards(direction, amount = 26, smooth = false) {
             if (!els.settingsCardGrid) return;
             const sign = direction === 'left' ? -1 : 1;
-            els.settingsCardGrid.scrollLeft += sign * amount;
+            if (smooth) {
+                els.settingsCardGrid.scrollBy({ left: sign * amount, behavior: 'smooth' });
+            } else {
+                els.settingsCardGrid.scrollLeft += sign * amount;
+            }
         }
 
         function startSettingsCardScroll(direction, zone) {
             stopSettingsCardScroll();
             state.settingsCardScrollDirection = direction;
             state.settingsCardScrollZone = zone;
-            const step = () => {
+            let lastTime = performance.now();
+            let carry = 0;
+            const step = (now = performance.now()) => {
                 if (!state.settingsCardScrollDirection) return;
+                const dt = Math.min(now - lastTime, 50);
+                lastTime = now;
                 if (state.lastPointer && state.settingsCardScrollZone) {
                     const rect = state.settingsCardScrollZone.getBoundingClientRect();
                     const inside = state.lastPointer.x >= rect.left
@@ -4347,7 +4514,12 @@
                         return;
                     }
                 }
-                scrollSettingsCards(state.settingsCardScrollDirection, 7);
+                carry += dt * 0.42; // 420px/giây, đều ở mọi tần số quét
+                const whole = Math.floor(carry);
+                if (whole > 0) {
+                    carry -= whole;
+                    scrollSettingsCards(state.settingsCardScrollDirection, whole);
+                }
                 state.settingsCardScrollTimer = requestAnimationFrame(step);
             };
             step();
@@ -4372,8 +4544,8 @@
         }
 
         function applyTheme(theme) {
-            const themeNames = ['light', 'dark', 'garden', 'blossom', 'sunrise', 'ocean', 'lime'];
-            const safeTheme = themeNames.includes(theme) ? theme : 'light';
+            const themeNames = ['light', 'dark', 'garden'];
+            const safeTheme = themeNames.includes(theme) ? theme : 'garden';
             document.body.dataset.theme = safeTheme;
             localStorage.setItem('dailyWorkReportTheme', safeTheme);
             document.querySelectorAll('[data-theme-option]').forEach((button) => {
@@ -5419,6 +5591,8 @@
                         state.previewReports[reportIndex].ai_original.nguoi_thuc_hien = [...state.previewReports[reportIndex].nguoi_thuc_hien];
                     }
                     state.saveReadyToClear = false;
+                    state.previewDirty = true;
+                    refreshDirtyState();
                     state.previewReports[reportIndex].folder_nguoi = [];
                     state.previewReports[reportIndex].folder_nhom_nguoi = '';
                     renderPreview();
@@ -5607,6 +5781,8 @@
                     reports: sanitizePreviewReports(state.noProjectReports)
                 });
                 state.noProjectReports = result.reports || [];
+                state.noProjectDirty = false;
+                refreshDirtyState();
                 renderNoProjectReports();
                 renderFolderStructure();
                 setNoProjectStatus(`Đã lưu ${result.count || 0} nội dung không có mã dự án vào thư mục riêng.`);
@@ -5619,8 +5795,7 @@
 
         function setNoProjectStatus(message, isError = false) {
             if (!els.noProjectStatus) return;
-            els.noProjectStatus.textContent = message;
-            els.noProjectStatus.classList.toggle('error', Boolean(isError));
+            setStatusLevel(els.noProjectStatus, getStatusLevel(message, Boolean(isError), els.noProjectStatus), message);
         }
 
         function fieldHtml(label, value) {
@@ -5698,6 +5873,8 @@
             const report = state.previewReports[reportIndex];
             if (!report || !field) return;
             state.saveReadyToClear = false;
+            state.previewDirty = true;
+            refreshDirtyState();
 
             if (field === 'ma_du_an') {
                 const project = normalizeProjectCode(event.target.value) || event.target.value.trim();
@@ -6013,22 +6190,53 @@
         }
 
         function removeMember(index) {
+            const member = state.members[index];
+            if (!member) return;
+            state.pendingDeleteMode = 'member';
+            state.pendingDeletePayload = { index };
+            els.deleteConfirmMessage.textContent = `Bạn có chắc muốn xóa thành viên "${member}" khỏi danh sách không?`;
+            els.deleteConfirmHint.textContent = 'Chỉ xóa thành viên khỏi danh sách gợi ý; dữ liệu báo cáo đã lưu không bị thay đổi.';
+            els.deleteConfirmModal.classList.add('open');
+        }
+
+        function applyMemberRemoval(index) {
+            if (!state.members[index]) return;
             state.members.splice(index, 1);
             saveMembers();
             renderMemberList();
             renderPreview();
         }
 
+        function emptyStateMarkup(title, description, buttonText, action, target = '') {
+            return `
+                <div class="empty-state">
+                    <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-13Z" stroke="currentColor" stroke-width="1.6"/>
+                        <path d="M8 9h8M8 13h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                    </svg>
+                    <strong>${escapeHtml(title)}</strong>
+                    <p>${escapeHtml(description)}</p>
+                    <button type="button" data-empty-action="${escapeHtml(action)}" data-empty-target="${escapeHtml(target)}">${escapeHtml(buttonText)}</button>
+                </div>
+            `;
+        }
+
         function renderMemberList() {
             if (!state.members.length) {
-                els.memberList.innerHTML = '<div class="empty">Chưa có thành viên nào.</div>';
+                els.memberList.innerHTML = emptyStateMarkup(
+                    'Chưa có thành viên',
+                    'Thêm tên để gợi ý người thực hiện khi chuẩn hóa báo cáo.',
+                    'Thêm thành viên đầu tiên',
+                    'focus',
+                    'memberNameInput'
+                );
                 return;
             }
 
             els.memberList.innerHTML = state.members.map((member, index) => `
                 <div class="member-item">
                     <strong>${escapeHtml(member)}</strong>
-                    <button data-remove-member="${index}">Xóa</button>
+                    <button data-remove-member="${index}" title="Xóa thành viên sau khi xác nhận">Xóa</button>
                 </div>
             `).join('');
 
@@ -6234,8 +6442,7 @@
         }
 
         function setSyncStatus(message, isError = false) {
-            els.syncStatus.textContent = message;
-            els.syncStatus.classList.toggle('error', Boolean(isError));
+            setStatusLevel(els.syncStatus, getStatusLevel(message, Boolean(isError), els.syncStatus), message);
         }
 
         async function testSyncServer() {
@@ -6350,7 +6557,7 @@
         }
 
         function setGoogleSheetStatus(message, isError = false) {
-            setStatus(message, isError);
+            setStatusLevel(els.googleSheetStatus, getStatusLevel(message, Boolean(isError), els.googleSheetStatus), message);
         }
 
         async function backupToGoogleSheet() {
@@ -6364,8 +6571,7 @@
                     setGoogleSheetStatus(operationWaitMessage(state.operation), true);
                     return;
                 }
-                els.backupGoogleSheetBtn.disabled = true;
-                setOperationState('backup Google Sheet', 'Đang backup dữ liệu lên Google Sheet...');
+                setOperationState('backup Google Sheet', 'Đang backup dữ liệu lên Google Sheet...', { statusTarget: 'google-sheet' });
                 const result = await ipcRenderer.invoke('google-sheet-backup', payload);
                 if (result.noProjectSheetName !== 'Không mã dự án') {
                     throw new Error('Google Apps Script đang là bản cũ và chưa có sheet "Không mã dự án". Hãy Deploy lại phiên bản mới rồi thử lưu lại.');
@@ -6376,7 +6582,6 @@
             } catch (error) {
                 setGoogleSheetStatus(error.message || 'Không backup được lên Google Sheet.', true);
             } finally {
-                els.backupGoogleSheetBtn.disabled = false;
                 setOperationState('', '');
             }
         }
@@ -6384,7 +6589,7 @@
         async function quickBackupToGoogleSheet() {
             if (!state.googleSheetSettings.webAppUrl) {
                 const missingGoogleSheetUrlMessage = 'Chưa cấu hình Google Apps Script Web App URL trong code.';
-                setStatus('Chưa cấu hình Google Apps Script Web App URL trong code.', true);
+                setGoogleSheetStatus(missingGoogleSheetUrlMessage, true);
                 showToast('Daily Work Report', [missingGoogleSheetUrlMessage]);
                 renderSyncSettings();
                 renderGoogleSheetSettings();
@@ -6394,10 +6599,14 @@
                 return;
             }
 
+            if (state.operation) {
+                setGoogleSheetStatus(operationWaitMessage(state.operation), true);
+                return;
+            }
+            setOperationState('backup Google Sheet', 'Đang backup dữ liệu lên Google Sheet...', { statusTarget: 'google-sheet' });
             try {
-                els.quickGoogleSheetBackupBtn.disabled = true;
                 showToast('Daily Work Report', ['Đang backup dữ liệu lên Google Sheet...']);
-                setStatus('Đang backup dữ liệu lên Google Sheet...');
+                setGoogleSheetStatus('Đang backup dữ liệu lên Google Sheet.');
                 const result = await ipcRenderer.invoke('google-sheet-backup', {
                     webAppUrl: state.googleSheetSettings.webAppUrl,
                     token: state.googleSheetSettings.token,
@@ -6412,19 +6621,15 @@
                 if (state.googleSheetSettings.spreadsheetUrl) {
                     clipboard.writeText(state.googleSheetSettings.spreadsheetUrl);
                 }
-                setStatus(`Đã backup ${result.count || 0} bản ghi lên Google Sheet. Link đã copy: ${state.googleSheetSettings.spreadsheetUrl}`);
-                showToast('Daily Work Report', [
-                    `Đã backup ${result.count || 0} bản ghi lên Google Sheet.`,
-                    state.googleSheetSettings.spreadsheetUrl ? `Đã copy link: ${state.googleSheetSettings.spreadsheetUrl}` : ''
-                ].filter(Boolean));
+                setGoogleSheetStatus(`Đã backup ${result.count || 0} bản ghi lên Google Sheet. Link đã copy: ${state.googleSheetSettings.spreadsheetUrl}`);
                 if (state.googleSheetSettings.spreadsheetUrl) {
                     alert(`Đã backup Google Sheet.\nLink đã copy:\n${state.googleSheetSettings.spreadsheetUrl}`);
                 }
             } catch (error) {
-                setStatus(error.message || 'Không backup được lên Google Sheet.', true);
+                setGoogleSheetStatus(error.message || 'Không backup được lên Google Sheet.', true);
                 alert(error.message || 'Không backup được lên Google Sheet.');
             } finally {
-                els.quickGoogleSheetBackupBtn.disabled = false;
+                setOperationState('', '');
             }
         }
 
@@ -6441,8 +6646,7 @@
                     setGoogleSheetStatus(operationWaitMessage(state.operation), true);
                     return;
                 }
-                els.restoreGoogleSheetBtn.disabled = true;
-                setOperationState('khôi phục Google Sheet', 'Đang tải dữ liệu từ Google Sheet...');
+                setOperationState('khôi phục Google Sheet', 'Đang tải dữ liệu từ Google Sheet...', { statusTarget: 'google-sheet' });
                 const result = await ipcRenderer.invoke('google-sheet-restore', payload);
                 state.googleSheetSettings.spreadsheetUrl = result.spreadsheetUrl || state.googleSheetSettings.spreadsheetUrl || '';
                 saveGoogleSheetSettings();
@@ -6458,7 +6662,6 @@
             } catch (error) {
                 setGoogleSheetStatus(error.message || 'Không khôi phục được từ Google Sheet.', true);
             } finally {
-                els.restoreGoogleSheetBtn.disabled = false;
                 setOperationState('', '');
             }
         }
@@ -6569,6 +6772,16 @@
         function removeWeeklyProject(index) {
             const project = getWeeklyProjectSettingsList()[index];
             if (!project) return;
+            state.pendingDeleteMode = 'weekly-project';
+            state.pendingDeletePayload = { index };
+            els.deleteConfirmMessage.textContent = `Bạn có chắc muốn bỏ mã dự án "${project}" khỏi danh sách báo cáo tuần không?`;
+            els.deleteConfirmHint.textContent = 'Chỉ bỏ dự án khỏi cấu hình xem trước; dữ liệu báo cáo đã lưu không bị xóa.';
+            els.deleteConfirmModal.classList.add('open');
+        }
+
+        function applyWeeklyProjectRemoval(index) {
+            const project = getWeeklyProjectSettingsList()[index];
+            if (!project) return;
             const projectKey = normalizeProjectKey(project);
             state.weeklyProjects = state.weeklyProjects.filter((item) => normalizeProjectKey(item) !== projectKey);
             if (!state.weeklyProjectExclusions.some((item) => normalizeProjectKey(item) === projectKey)) {
@@ -6588,13 +6801,19 @@
             const projects = getWeeklyProjectSettingsList();
             updateWeeklyProjectRangeHint();
             if (!projects.length) {
-                els.weeklyProjectList.innerHTML = '<div class="empty">Chưa có mã dự án trong bảng.</div>';
+                els.weeklyProjectList.innerHTML = emptyStateMarkup(
+                    'Chưa có mã dự án',
+                    'Thêm mã dự án để đưa dự án vào bảng báo cáo tuần.',
+                    'Thêm mã dự án',
+                    'focus',
+                    'weeklyProjectInput'
+                );
                 return;
             }
             els.weeklyProjectList.innerHTML = projects.map((project, index) => `
                 <div class="member-item">
                     <input type="text" value="${escapeHtml(project)}" data-edit-weekly-project="${index}" aria-label="Sửa mã dự án">
-                    <button data-remove-weekly-project="${index}">-</button>
+                    <button data-remove-weekly-project="${index}" title="Bỏ mã dự án khỏi bảng sau khi xác nhận">-</button>
                 </div>
             `).join('');
             document.querySelectorAll('[data-edit-weekly-project]').forEach((input) => {
@@ -6798,6 +7017,16 @@
         }
 
         function renderWeeklyColumnSettings() {
+            if (!state.weeklyColumns.length) {
+                els.weeklyColumnList.innerHTML = emptyStateMarkup(
+                    'Chưa có cột tùy chỉnh',
+                    'Tạo cột mới để thêm trường thông tin vào bảng báo cáo tuần.',
+                    'Thêm cột đầu tiên',
+                    'focus',
+                    'weeklyColumnInput'
+                );
+                return;
+            }
             els.weeklyColumnList.innerHTML = state.weeklyColumns.map((column, index) => `
                 <div class="member-item column-item" draggable="true" data-weekly-column-item="${index}">
                     <span class="drag-handle" title="Kéo để đổi thứ tự">☰</span>
@@ -7203,20 +7432,48 @@
             return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
         }
 
-        function renderWeeklyPreview() {
+        function renderWeeklyPreview(options = {}) {
+            const scrollTop = els.weeklyPreviewWrap.scrollTop;
+            const active = document.activeElement;
+            const focusInfo = active && active.dataset ? { key: Object.keys(active.dataset).find((key) => key.startsWith('weekly') || key === 'projectEdit'), value: null, start: null, end: null } : null;
+            if (focusInfo && focusInfo.key) { focusInfo.value = active.dataset[focusInfo.key]; try { focusInfo.start = active.selectionStart; focusInfo.end = active.selectionEnd; } catch (_) {} }
             scheduleWeeklyFrameUpdate();
             renderWeeklyColumnFrame();
             applyWeeklyZoom();
+            renderWeeklyCategoryFilters();
             if (!state.weeklyRows.length) {
                 els.weeklyPreviewBody.innerHTML = `<tr><td colspan="${state.weeklyColumns.length}" class="muted">Chọn khoảng ngày rồi bấm Tải dữ liệu.</td></tr>`;
+                renderWeeklyPagination(0);
+                restoreWeeklyPreviewScroll(scrollTop, options.preserveScroll !== false);
                 return;
             }
-
-            els.weeklyPreviewBody.innerHTML = state.weeklyRows.map((row, index) => `
-                <tr class="${state.activeWeeklyDeleteIndex === index ? 'weekly-row-action-active' : ''}" data-weekly-index="${index}" data-weekly-project="${escapeHtml(row.du_an || row.project_full || '')}" style="height:${getWeeklyRowHeight(row)}px">
+            const search = String(state.weeklySearchText || '').trim().toLocaleLowerCase('vi');
+            const visibleRows = state.weeklyRows.map((row, index) => ({ row, index })).filter(({row}) => {
+                const matchesSearch = !search || ['du_an','project_full','noi_dung','kho_khan','huong_giai_quyet','ten_may','ghi_chu','thong_tin_khac'].some((field) => String(row[field] || '').toLocaleLowerCase('vi').includes(search));
+                const matchesCategory = !state.weeklyCategoryFilter || normalizeWeeklyCategory(row.hang_muc) === state.weeklyCategoryFilter;
+                return matchesSearch && matchesCategory;
+            });
+            if (!visibleRows.length) {
+                els.weeklyPreviewBody.innerHTML = `<tr><td colspan="${state.weeklyColumns.length}" class="muted">Không có dòng nào khớp bộ lọc.</td></tr>`;
+                renderWeeklyPagination(0);
+                restoreWeeklyPreviewScroll(scrollTop, options.preserveScroll !== false);
+                return;
+            }
+            const pageSize = 50;
+            const pageCount = Math.ceil(visibleRows.length / pageSize);
+            if (!options.showAll) {
+                state.weeklyPageIndex = Math.min(Math.max(state.weeklyPageIndex, 0), pageCount - 1);
+            }
+            const pageRows = options.showAll
+                ? visibleRows
+                : visibleRows.slice(state.weeklyPageIndex * pageSize, (state.weeklyPageIndex + 1) * pageSize);
+            renderWeeklyPagination(visibleRows.length);
+            els.weeklyPreviewBody.innerHTML = pageRows.map(({row, index}) => {
+                const unresolved = String(row.kho_khan || '').trim() && !String(row.huong_giai_quyet || '').trim();
+                return `<tr class="${state.activeWeeklyDeleteIndex === index ? 'weekly-row-action-active ' : ''}${unresolved ? 'weekly-row-unresolved' : ''}" data-weekly-index="${index}" data-weekly-project="${escapeHtml(row.du_an || row.project_full || '')}" style="height:${getWeeklyRowHeight(row)}px">
                     ${state.weeklyColumns.map((column) => renderWeeklyCell(column, row, index)).join('')}
-                </tr>
-            `).join('');
+                </tr>`;
+            }).join('');
 
             document.querySelectorAll('[data-weekly-field]').forEach((input) => {
                 if (input.tagName === 'SELECT') {
@@ -7246,7 +7503,59 @@
             document.querySelectorAll('[data-weekly-resize-row]').forEach((handle) => {
                 handle.addEventListener('mousedown', startWeeklyRowResize);
             });
+            document.querySelectorAll('[data-weekly-expand]').forEach((button) => button.addEventListener('click', () => openWeeklyTextOverlay(button)));
+            renderWeeklyProjectDatalist();
+            document.querySelectorAll('[data-weekly-project-edit]').forEach((input) => {
+                const row = state.weeklyRows[Number(input.dataset.weeklyProjectEdit)];
+                if (row && row.reference_missing) input.classList.add('reference-missing');
+                input.title = row && row.reference_missing ? 'Mã dự án chưa có trong file tham khảo. Kiểm tra lại mã trước khi xuất báo cáo.' : 'Nhập mã dự án';
+                input.addEventListener('blur', () => validateWeeklyProjectInput(input));
+            });
+            if (focusInfo && focusInfo.key && focusInfo.value !== null) {
+                const selectorMap = { weeklyField: `[data-weekly-field][data-weekly-index]`, weeklyProjectEdit: '[data-weekly-project-edit]', weeklyProgressOpen: '[data-weekly-progress-open]' };
+                const selector = selectorMap[focusInfo.key];
+                if (selector) {
+                    const target = Array.from(els.weeklyPreviewBody.querySelectorAll(selector)).find((node) => node.dataset[focusInfo.key] === focusInfo.value);
+                    if (target) { target.focus({preventScroll:true}); try { if (focusInfo.start !== null) target.setSelectionRange(focusInfo.start, focusInfo.end); } catch (_) {} }
+                }
+            }
+            restoreWeeklyPreviewScroll(scrollTop, options.preserveScroll !== false);
             scheduleWeeklyFrameUpdate();
+        }
+
+        function restoreWeeklyPreviewScroll(scrollTop, shouldRestore) {
+            if (!shouldRestore) return;
+            requestAnimationFrame(() => {
+                els.weeklyPreviewWrap.scrollTop = scrollTop;
+            });
+        }
+
+        function renderWeeklyPagination(totalRows) {
+            const pageSize = 50;
+            const pageCount = Math.ceil(totalRows / pageSize);
+            const start = totalRows ? state.weeklyPageIndex * pageSize + 1 : 0;
+            const end = Math.min((state.weeklyPageIndex + 1) * pageSize, totalRows);
+            els.weeklyTableFooter.hidden = totalRows === 0;
+            els.weeklyTableRange.textContent = `Đang hiển thị ${start}-${end} / ${totalRows} dòng`;
+            els.weeklyPreviousPageBtn.disabled = state.weeklyPageIndex === 0;
+            els.weeklyNextPageBtn.disabled = state.weeklyPageIndex >= pageCount - 1;
+        }
+
+        function renderWeeklyCategoryFilters() {
+            const filterContainer = document.getElementById('weeklyCategoryFilters');
+            if (!filterContainer) return;
+            const categories = [...new Set(state.weeklyRows
+                .map((row) => normalizeWeeklyCategory(row.hang_muc))
+                .filter(Boolean))];
+            if (state.weeklyCategoryFilter && !categories.includes(state.weeklyCategoryFilter)) {
+                state.weeklyCategoryFilter = '';
+            }
+            filterContainer.innerHTML = [
+                { value: '', label: 'Tất cả' },
+                ...categories.map((value) => ({ value, label: value }))
+            ].map(({ value, label }) => `
+                <button type="button" class="weekly-filter-chip ${state.weeklyCategoryFilter === value ? 'active' : ''}" data-weekly-category-filter="${escapeHtml(value)}">${escapeHtml(label)}</button>
+            `).join('');
         }
 
         function renderWeeklyColumnFrame() {
@@ -7260,7 +7569,7 @@
             });
             document.querySelectorAll('.weekly-preview-table thead tr').forEach((row) => {
                 row.innerHTML = state.weeklyColumns.map((column, index) => `
-                    <th>
+                    <th title="${escapeHtml(weeklyColumnTooltip(column.id))}">
                         ${escapeHtml(column.label).replace(/\n/g, '<br>')}
                         <span class="weekly-col-resizer" data-weekly-resize-column="${index}"></span>
                     </th>
@@ -7275,6 +7584,22 @@
             });
         }
 
+        function weeklyColumnTooltip(columnId) {
+            const descriptions = {
+                stt: 'Số thứ tự của dòng báo cáo.',
+                hang_muc: 'Phân loại công việc, ví dụ lắp máy mới, sửa máy hoặc setup.',
+                du_an: 'Mã dự án được dùng để nhận diện công việc.',
+                ghi_chu: 'Tên dự án hoặc ghi chú ngắn về dự án.',
+                ten_may: 'Tên hoặc loại máy liên quan đến công việc.',
+                noi_dung: 'Mô tả công việc đã thực hiện.',
+                tien_do: 'Tiến độ hiện tại của công việc.',
+                kho_khan: 'Vướng mắc hoặc khó khăn cần lưu ý.',
+                huong_giai_quyet: 'Hướng xử lý hoặc bước tiếp theo.',
+                thong_tin_khac: 'Thông tin bổ sung cho báo cáo.'
+            };
+            return descriptions[columnId] || 'Nội dung của cột báo cáo tuần.';
+        }
+
         function renderWeeklyCell(column, row, index) {
             if (column.id === 'stt') {
                 const suggestions = Array.isArray(row.reference_suggestions) ? row.reference_suggestions : [];
@@ -7287,7 +7612,7 @@
                         </select>
                     `
                     : '';
-                return `<td class="weekly-stt-cell ${row.reference_missing ? 'reference-warning' : ''}">${row.stt}${suggestionSelect}<span class="weekly-row-resizer" data-weekly-resize-row="${index}"></span><button type="button" class="weekly-row-delete" data-weekly-delete-index="${index}" aria-label="Xóa dòng dự án">Xóa</button></td>`;
+                return `<td class="weekly-stt-cell ${row.reference_missing ? 'reference-warning' : ''}"><span class="weekly-row-drag" draggable="true" data-weekly-drag-index="${index}" title="Kéo để đổi thứ tự">≡</span><input class="weekly-row-select" type="checkbox" data-weekly-select-index="${index}" aria-label="Chọn dòng ${index + 1}" ${state.selectedWeeklyRows.has(index) ? 'checked' : ''}>${row.stt}${suggestionSelect}<span class="weekly-row-resizer" data-weekly-resize-row="${index}"></span><button type="button" class="weekly-row-delete" data-weekly-delete-index="${index}" aria-label="Xóa dòng dự án" title="Xóa dòng sau khi xác nhận">Xóa</button></td>`;
             }
             if (column.id === 'hang_muc') {
                 row.hang_muc = normalizeWeeklyCategory(row.hang_muc);
@@ -7302,7 +7627,7 @@
             if (column.id === 'du_an') {
                 return `
                     <td>
-                        <input class="weekly-project-edit" type="text" value="${escapeHtml(row.du_an || '')}" data-weekly-project-edit="${index}" data-project="${escapeHtml(row.du_an || '')}" aria-label="Sửa mã dự án">
+                        <input class="weekly-project-edit" type="text" list="weeklyProjectDatalist" value="${escapeHtml(row.du_an || '')}" data-weekly-project-edit="${index}" data-project="${escapeHtml(row.du_an || '')}" aria-label="Sửa mã dự án">
                     </td>
                 `;
             }
@@ -7325,7 +7650,7 @@
                 `;
             }
             const value = row[column.id] || '';
-            return `<td><textarea data-weekly-field="${escapeHtml(column.id)}" data-weekly-index="${index}">${escapeHtml(value)}</textarea></td>`;
+            return `<td><textarea data-weekly-field="${escapeHtml(column.id)}" data-weekly-index="${index}">${escapeHtml(value)}</textarea><button type="button" class="weekly-expand-btn" data-weekly-expand="${index}" data-weekly-expand-field="${escapeHtml(column.id)}">⤢ Bung rộng</button></td>`;
         }
 
         function getWeeklyRowHeight(row) {
@@ -7729,16 +8054,31 @@
 
         function autoResizeWeeklyTextarea(textarea) {
             textarea.style.height = 'auto';
-            textarea.style.height = `${Math.max(64, textarea.scrollHeight)}px`;
+            const contentHeight = Math.max(64, textarea.scrollHeight);
+            const maxHeight = 640;
+            textarea.style.height = `${Math.min(contentHeight, maxHeight)}px`;
+            textarea.style.overflowY = contentHeight > maxHeight ? 'auto' : 'hidden';
+            const expandButton = textarea.parentElement.querySelector('[data-weekly-expand]');
+            if (expandButton) {
+                if (contentHeight > maxHeight) {
+                    const lineHeight = Number.parseFloat(getComputedStyle(textarea).lineHeight) || 20;
+                    const remainingLines = Math.max(1, Math.ceil((contentHeight - maxHeight) / lineHeight));
+                    expandButton.textContent = `↕ Còn ${remainingLines} dòng · Bung rộng`;
+                } else {
+                    expandButton.textContent = '⤢ Bung rộng';
+                }
+            }
         }
 
         function autoResizeAllWeeklyRows() {
-            state.weeklyRows.forEach((_, index) => autoResizeWeeklyRow(index));
+            Array.from(els.weeklyPreviewBody.querySelectorAll('tr[data-weekly-index]')).forEach((tableRow) => {
+                autoResizeWeeklyRow(Number(tableRow.dataset.weeklyIndex));
+            });
         }
 
         function autoResizeWeeklyRow(index) {
             const row = state.weeklyRows[index];
-            const tableRow = els.weeklyPreviewBody.children[index];
+            const tableRow = els.weeklyPreviewBody.querySelector(`tr[data-weekly-index="${index}"]`);
             if (!row || !tableRow) return;
             const textareas = Array.from(tableRow.querySelectorAll('textarea'));
             textareas.forEach(autoResizeWeeklyTextarea);
@@ -7826,11 +8166,17 @@
             const rowElement = event.target.closest('tr[data-weekly-index]');
             if (!rowElement || !els.weeklyPreviewBody.contains(rowElement)) return;
 
+            const rowCheckbox = event.target.closest('[data-weekly-select-index]');
+            if (rowCheckbox) {
+                const selectedIndex = Number(rowCheckbox.dataset.weeklySelectIndex);
+                if (rowCheckbox.checked) state.selectedWeeklyRows.add(selectedIndex); else state.selectedWeeklyRows.delete(selectedIndex);
+                return;
+            }
             const deleteButton = event.target.closest('[data-weekly-delete-index]');
             if (deleteButton) {
                 event.preventDefault();
                 event.stopPropagation();
-                deleteWeeklyRow(Number(deleteButton.dataset.weeklyDeleteIndex));
+                openWeeklyRowDeleteConfirm(Number(deleteButton.dataset.weeklyDeleteIndex));
                 return;
             }
 
@@ -7850,9 +8196,86 @@
             renderWeeklyPreview();
         }
 
+        function deleteSelectedWeeklyRows() {
+            const indices = [...state.selectedWeeklyRows].filter((index) => state.weeklyRows[index]).sort((a,b) => b-a);
+            if (!indices.length) { setWeeklyStatus('Chưa chọn dòng nào để xóa.'); return; }
+            state.pendingDeleteMode = 'weekly-rows';
+            state.pendingDeletePayload = { indices };
+            els.deleteConfirmMessage.textContent = `Bạn có chắc muốn xóa ${indices.length} dòng đã chọn khỏi bản xem trước báo cáo tuần không?`;
+            els.deleteConfirmHint.textContent = 'Chỉ xóa các dòng trong bản xem trước; dữ liệu SQLite và báo cáo ngày không bị thay đổi.';
+            els.deleteConfirmModal.classList.add('open');
+        }
+
+        function applyDeleteSelectedWeeklyRows(indices) {
+            const deletedRows = [];
+            indices.filter((index) => state.weeklyRows[index]).sort((a, b) => b - a).forEach((index) => {
+                const [row] = state.weeklyRows.splice(index, 1);
+                state.selectedWeeklyRows.clear();
+                state.weeklyDeletedRowHistory.push({ rangeKey: state.currentWeeklyRangeKey, index, row: JSON.parse(JSON.stringify(row)) });
+                deletedRows.push(row);
+            });
+            if (!deletedRows.length) return;
+            state.weeklyDeletedRowHistory = state.weeklyDeletedRowHistory.slice(-20);
+            state.selectedWeeklyRows.clear(); finishWeeklyRowsMutation();
+            const undoCount = Math.min(deletedRows.length, 20);
+            showWeeklyUndoSnackbar(`Đã xóa ${deletedRows.length} dòng báo cáo tuần. Có thể hoàn tác ${undoCount} dòng gần nhất.`, undoCount);
+        }
+
+        function duplicateWeeklyRow(index) {
+            const source = state.weeklyRows[index]; if (!source) return;
+            const clone = JSON.parse(JSON.stringify(source)); clone.stt = 0;
+            state.weeklyRows.splice(index + 1, 0, clone);
+            state.weeklyPageIndex = Math.floor((index + 1) / 50);
+            finishWeeklyRowsMutation();
+            focusWeeklyProjectInput(index + 1);
+        }
+
+        function handleWeeklyRowDragStart(event) {
+            const handle = event.target.closest('[data-weekly-drag-index]'); if (!handle) { event.preventDefault(); return; }
+            state.weeklyDraggedRowIndex = Number(handle.dataset.weeklyDragIndex);
+            const row = handle.closest('tr'); if (row) row.classList.add('weekly-row-dragging');
+            if (event.dataTransfer) { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', String(state.weeklyDraggedRowIndex)); }
+        }
+        function handleWeeklyRowDragOver(event) { const row = event.target.closest('tr[data-weekly-index]'); if (row && state.weeklyDraggedRowIndex >= 0) { event.preventDefault(); if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'; } }
+        function handleWeeklyRowDrop(event) {
+            const rowEl = event.target.closest('tr[data-weekly-index]'); if (!rowEl || state.weeklyDraggedRowIndex < 0) return;
+            event.preventDefault(); const from = state.weeklyDraggedRowIndex; const to = Number(rowEl.dataset.weeklyIndex);
+            if (from !== to && state.weeklyRows[from]) { const [item] = state.weeklyRows.splice(from,1); state.weeklyRows.splice(Math.max(0,Math.min(to,state.weeklyRows.length)),0,item); finishWeeklyRowsMutation(); }
+            state.weeklyDraggedRowIndex = -1;
+        }
+        function openWeeklyTextOverlay(button) {
+            const index = Number(button.dataset.weeklyExpand); const field = button.dataset.weeklyExpandField; const row = state.weeklyRows[index]; if (!row || !field) return;
+            state.weeklyTextOverlayTarget = {index, field};
+            document.getElementById('weeklyTextOverlayTitle').textContent = `Chỉnh sửa: ${field}`;
+            document.getElementById('weeklyTextOverlayInput').value = row[field] || '';
+            document.getElementById('weeklyTextOverlay').classList.add('open'); document.getElementById('weeklyTextOverlayInput').focus();
+        }
+        function closeWeeklyTextOverlay() { document.getElementById('weeklyTextOverlay').classList.remove('open'); state.weeklyTextOverlayTarget = null; }
+        function saveWeeklyTextOverlay() {
+            const target = state.weeklyTextOverlayTarget; if (!target || !state.weeklyRows[target.index]) { closeWeeklyTextOverlay(); return; }
+            state.weeklyRows[target.index][target.field] = document.getElementById('weeklyTextOverlayInput').value;
+            cacheCurrentWeeklyRows(); finishWeeklyRowsMutation(); closeWeeklyTextOverlay();
+        }
+        function renderWeeklyProjectDatalist() {
+            const list = document.getElementById('weeklyProjectDatalist'); if (!list) return;
+            const options = new Map();
+            const add = (project, machine = '') => { const code = String(project || '').trim(); if (code && !options.has(code.toUpperCase())) options.set(code.toUpperCase(), {code, machine: String(machine || '').trim()}); };
+            (state.weeklyProjects || []).forEach((item) => add(typeof item === 'string' ? item : (item.project || item.du_an), typeof item === 'object' ? (item.ten_may || item.machine || '') : ''));
+            (state.weeklyRows || []).forEach((row) => { add(row.du_an || row.project_full, row.ten_may || row.ghi_chu); (row.reference_suggestions || []).forEach((item) => add(item.project, item.ten_may)); });
+            list.innerHTML = [...options.values()].map((item) => `<option value="${escapeHtml(item.code)}" label="${escapeHtml(item.machine)}"></option>`).join('');
+        }
+
+        function validateWeeklyProjectInput(input) {
+            const index = Number(input.dataset.weeklyProjectEdit); const row = state.weeklyRows[index]; if (!row) return;
+            const value = String(input.value || '').trim(); if (!value) { input.setCustomValidity('Mã dự án không được để trống.'); input.reportValidity(); return; }
+            // Không áp regex cứng vì mã dự án trong dữ liệu thực tế có thể có định dạng khác nhau.
+            input.setCustomValidity('');
+        }
+
         function deleteWeeklyRow(index) {
             if (!state.weeklyRows[index]) return;
             const [row] = state.weeklyRows.splice(index, 1);
+            state.selectedWeeklyRows.clear();
             state.weeklyDeletedRowHistory.push({
                 rangeKey: state.currentWeeklyRangeKey,
                 index,
@@ -7860,6 +8283,7 @@
             });
             state.weeklyDeletedRowHistory = state.weeklyDeletedRowHistory.slice(-20);
             finishWeeklyRowsMutation();
+            showWeeklyUndoSnackbar(`Đã xóa dòng ${row.du_an || row.project_full || 'báo cáo'}.`, 1);
         }
 
         function insertWeeklyRowBelow(index) {
@@ -7868,6 +8292,11 @@
                 : state.weeklyRows.length;
             const newRow = createWeeklyRow('');
             state.weeklyRows.splice(insertIndex, 0, newRow);
+            state.weeklySearchText = '';
+            state.weeklyCategoryFilter = '';
+            state.weeklyPageIndex = Math.floor(insertIndex / 50);
+            const tableSearch = document.getElementById('weeklyTableSearch');
+            if (tableSearch) tableSearch.value = '';
             finishWeeklyRowsMutation();
             focusWeeklyProjectInput(insertIndex);
         }
@@ -7878,6 +8307,7 @@
                 if (!row) return;
                 const input = row.querySelector('input[data-weekly-project-edit]');
                 if (input && typeof input.focus === 'function') {
+                    row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                     input.focus();
                     if (typeof input.select === 'function') input.select();
                 }
@@ -7890,6 +8320,7 @@
             });
             state.activeWeeklyDeleteIndex = -1;
             state.weeklyContextMenuIndex = -1;
+            state.selectedWeeklyRows = new Set([...state.selectedWeeklyRows].filter((index) => index < state.weeklyRows.length));
             cacheCurrentWeeklyRows();
             syncWeeklyImageGroupsWithProjects();
             renderWeeklyPreview();
@@ -7897,16 +8328,36 @@
             updateWeeklyRestoreButton();
         }
 
-        function undoLastWeeklyRowDeletion() {
-            const historyIndex = [...state.weeklyDeletedRowHistory]
-                .map((item, index) => ({ item, index }))
-                .reverse()
-                .find(({ item }) => item.rangeKey === state.currentWeeklyRangeKey);
-            if (!historyIndex) return;
-            const { item, index } = historyIndex;
-            state.weeklyDeletedRowHistory.splice(index, 1);
-            state.weeklyRows.splice(Math.min(item.index, state.weeklyRows.length), 0, item.row);
+        function undoLastWeeklyRowDeletion(count = 1) {
+            let restored = 0;
+            while (restored < count) {
+                const historyIndex = [...state.weeklyDeletedRowHistory]
+                    .map((item, index) => ({ item, index }))
+                    .reverse()
+                    .find(({ item }) => item.rangeKey === state.currentWeeklyRangeKey);
+                if (!historyIndex) break;
+                const { item, index } = historyIndex;
+                state.weeklyDeletedRowHistory.splice(index, 1);
+                state.weeklyRows.splice(Math.min(item.index, state.weeklyRows.length), 0, item.row);
+                restored += 1;
+            }
+            if (!restored) return;
             finishWeeklyRowsMutation();
+            clearWeeklyUndoSnackbar();
+        }
+
+        function showWeeklyUndoSnackbar(message, count) {
+            if (state.weeklyUndoTimer) clearTimeout(state.weeklyUndoTimer);
+            els.weeklyUndoMessage.textContent = message;
+            els.weeklyUndoSnackbar.dataset.undoCount = String(count);
+            els.weeklyUndoSnackbar.hidden = false;
+            state.weeklyUndoTimer = setTimeout(clearWeeklyUndoSnackbar, 5000);
+        }
+
+        function clearWeeklyUndoSnackbar() {
+            if (state.weeklyUndoTimer) clearTimeout(state.weeklyUndoTimer);
+            state.weeklyUndoTimer = null;
+            els.weeklyUndoSnackbar.hidden = true;
         }
 
         function updateWeeklyRestoreButton() {
@@ -7940,7 +8391,7 @@
             if (els.projectDetailMenuBtn) {
                 els.projectDetailMenuBtn.hidden = !project;
             }
-            const menuWidth = 128;
+            const menuWidth = 160;
             const left = Math.min(event.clientX, window.innerWidth - menuWidth - 10);
             const top = Math.min(event.clientY, window.innerHeight - 48);
             els.projectContextMenu.style.left = `${Math.max(8, left)}px`;
@@ -8598,7 +9049,10 @@
             const folder = await ipcRenderer.invoke('choose-report-output-folder');
             if (!folder) return;
             state.weeklyOutputFolder = folder;
-            els.weeklyOutputFolder.value = folder;
+            document.querySelectorAll('#weeklyOutputFolder').forEach((input) => {
+                input.value = folder;
+                input.title = folder;
+            });
             localStorage.setItem('dailyWorkReportWeeklyOutputFolder', folder);
         }
 
@@ -8633,7 +9087,7 @@
                         images: imagePayload.images,
                         imageGroups: imagePayload.imageGroups
                     });
-                    setWeeklyStatus(`Đã xuất: ${result.outputPath}`);
+                    setWeeklyStatus(`Đã xuất: ${result.outputPath}`, false, weeklyOutputToastActions(result.outputPath));
                 } catch (error) {
                     setWeeklyStatus(error.message || 'Không xuất được báo cáo tuần.', true);
                 }
@@ -8677,7 +9131,7 @@
                         outputName: state.setupTrackingFileName,
                         rows
                     });
-                    setWeeklyStatus(`Đã xuất Excel setup: ${result.outputPath}`);
+                    setWeeklyStatus(`Đã xuất Excel setup: ${result.outputPath}`, false, weeklyOutputToastActions(result.outputPath));
                 } catch (error) {
                     setWeeklyStatus(error.message || 'Không xuất được Excel setup.', true);
                 }
@@ -8691,9 +9145,29 @@
                 .filter(Boolean);
         }
 
-        function setWeeklyStatus(message, isError = false) {
-            els.weeklyStatus.textContent = message;
-            els.weeklyStatus.classList.toggle('error', isError);
+        function setWeeklyStatus(message, isError = false, actions = []) {
+            setStatusLevel(els.weeklyStatus, getStatusLevel(message, isError, els.weeklyStatus), message, actions);
+        }
+
+        function weeklyOutputToastActions(outputPath) {
+            if (!outputPath) return [];
+            return [
+                {
+                    label: 'Mở file',
+                    onClick: async () => {
+                        const error = await shell.openPath(outputPath);
+                        if (error) throw new Error(error);
+                    }
+                },
+                {
+                    label: 'Mở thư mục',
+                    onClick: async () => {
+                        const folderPath = state.weeklyOutputFolder || outputPath.replace(/[\\/][^\\/]*$/, '');
+                        const error = await shell.openPath(folderPath);
+                        if (error) throw new Error(error);
+                    }
+                }
+            ];
         }
 
         function pathToFileUrl(filePath) {
@@ -9069,6 +9543,7 @@
 
         function openDeleteConfirm(mode) {
             els.deleteConfirmHint.textContent = 'Thao tác này sẽ xóa dữ liệu trong cả SQLite và JSON.';
+            state.pendingDeletePayload = null;
             const selectedVisibleIds = state.searchRows
                 .map((report) => report.id)
                 .filter((id) => id && state.selectedSearchIds.has(id));
@@ -9084,6 +9559,7 @@
 
         function closeDeleteConfirm() {
             state.pendingDeleteMode = null;
+            state.pendingDeletePayload = null;
             state.pendingWeeklyDeleteIndex = -1;
             els.deleteConfirmHint.textContent = 'Thao tác này sẽ xóa dữ liệu trong cả SQLite và JSON.';
             els.deleteConfirmModal.classList.remove('open');
@@ -9096,6 +9572,24 @@
                 const index = state.pendingWeeklyDeleteIndex;
                 closeDeleteConfirm();
                 deleteWeeklyRow(index);
+                return;
+            }
+            if (mode === 'weekly-rows') {
+                const indices = state.pendingDeletePayload && state.pendingDeletePayload.indices || [];
+                closeDeleteConfirm();
+                applyDeleteSelectedWeeklyRows(indices);
+                return;
+            }
+            if (mode === 'member') {
+                const index = state.pendingDeletePayload && state.pendingDeletePayload.index;
+                closeDeleteConfirm();
+                applyMemberRemoval(index);
+                return;
+            }
+            if (mode === 'weekly-project') {
+                const index = state.pendingDeletePayload && state.pendingDeletePayload.index;
+                closeDeleteConfirm();
+                applyWeeklyProjectRemoval(index);
                 return;
             }
             const selectedVisibleIds = state.searchRows
@@ -9240,8 +9734,715 @@
                 .replace(/'/g, '&#039;');
         }
 
+        const savedTab = localStorage.getItem('dailyWorkReportActiveTab');
+        if (Array.from(document.querySelectorAll('.tab')).some((tab) => tab.dataset.tab === savedTab)) {
+            activateTab(savedTab);
+        }
         loadReports();
         setTimeout(checkForAppUpdateOnStartup, 1600);
     </script>
+
+    <style>
+      #rawInput { padding-bottom: 30px; }
+      .raw-input-tools {display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:6px;color:var(--muted);font-size:12px}
+      .raw-input-tools select {max-width:220px;height:30px;font-size:12px}
+      .raw-input-counter {margin-left:auto;font-variant-numeric:tabular-nums}
+      .report-card.collapsed .report-grid,.report-card.collapsed .warning-text {display:none}
+      .report-card.collapsed {padding-bottom:8px}
+      .report-card .card-top {cursor:pointer}
+      .report-card .card-top h3 {overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .preview-extra-actions {display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+      .status-counts {font-size:12px;color:var(--muted);white-space:nowrap}
+      .report-card.reference-missing.collapsed,.report-card.warning.collapsed {background:color-mix(in srgb,var(--red) 6%,var(--panel))}
+      .raw-loading-overlay {display:none}
+      .raw-input-tools button {height:30px;padding:0 9px;font-size:12px}
+      @media(max-width:900px){.status-counts{white-space:normal}}
+    </style>
+    <script>
+    (() => {
+      const $ = (id) => document.getElementById(id);
+      const raw = $('rawInput');
+      if (!raw) return;
+      const historyKey = 'dailyWorkReportRawInputHistoryV1';
+      const safeReadHistory = () => { try { const v = JSON.parse(localStorage.getItem(historyKey) || '[]'); return Array.isArray(v) ? v : []; } catch (_) { return []; } };
+      const tools = document.createElement('div');
+      tools.className = 'raw-input-tools';
+      tools.innerHTML = '<span>Nhập nhanh: Ctrl+Enter để phân tích</span><span class="raw-input-counter" id="rawInputCounter">0 dòng · 0 ký tự</span><select id="rawInputHistory" aria-label="Lịch sử nội dung nhập"><option value="">Lịch sử nhập gần đây…</option></select><button type="button" id="saveRawHistoryBtn">Lưu vào lịch sử</button>';
+      const acceptAnchor = $('inputStatus') || $('acceptBtn');
+      (acceptAnchor || raw).insertAdjacentElement('afterend', tools);
+      if (acceptAnchor) tools.style.marginTop = '12px';
+      raw.placeholder = '12/10/2026\\n1. AUTJ2602...\\n- Nội dung công việc...\\n- Người thực hiện: ...';
+      const updateCounter = () => {
+        const value = raw.value || '';
+        $('rawInputCounter').textContent = `${value ? value.split(/\\r?\\n/).length : 0} dòng · ${value.length.toLocaleString('vi-VN')} ký tự`;
+      };
+      const refreshHistory = () => {
+        const select = $('rawInputHistory');
+        const old = select.value;
+        select.innerHTML = '<option value="">Lịch sử nhập gần đây…</option>';
+        safeReadHistory().forEach((entry, i) => {
+          const option = document.createElement('option');
+          option.value = String(i);
+          const first = (entry.text || '').split(/\\r?\\n/).find(x => x.trim()) || '(trống)';
+          option.textContent = `${entry.time || ''} — ${first.slice(0, 48)}`;
+          select.appendChild(option);
+        });
+        if (old) select.value = old;
+      };
+      const saveHistory = () => {
+        const text = raw.value.trim();
+        if (!text) return;
+        let list = safeReadHistory().filter(x => x.text !== text);
+        list.unshift({text, time: new Date().toLocaleString('vi-VN')});
+        localStorage.setItem(historyKey, JSON.stringify(list.slice(0,10)));
+        refreshHistory();
+        $('rawInputHistory').value = '0';
+      };
+      raw.addEventListener('input', updateCounter);
+      $('saveRawHistoryBtn').addEventListener('click', saveHistory);
+      $('rawInputHistory').addEventListener('change', (e) => {
+        const entry = safeReadHistory()[Number(e.target.value)];
+        if (entry) { raw.value = entry.text; updateCounter(); raw.focus(); }
+      });
+      updateCounter(); refreshHistory();
+
+      const header = document.querySelector('#previewList')?.closest('.panel')?.querySelector('.panel-header .summary');
+      if (header && !$('collapseAllReportsBtn')) {
+        const actions = document.createElement('span');
+        actions.className = 'preview-extra-actions';
+        actions.innerHTML = '<span id="reportStatusCounts" class="status-counts"></span><button type="button" id="collapseAllReportsBtn" title="Thu gọn tất cả thẻ">Thu gọn tất cả</button>';
+        const clear = $('clearPreviewBtn');
+        header.insertBefore(actions, clear || null);
+        $('collapseAllReportsBtn').addEventListener('click', () => {
+          const cards = [...document.querySelectorAll('#previewList .report-card')];
+          if (!cards.length) return;
+          const shouldCollapse = cards.some(card => !card.classList.contains('collapsed'));
+          cards.forEach(card => {
+            card.classList.toggle('collapsed', shouldCollapse);
+            const h = card.querySelector('.card-top');
+            if (h) h.setAttribute('title', shouldCollapse ? 'Bấm để mở rộng thẻ' : 'Bấm để thu gọn thẻ');
+          });
+          $('collapseAllReportsBtn').textContent = shouldCollapse ? 'Mở rộng tất cả' : 'Thu gọn tất cả';
+        });
+      }
+      const updateCardSummary = () => {
+        const cards = [...document.querySelectorAll('#previewList .report-card')];
+        const missing = cards.filter(c => c.classList.contains('reference-missing')).length;
+        const warning = cards.filter(c => c.classList.contains('warning') && !c.classList.contains('reference-missing')).length;
+        const ok = Math.max(0, cards.length - missing - warning);
+        const el = $('reportStatusCounts');
+        if (el) el.textContent = cards.length ? `${ok} OK · ${warning} cảnh báo · ${missing} lỗi` : '';
+        const pill = $('totalPill');
+        if (pill) pill.textContent = `Tổng: ${cards.length}`;
+      };
+      const enhanceCards = () => {
+        document.querySelectorAll('#previewList .report-card').forEach(card => {
+          if (card.dataset.collapseReady) return;
+          card.dataset.collapseReady = '1';
+          card.classList.add('collapsed');
+          const top = card.querySelector('.card-top');
+          if (top) {
+            top.title = 'Bấm để mở rộng thẻ';
+            top.addEventListener('click', (event) => {
+              if (event.target.closest('button,input,select,textarea,a')) return;
+              card.classList.toggle('collapsed');
+              top.title = card.classList.contains('collapsed') ? 'Bấm để mở rộng thẻ' : 'Bấm để thu gọn thẻ';
+            });
+          }
+        });
+        updateCardSummary();
+      };
+      const list = $('previewList');
+      if (list) new MutationObserver(() => setTimeout(enhanceCards, 0)).observe(list, {childList:true,subtree:true});
+      setTimeout(enhanceCards, 0);
+
+      document.addEventListener('keydown', (event) => {
+        if (event.ctrlKey && event.key === 'Enter' && document.activeElement === raw) {
+          event.preventDefault(); $('acceptBtn')?.click();
+        } else if (event.ctrlKey && event.shiftKey && event.key === 'Enter') {
+          event.preventDefault(); $('saveBtn')?.click();
+        } else if (event.ctrlKey && event.key.toLowerCase() === 'l') {
+          event.preventDefault(); raw.focus(); raw.select();
+        } else if (event.ctrlKey && event.key.toLowerCase() === 'k' && document.activeElement === raw) {
+          event.preventDefault();
+          if (confirm('Xóa toàn bộ nội dung đang nhập?')) { raw.value = ''; updateCounter(); raw.focus(); }
+        } else if (event.key === 'Escape' && document.activeElement === raw) {
+          raw.setSelectionRange(raw.selectionStart, raw.selectionStart);
+        }
+      });
+      const accept = $('acceptBtn');
+      if (accept) accept.addEventListener('click', () => { if (raw.value.trim()) saveHistory(); }, true);
+    })();
+    </script>
+
+
+<style id="enhancement-pack-v2">
+  .dashboard-strip{display:grid;grid-template-columns:repeat(4,minmax(130px,1fr));gap:10px;margin:0 0 14px}
+  .dash-card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
+  .dash-card strong{display:block;font-size:21px;line-height:1.25;margin:4px 0}
+  .dash-card small{color:var(--muted);font-size:12px}
+  .dash-card .dash-label{font-size:12px;color:var(--muted)}
+  .dashboard-lower{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+  .dashboard-list{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.65}
+  .command-overlay,.tour-overlay{position:fixed;inset:0;z-index:10000;background:rgba(15,23,42,.52);display:none;align-items:flex-start;justify-content:center;padding:12vh 16px 24px}
+  .command-overlay.open,.tour-overlay.open{display:flex}
+  .command-box,.tour-box{width:min(620px,96vw);background:var(--panel,#fff);color:var(--text,#172033);border:1px solid var(--line,#dbe1e8);border-radius:14px;box-shadow:0 24px 80px #0004;overflow:hidden}
+  .command-box input{width:100%;padding:17px 18px;border:0;border-bottom:1px solid var(--line);outline:none;background:transparent;color:inherit;font-size:16px}
+  .command-results{max-height:48vh;overflow:auto;padding:6px}
+  .command-item{display:flex;justify-content:space-between;gap:12px;width:100%;padding:11px 12px;border:0;border-radius:8px;background:transparent;color:inherit;text-align:left;cursor:pointer}
+  .command-item:hover,.command-item.selected{background:color-mix(in srgb,var(--accent,#3b82f6) 12%,transparent)}
+  .command-item small{color:var(--muted);white-space:nowrap}
+  .command-help{padding:8px 14px;color:var(--muted);font-size:11px;border-top:1px solid var(--line)}
+  .report-card{transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease}
+  .report-card:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(15,23,42,.10);border-left-width:4px}
+  button{transition:transform .12s ease,filter .12s ease}
+  button:active{transform:scale(.97)}
+  .report-card.category-new-install{border-left:4px solid #3b82f6}
+  .report-card.category-line-install{border-left:4px solid #f59e0b}
+  .report-card.category-repair{border-left:4px solid #ef4444}
+  .report-card.category-improvement{border-left:4px solid #8b5cf6}
+  .report-card.just-saved{animation:savedPulse .55s ease}
+  @keyframes savedPulse{50%{transform:scale(1.008);box-shadow:0 0 0 3px #22c55e55}}
+  .report-card.focus-highlight{outline:2px solid #eab308;outline-offset:2px}
+  .enhance-floating-actions{position:fixed;right:18px;bottom:18px;z-index:1200;display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end;max-width:calc(100vw - 36px)}
+  .enhance-floating-actions button{box-shadow:0 5px 18px #0002}
+  .tour-step-number{font-size:12px;color:var(--muted);margin-bottom:8px}
+  .tour-box{padding:20px}
+  .tour-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+  .pill[data-filter]{cursor:pointer}
+  .pill[data-filter]:focus{outline:2px solid var(--accent,#3b82f6)}
+  @media(max-width:950px){.dashboard-strip{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-lower{grid-template-columns:1fr}.enhance-floating-actions{right:8px;bottom:8px}}
+</style>
+<style id="ui-polish-v3">
+  /* Modern / Minimalist / Glassmorphism. Dùng biến của theme sẵn có nên mọi theme vẫn hoạt động. */
+  body{--r:12px;--r-sm:10px;--sh-1:0 1px 2px rgba(15,23,42,.04),0 4px 14px rgba(15,23,42,.06);--sh-2:0 2px 4px rgba(15,23,42,.05),0 14px 34px rgba(15,23,42,.10);--glass:color-mix(in srgb,var(--panel) 72%,transparent);--ease:cubic-bezier(.2,.7,.2,1);
+    font-family:Inter,"Segoe UI Variable","Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased;letter-spacing:.005em}
+  body header{position:sticky;top:0;z-index:50;background:var(--glass);-webkit-backdrop-filter:blur(16px) saturate(160%);backdrop-filter:blur(16px) saturate(160%);border-bottom:1px solid color-mix(in srgb,var(--line) 70%,transparent);box-shadow:var(--sh-1)}
+  body .brand{font-weight:700;letter-spacing:-.01em;gap:10px}
+  body .brand-icon{border-radius:10px;box-shadow:var(--sh-1)}
+  body .version-badge{border-radius:999px}
+  body .tabs{gap:6px;padding:14px 18px 0}
+  body .tab{display:inline-flex;align-items:center;gap:8px;border-radius:var(--r-sm) var(--r-sm) 0 0;padding:10px 16px 11px;background:var(--glass);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);transition:background .18s var(--ease),color .18s var(--ease),transform .18s var(--ease)}
+  body .tab::before,body .icon-btn::before,body #weeklyReportBtn::before{content:"";flex:none;width:16px;height:16px;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
+  body .tab:hover:not(.active){background:color-mix(in srgb,var(--panel) 92%,transparent);color:var(--text);transform:translateY(-1px)}
+  body .tab:active{transform:scale(.98)}
+  body .tab.active{box-shadow:var(--sh-1)}
+  body .tab[data-tab="inputPage"]{--ic:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%221.75%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7%22/%3E%3Cpath d=%22M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z%22/%3E%3C/svg%3E")}
+  body .tab[data-tab="noProjectPage"]{--ic:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%221.75%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z%22/%3E%3Cpath d=%22M9 13h6%22/%3E%3C/svg%3E")}
+  body .tab[data-tab="outsideProjectPage"]{--ic:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%221.75%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M15 3h6v6%22/%3E%3Cpath d=%22M10 14 21 3%22/%3E%3Cpath d=%22M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6%22/%3E%3C/svg%3E")}
+  body .tab[data-tab="searchPage"]{--ic:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%221.75%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Ccircle cx=%2211%22 cy=%2211%22 r=%228%22/%3E%3Cpath d=%22m21 21-4.3-4.3%22/%3E%3C/svg%3E")}
+  body .tab[data-tab="weeklyPage"]{--ic:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%221.75%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M8 2v4%22/%3E%3Cpath d=%22M16 2v4%22/%3E%3Crect width=%2218%22 height=%2218%22 x=%223%22 y=%224%22 rx=%222%22/%3E%3Cpath d=%22M3 10h18%22/%3E%3C/svg%3E")}
+  body #weeklyReportBtn{display:inline-flex;align-items:center;gap:8px;--ic:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%221.75%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z%22/%3E%3Cpath d=%22M14 2v4a2 2 0 0 0 2 2h4%22/%3E%3Cpath d=%22M16 13H8%22/%3E%3Cpath d=%22M16 17H8%22/%3E%3C/svg%3E")}
+  body #infoBtn{--ic:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%221.75%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%2210%22/%3E%3Cpath d=%22M12 16v-4%22/%3E%3Cpath d=%22M12 8h.01%22/%3E%3C/svg%3E")}
+  body #settingsBtn{--ic:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%221.75%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M21 4h-7%22/%3E%3Cpath d=%22M10 4H3%22/%3E%3Cpath d=%22M21 12h-9%22/%3E%3Cpath d=%22M8 12H3%22/%3E%3Cpath d=%22M21 20h-5%22/%3E%3Cpath d=%22M12 20H3%22/%3E%3Cpath d=%22M14 2v4%22/%3E%3Cpath d=%22M8 10v4%22/%3E%3Cpath d=%22M16 18v4%22/%3E%3C/svg%3E")}
+  body .icon-btn{display:inline-flex;align-items:center;justify-content:center;font-size:0;padding:0;border-radius:var(--r-sm)}
+  body .icon-btn::before{width:18px;height:18px}
+  body .panel,body .settings-card,body .dash-card,body .report-card,body .toast{border-radius:var(--r);box-shadow:var(--sh-1)}
+  body .panel{transition:box-shadow .2s var(--ease),border-color .2s var(--ease)}
+  body .panel:hover{box-shadow:var(--sh-2)}
+  body .panel-header{padding:14px 18px;font-weight:650;background:color-mix(in srgb,var(--panel-soft) 70%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+  body .workspace{gap:18px}
+  body main{padding:18px}
+  body button{border-radius:var(--r-sm);padding:0 14px;box-shadow:0 1px 1px rgba(15,23,42,.04);transition:border-color .16s var(--ease),background .16s var(--ease),color .16s var(--ease),box-shadow .16s var(--ease),transform .12s var(--ease)}
+  body button:hover:not(:disabled){box-shadow:var(--sh-1);transform:translateY(-1px)}
+  body button:active:not(:disabled){transform:translateY(0) scale(.97);box-shadow:none}
+  body input,body select,body textarea{border-radius:var(--r-sm);transition:border-color .16s var(--ease),box-shadow .16s var(--ease),background .16s var(--ease)}
+  body input:hover,body select:hover,body textarea:hover{border-color:var(--line-strong)}
+  body input:focus,body select:focus,body textarea:focus,body button:focus-visible{box-shadow:var(--focus);outline:none}
+  body .report-card:hover{box-shadow:var(--sh-2)}
+  body .command-box,body .tour-box,body .settings-card{border-radius:16px;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+  *{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--muted) 40%,transparent) transparent}
+  ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--muted) 38%,transparent);border-radius:999px;border:3px solid transparent;background-clip:content-box}
+  @media (prefers-reduced-motion:reduce){body *{transition:none!important;animation:none!important}}
+</style>
+<style id="ui-polish-v4">
+  /* Chuyên nghiệp: trung tính, ít màu, phẳng, bo góc nhỏ, bỏ hiệu ứng nảy. Theme khác vẫn do người dùng chọn. */
+  body:not([data-theme]),body[data-theme="light"]{--bg:#f5f6f8;--bg-accent:#f5f6f8;--panel:#fff;--panel-soft:#fafbfc;--field:#fff;--line:#e2e5ea;--line-strong:#cdd2da;--text:#111827;--muted:#667085;--blue:#2457a6;--blue-strong:#1b4380;--focus:0 0 0 3px rgba(36,87,166,.18)}
+  body{--r:8px;--r-sm:6px;--sh-1:0 1px 2px rgba(16,24,40,.05);--sh-2:0 1px 3px rgba(16,24,40,.08),0 4px 12px rgba(16,24,40,.05);font-size:13.5px;letter-spacing:0;background:var(--bg)}
+  body header{background:color-mix(in srgb,var(--panel) 92%,transparent);box-shadow:none;border-bottom:1px solid var(--line)}
+  body .brand{font-size:15px;font-weight:650}
+  body .brand-icon{border-radius:6px;box-shadow:none}
+  body .version-badge{border-radius:4px;font-weight:600}
+  body .tabs{gap:2px;padding:10px 18px 0;border-bottom:1px solid var(--line);background:var(--panel)}
+  body .tab{background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none;border:0;border-bottom:2px solid transparent;border-radius:0;padding:10px 14px;font-weight:550;color:var(--muted);box-shadow:none}
+  body .tab:hover:not(.active){background:color-mix(in srgb,var(--text) 4%,transparent);color:var(--text);transform:none}
+  body .tab.active{background:transparent;border:0;border-bottom:2px solid var(--blue);color:var(--blue);font-weight:650;box-shadow:none}
+  body .panel,body .settings-card,body .dash-card,body .report-card,body .toast{border-radius:var(--r);box-shadow:var(--sh-1)}
+  body .panel:hover,body .report-card:hover{box-shadow:var(--sh-2);transform:none}
+  body .panel-header{background:var(--panel-soft);-webkit-backdrop-filter:none;backdrop-filter:none;font-weight:600;padding:12px 16px}
+  body .workspace{gap:14px}
+  body main{padding:14px}
+  body button{border-radius:var(--r-sm);height:34px;font-weight:550;box-shadow:none}
+  body button:hover:not(:disabled){transform:none;box-shadow:none;background:color-mix(in srgb,var(--blue) 6%,var(--field))}
+  body button:active:not(:disabled){transform:none;background:color-mix(in srgb,var(--blue) 12%,var(--field))}
+  body .primary{height:40px;font-size:14px;font-weight:600;background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:none}
+  body .primary:hover:not(:disabled){background:var(--blue-strong);border-color:var(--blue-strong);color:#fff}
+  body .primary:disabled{background:var(--line);border-color:var(--line);color:var(--muted)}
+  body .pill{border-radius:4px}
+  body .theme-dot{width:16px;height:16px;min-width:16px;height:16px;box-shadow:none;border-width:1.5px}
+  body .theme-dot.active{box-shadow:0 0 0 2px var(--panel),0 0 0 3.5px var(--blue)}
+  body .command-box,body .tour-box,body .settings-card{border-radius:10px}
+</style>
+<style id="ui-shell-v5">
+  /* v5: app shell kiểu phần mềm chuyên nghiệp. Sidebar trái + header mỏng + nội dung. Không đổi DOM/JS nên mọi tính năng giữ nguyên. */
+  body{--hh:52px;--sw:224px;--r:8px;--r-sm:6px;font-family:Inter,"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;font-size:13.5px;line-height:1.5;font-feature-settings:"tnum" 1,"cv11" 1}
+  body:not([data-theme]),body[data-theme="light"]{--bg:#f3f4f6;--sidebar:#101828;--sidebar-text:#b6bfcd;--sidebar-active:#fff}
+  body[data-theme="dark"]{--sidebar:color-mix(in srgb,var(--panel) 90%,#000);--sidebar-text:var(--muted);--sidebar-active:var(--text)}
+  body header{min-height:var(--hh);height:var(--hh);padding:0 18px 0 16px;background:var(--panel);-webkit-backdrop-filter:none;backdrop-filter:none;border-bottom:1px solid var(--line);box-shadow:none;z-index:60}
+  body .brand{font-size:14px;font-weight:650;letter-spacing:-.005em}
+  body .brand-icon{width:26px;height:26px;border-radius:6px}
+  body .header-actions{gap:6px}
+  body #weeklyReportBtn{height:32px;background:var(--panel);border:1px solid var(--line-strong);font-weight:550}
+  body .icon-btn{width:32px;height:32px;min-width:32px;border:1px solid transparent;background:transparent;color:var(--muted)}
+  body .icon-btn:hover:not(:disabled){background:color-mix(in srgb,var(--text) 6%,transparent);color:var(--text);border-color:transparent}
+  body .tabs{position:fixed;top:var(--hh);left:0;bottom:0;width:var(--sw);z-index:40;display:flex;flex-direction:column;gap:2px;padding:14px 10px;margin:0;overflow-y:auto;background:var(--sidebar);border:0;border-right:1px solid color-mix(in srgb,var(--line) 60%,transparent)}
+  body .tabs::before{content:"Không gian làm việc";padding:2px 10px 8px;font-size:11px;font-weight:600;letter-spacing:.04em;color:color-mix(in srgb,var(--sidebar-text) 70%,transparent)}
+  body .tab{width:100%;justify-content:flex-start;gap:10px;padding:9px 10px;border:0;border-left:0;border-radius:var(--r-sm);color:var(--sidebar-text);background:transparent;font-weight:500;text-align:left}
+  body .tab:hover:not(.active){background:rgba(255,255,255,.07);color:var(--sidebar-active);transform:none}
+  body .tab.active{background:rgba(255,255,255,.12);color:var(--sidebar-active);border:0;font-weight:600;box-shadow:inset 3px 0 0 var(--blue-strong,#5aa9ff)}
+  body[data-theme="dark"] .tab:hover:not(.active),body[data-theme="dark"] .tab.active{background:color-mix(in srgb,var(--text) 8%,transparent)}
+  body main{margin-left:var(--sw);padding:20px 24px;max-width:none}
+  body .workspace{gap:16px}
+  body .panel{border-radius:var(--r);border:1px solid var(--line);box-shadow:0 1px 2px rgba(16,24,40,.04)}
+  body .panel-header{padding:13px 18px;min-height:46px;font-size:13px;font-weight:600;letter-spacing:.005em;background:var(--panel);border-bottom:1px solid var(--line)}
+  body .panel-body{padding:16px 18px}
+  body label{font-weight:550;color:var(--text)}
+  body input,body select{height:36px;padding:0 10px;border:1px solid var(--line-strong);background:var(--field)}
+  body textarea{padding:10px 12px;border:1px solid var(--line-strong);line-height:1.55}
+  body input:focus,body select:focus,body textarea:focus{border-color:var(--blue)}
+  body button{height:34px;border:1px solid var(--line-strong);background:var(--panel);font-weight:550}
+  body .primary{height:40px;margin-top:12px;font-size:13.5px;letter-spacing:.01em}
+  body .report-card{border:1px solid var(--line);box-shadow:none;transition:border-color .15s,box-shadow .15s}
+  body .report-card:hover{border-color:var(--line-strong);box-shadow:0 2px 8px rgba(16,24,40,.06)}
+  body table{border-collapse:separate;border-spacing:0}
+  body th{font-size:12px;font-weight:600;color:var(--muted)}
+  body .toast{border-radius:var(--r);box-shadow:0 8px 24px rgba(16,24,40,.14)}
+  @media (max-width:900px){
+    body .tabs{position:static;width:auto;flex-direction:row;overflow-x:auto;padding:8px 12px;background:var(--panel);border-right:0;border-bottom:1px solid var(--line)}
+    body .tabs::before{display:none}
+    body .tab{width:auto;white-space:nowrap;color:var(--muted)}
+    body .tab.active{color:var(--blue);background:color-mix(in srgb,var(--blue) 10%,transparent);box-shadow:none}
+    body main{margin-left:0;padding:12px}
+  }
+</style>
+<style id="ui-liquid-v6">
+  /* v6: phong cách Apple "Liquid Glass" (iOS 26+): kính mờ nhiều lớp, viền sáng, bo góc lớn, nút dạng viên thuốc, màu nhấn system blue. */
+  body{--sw:228px;--hh:54px;--ease:cubic-bezier(.32,.72,0,1);--rx:22px;--rm:14px;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;letter-spacing:-.006em;font-size:14px}
+  body:not([data-theme]),body[data-theme="light"]{--bg:#e9edf5;--panel:#fff;--panel-soft:#f7f8fb;--field:#fff;--line:rgba(60,60,67,.14);--line-strong:rgba(60,60,67,.22);--text:#1c1c1e;--muted:#6b6b72;--blue:#007aff;--blue-strong:#0a64d6;--focus:0 0 0 4px rgba(0,122,255,.22);
+    --g-bg:rgba(255,255,255,.58);--g-edge:rgba(255,255,255,.75);--g-shadow:0 10px 36px rgba(40,52,100,.10),0 1px 2px rgba(40,52,100,.06);--fill:rgba(120,120,128,.12);--fill-h:rgba(120,120,128,.20)}
+  body[data-theme="dark"]{--g-bg:rgba(44,44,48,.58);--g-edge:rgba(255,255,255,.12);--g-shadow:0 14px 40px rgba(0,0,0,.45),0 1px 2px rgba(0,0,0,.4);--fill:rgba(235,235,245,.12);--fill-h:rgba(235,235,245,.20)}
+  body:not([data-theme="light"]):not([data-theme="dark"]):not(:not([data-theme])){--g-bg:color-mix(in srgb,var(--panel) 62%,transparent);--g-edge:rgba(255,255,255,.7);--g-shadow:0 10px 36px rgba(20,30,60,.10);--fill:color-mix(in srgb,var(--text) 8%,transparent);--fill-h:color-mix(in srgb,var(--text) 14%,transparent)}
+  body{background:radial-gradient(900px 600px at 8% -8%,color-mix(in srgb,var(--blue) 22%,transparent),transparent 60%),radial-gradient(800px 560px at 100% 0%,color-mix(in srgb,var(--blue) 12%,#af52de 20%),transparent 62%),radial-gradient(700px 500px at 60% 110%,color-mix(in srgb,var(--blue) 14%,#34c759 14%),transparent 60%),var(--bg) fixed}
+  body header{background:var(--g-bg);-webkit-backdrop-filter:blur(28px) saturate(180%);backdrop-filter:blur(28px) saturate(180%);border-bottom:1px solid var(--g-edge);box-shadow:0 1px 0 var(--line)}
+  body .brand{font-weight:650;font-size:15px;letter-spacing:-.015em}
+  body .brand-icon{border-radius:8px}
+  body .version-badge{background:var(--fill);color:var(--muted);border:0;border-radius:999px;padding:2px 9px;font-weight:600}
+  body .tabs{top:calc(var(--hh) + 12px);left:12px;bottom:12px;width:calc(var(--sw) - 12px);padding:10px;gap:3px;background:var(--g-bg);-webkit-backdrop-filter:blur(30px) saturate(190%);backdrop-filter:blur(30px) saturate(190%);border:1px solid var(--g-edge);border-radius:26px;box-shadow:var(--g-shadow),inset 0 1px 0 var(--g-edge)}
+  body .tabs::before{content:none}
+  body .tab{padding:10px 12px;border-radius:16px;color:var(--text);font-weight:520;transition:background .25s var(--ease),color .25s var(--ease)}
+  body .tab::before{width:18px;height:18px;color:var(--muted);transition:color .25s var(--ease)}
+  body .tab:hover:not(.active){background:var(--fill);color:var(--text)}
+  body .tab.active{background:color-mix(in srgb,var(--blue) 14%,transparent);color:var(--blue);font-weight:620;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--blue) 18%,transparent)}
+  body .tab.active::before{color:var(--blue)}
+  body main{margin-left:calc(var(--sw) + 12px);padding:20px 24px 28px 12px}
+  body .panel,body .settings-card,body .dash-card,body .command-box,body .tour-box{background:var(--g-bg);-webkit-backdrop-filter:blur(26px) saturate(170%);backdrop-filter:blur(26px) saturate(170%);border:1px solid var(--g-edge);border-radius:var(--rx);box-shadow:var(--g-shadow),inset 0 1px 0 var(--g-edge)}
+  body .panel:hover{box-shadow:var(--g-shadow),inset 0 1px 0 var(--g-edge)}
+  body .panel-header{background:transparent;border-bottom:1px solid var(--line);padding:15px 20px;font-size:14px;font-weight:650;letter-spacing:-.01em}
+  body .panel-body{padding:18px 20px}
+  body .workspace{gap:18px}
+  body .report-card{background:color-mix(in srgb,var(--panel) 70%,transparent);border:1px solid var(--g-edge);border-radius:18px;box-shadow:0 1px 2px rgba(40,52,100,.06)}
+  body .report-card:hover{border-color:var(--g-edge);box-shadow:0 8px 24px rgba(40,52,100,.12)}
+  body button{height:36px;padding:0 16px;border:0;border-radius:999px;background:var(--fill);color:var(--text);font-weight:560;box-shadow:none;transition:background .2s var(--ease),opacity .15s,transform .2s var(--ease)}
+  body button:hover:not(:disabled){background:var(--fill-h);color:var(--text);transform:none;box-shadow:none}
+  body button:active:not(:disabled){opacity:.7;transform:scale(.98);background:var(--fill-h)}
+  body button:disabled{opacity:.4}
+  body .primary{height:46px;border-radius:999px;background:var(--blue);color:#fff;font-size:15px;font-weight:620;box-shadow:0 6px 18px color-mix(in srgb,var(--blue) 40%,transparent),inset 0 1px 0 rgba(255,255,255,.35)}
+  body .primary:hover:not(:disabled){background:var(--blue-strong);color:#fff}
+  body .primary:disabled{background:var(--fill);color:var(--muted);box-shadow:none}
+  body #weeklyReportBtn{background:var(--fill);border:0}
+  body .icon-btn{width:34px;min-width:34px;height:34px;padding:0;border-radius:50%;background:var(--fill);color:var(--text)}
+  body input,body select,body textarea{background:var(--fill);border:1px solid transparent;border-radius:var(--rm);color:var(--text)}
+  body input,body select{height:38px;padding:0 12px}
+  body textarea{padding:12px 14px}
+  body input:hover,body select:hover,body textarea:hover{background:var(--fill-h);border-color:transparent}
+  body input:focus,body select:focus,body textarea:focus{background:var(--field);border-color:var(--blue);box-shadow:var(--focus)}
+  body .pill{border-radius:999px;background:var(--fill);border:0}
+  body .theme-dot{border:2px solid var(--g-edge)}
+  body .toast{background:var(--g-bg);-webkit-backdrop-filter:blur(26px) saturate(170%);backdrop-filter:blur(26px) saturate(170%);border:1px solid var(--g-edge);border-radius:18px;box-shadow:var(--g-shadow)}
+  body ::-webkit-scrollbar-thumb{background-color:var(--fill-h)}
+  @media (max-width:900px){body .tabs{position:static;width:auto;margin:8px 12px;flex-direction:row;border-radius:999px;padding:6px}body .tab{border-radius:999px;white-space:nowrap}body main{margin-left:0;padding:12px}}
+  @media (prefers-reduced-transparency:reduce){body .tabs,body .panel,body header,body .toast{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--panel)}}
+</style>
+<style id="ui-toptabs-v7">
+  /* v7: trả thanh tab về dạng ngang nằm trên, giữ phong cách kính mờ. */
+  body .tabs{position:static;top:auto;left:auto;bottom:auto;width:auto;flex-direction:row;align-items:center;gap:4px;margin:14px 24px 0;padding:5px;overflow-x:auto;border-radius:999px;width:fit-content;max-width:calc(100% - 48px)}
+  body .tab{width:auto;white-space:nowrap;border-radius:999px;padding:8px 16px}
+  body main{margin-left:0;padding:16px 24px 28px}
+  body.detail-open .tabs{margin-right:calc(var(--detail-width) + 24px)}
+</style>
+<style id="ui-spacing-v8">
+  /* v8 (đã thu gọn): giãn cách vừa phải, nằm giữa bản gốc và bản rộng. */
+  body header{padding:0 20px;gap:16px}
+  body .header-actions{gap:10px}
+  body .theme-dots{gap:8px;margin:0 4px}
+  body .tabs{margin:14px 22px 0;gap:4px}
+  body main{padding:18px 22px 84px}
+  body .workspace{gap:20px}
+  body .workspace>*{min-width:0}
+  body .page>*+*,body .panel+.panel,body .panel+*:not(.panel){margin-top:18px}
+  body .workspace>.panel+.panel{margin-top:0}
+  body .panel-header{padding:15px 20px;gap:12px;min-height:50px}
+  body .panel-body{padding:18px 20px}
+  body .panel-body>*+*{margin-top:14px}
+  body .field-row{gap:10px;margin-top:12px}
+  body label{display:inline-block;margin-bottom:5px}
+  body .status-line{gap:8px;margin-top:12px}
+  body .summary{gap:10px}
+  body .report-list{gap:14px}
+  body .report-grid{gap:12px}
+  body .report-card{padding:15px 17px}
+  body .card-top{gap:12px;margin-bottom:10px}
+  body .search-layout{gap:16px}
+  body .search-bar{gap:12px}
+  body .weekly-controls,body .weekly-actions{gap:12px}
+  body .settings-card-grid{gap:16px}
+  body .modal-header{padding:16px 20px;gap:14px}
+  body .modal-body{padding:20px}
+  body .detail-list{gap:12px}
+  body .detail-filters{gap:12px}
+  body .dashboard-strip,body .dashboard-lower{gap:14px;margin-bottom:18px}
+  body .dash-card{padding:15px 17px}
+  body .bottom-status{gap:16px}
+  body .enhance-floating-actions{right:20px;bottom:20px;gap:8px}
+  body .toast-stack{right:20px;bottom:76px;gap:12px}
+  @media (max-width:900px){body main{padding:14px 12px 84px}body .workspace{gap:16px}body .panel-body{padding:16px}body .tabs{margin:10px 12px 0}}
+</style>
+<style id="ui-vivid-v9">
+  /* v9 (viết lại): giữ đúng tông xanh gốc của app, chỉ làm tươi và sáng hơn. Không pha thêm màu khác. Thêm animation. */
+  body:not([data-theme]),body[data-theme="light"]{--bg:#e6f0ff;--bg-accent:#cde2ff;--panel-soft:#f4f8ff;--line:rgba(18,101,179,.17);--line-strong:rgba(18,101,179,.30);--text:#0d1b30;--muted:#51617b;--blue:#0f6fe0;--blue-strong:#0b57b4;--green:#14935f;--amber:#d97a00;--red:#d92d20;--focus:0 0 0 4px rgba(15,111,224,.26);
+    --g-bg:rgba(255,255,255,.84);--g-edge:rgba(255,255,255,.95);--g-shadow:0 12px 32px rgba(18,101,179,.15),0 1px 3px rgba(18,101,179,.10);--fill:rgba(15,111,224,.09);--fill-h:rgba(15,111,224,.17)}
+  body{--ease:cubic-bezier(.22,.8,.2,1);--spring:cubic-bezier(.34,1.45,.5,1);background:var(--bg) fixed;transition:background-color .5s var(--ease)}
+  /* nền: các mảng sáng cùng một tông, trôi chậm */
+  body::before{content:"";position:fixed;inset:-10%;z-index:-1;pointer-events:none;
+    background:radial-gradient(520px 420px at 15% 10%,color-mix(in srgb,var(--blue) 30%,transparent),transparent 70%),radial-gradient(620px 480px at 85% 5%,color-mix(in srgb,var(--blue) 20%,#fff),transparent 70%),radial-gradient(560px 440px at 60% 100%,color-mix(in srgb,var(--blue) 24%,transparent),transparent 70%);
+    animation:bgDrift 26s ease-in-out infinite alternate}
+  @keyframes bgDrift{from{transform:translate3d(-2%,-1%,0) scale(1)}to{transform:translate3d(3%,2%,0) scale(1.08)}}
+  body header{background:color-mix(in srgb,var(--panel) 80%,transparent)}
+  body .tabs{background:color-mix(in srgb,var(--panel) 74%,transparent)}
+  body .tab{color:var(--muted);font-weight:600}
+  body .tab::before{color:var(--blue)}
+  body .tab:hover:not(.active){background:var(--fill);color:var(--blue);transform:translateY(-1px)}
+  body .tab.active{background:linear-gradient(135deg,color-mix(in srgb,var(--blue) 82%,#fff),var(--blue));color:#fff;box-shadow:0 6px 16px color-mix(in srgb,var(--blue) 40%,transparent),inset 0 1px 0 rgba(255,255,255,.4)}
+  body .tab.active::before{color:#fff;animation:iconPop .45s var(--spring)}
+  body .panel-header{background:linear-gradient(90deg,color-mix(in srgb,var(--blue) 10%,transparent),transparent 70%)}
+  body .primary{position:relative;overflow:hidden;background:linear-gradient(135deg,color-mix(in srgb,var(--blue) 82%,#fff),var(--blue));animation:glowPulse 3.2s ease-in-out infinite}
+  body .primary:disabled{animation:none}
+  body .primary::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.45) 50%,transparent 65%);transform:translateX(-120%)}
+  body .primary:hover:not(:disabled)::after{transform:translateX(120%);transition:transform .7s var(--ease)}
+  body .primary:hover:not(:disabled){background:linear-gradient(135deg,color-mix(in srgb,var(--blue) 70%,#fff),var(--blue-strong))}
+  body button{color:var(--blue-strong)}
+  body button:hover:not(:disabled){transform:translateY(-1px)}
+  body button:active:not(:disabled){transform:scale(.96)}
+  body .icon-btn:hover:not(:disabled){transform:rotate(8deg) scale(1.08)}
+  body .icon-btn,body .pill{color:var(--blue-strong)}
+  body .version-badge{background:color-mix(in srgb,var(--blue) 14%,transparent);color:var(--blue-strong)}
+  body input,body select,body textarea{background:color-mix(in srgb,var(--field) 92%,transparent);border:1px solid var(--line)}
+  body .report-card{background:color-mix(in srgb,var(--panel) 90%,transparent);transition:transform .25s var(--ease),box-shadow .25s var(--ease)}
+  body .report-card:hover{transform:translateY(-3px)}
+  body .panel{transition:transform .3s var(--ease),box-shadow .3s var(--ease)}
+  body .panel:hover{box-shadow:0 18px 44px color-mix(in srgb,var(--blue) 22%,transparent),inset 0 1px 0 var(--g-edge)}
+  body .dash-card{background:linear-gradient(160deg,color-mix(in srgb,var(--panel) 96%,transparent),color-mix(in srgb,var(--blue) 8%,var(--panel)))}
+  body .dash-card strong{color:var(--blue-strong)}
+  body .theme-dot{transition:transform .25s var(--spring)}
+  body .theme-dot:hover{transform:scale(1.25)}
+  /* chuyển trang và vào khung */
+  body .page.active{animation:pageIn .38s var(--ease)}
+  body .page.active .workspace>.panel,body .page.active .dash-card{animation:riseIn .55s var(--ease) both}
+  body .page.active .workspace>.panel:nth-child(2),body .page.active .dash-card:nth-child(2){animation-delay:.08s}
+  body .page.active .workspace>.panel:nth-child(3),body .page.active .dash-card:nth-child(3){animation-delay:.16s}
+  body .page.active .dash-card:nth-child(4){animation-delay:.24s}
+  body [class*="modal"].open>*,body .command-overlay.open>*,body .tour-overlay.open>*{animation:popIn .32s var(--spring)}
+  body [class*="modal"].open{animation:fadeIn .25s ease}
+  body .toast{animation:toastSlide .4s var(--spring)}
+  @keyframes pageIn{from{opacity:0}to{opacity:1}}
+  @keyframes riseIn{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:none}}
+  @keyframes popIn{from{opacity:0;transform:scale(.94) translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes toastSlide{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+  @keyframes iconPop{0%{transform:scale(.4) rotate(-20deg)}100%{transform:none}}
+  @keyframes glowPulse{0%,100%{box-shadow:0 8px 20px color-mix(in srgb,var(--blue) 34%,transparent),inset 0 1px 0 rgba(255,255,255,.4)}50%{box-shadow:0 10px 30px color-mix(in srgb,var(--blue) 56%,transparent),inset 0 1px 0 rgba(255,255,255,.4)}}
+  @media (prefers-reduced-motion:reduce){body::before,body .primary,body .page.active,body .page.active *,body [class*="modal"].open,body [class*="modal"].open>*,body .toast{animation:none!important}}
+</style>
+<style id="ui-mono-v10">
+  /* v10: giảm số màu. Mỗi theme chỉ còn MỘT màu nhấn + màu trung tính; xanh lá giữ nguyên làm màu chủ đạo của theme Hoa lá và Xanh non. */
+  body[data-theme="garden"]{--bg:#e3f7e9;--bg-accent:#c4eed1;--panel-soft:#f1fbf4;--blue:#1fa24a;--blue-strong:#157a37;--green:#1fa24a;--text:#0f2e1a;--muted:#4b6e57;--line:rgba(31,162,74,.20);--line-strong:rgba(31,162,74,.34);--focus:0 0 0 4px rgba(31,162,74,.26);--g-shadow:0 12px 32px rgba(31,140,70,.16),0 1px 3px rgba(31,140,70,.10);--g-edge:rgba(255,255,255,.95);--fill:rgba(31,162,74,.10);--fill-h:rgba(31,162,74,.18)}
+  body[data-theme="lime"]{--blue:#5aa80e;--blue-strong:#41800a;--green:#5aa80e;--fill:rgba(90,168,14,.11);--fill-h:rgba(90,168,14,.19);--focus:0 0 0 4px rgba(90,168,14,.26)}
+  /* bỏ các màu phụ: trộn trắng thay vì trộn màu khác, trạng thái chỉ dùng tông của màu nhấn (đỏ chỉ giữ cho lỗi/sửa chữa) */
+  body .report-card.category-new-install{border-left-color:var(--blue)}
+  body .report-card.category-line-install{border-left-color:var(--blue-strong)}
+  body .report-card.category-improvement{border-left-color:color-mix(in srgb,var(--blue) 45%,#9aa5a0)}
+  body .report-card.category-repair{border-left-color:var(--red)}
+  body .report-card.focus-highlight{outline-color:var(--blue)}
+  body .theme-dot.active{box-shadow:0 0 0 2px var(--panel),0 0 0 3.5px var(--blue)}
+  body::before{background:radial-gradient(520px 420px at 15% 10%,color-mix(in srgb,var(--blue) 28%,transparent),transparent 70%),radial-gradient(620px 480px at 85% 5%,color-mix(in srgb,var(--blue) 14%,#fff),transparent 70%),radial-gradient(560px 440px at 60% 100%,color-mix(in srgb,var(--blue) 20%,transparent),transparent 70%)}
+</style>
+<style id="ui-themes-v11">
+  /* v11: đúng 3 theme: Hoa lá (xanh lá), Tối, Sáng. Tập trung vào độ tương phản chữ. */
+  body[data-theme="garden"]{--text:#0b2815;--muted:#3f6350}
+  body[data-theme="garden"] .primary,body[data-theme="garden"] .tab.active{background:linear-gradient(135deg,#1c9a45,#117233);color:#fff}
+  body[data-theme="light"]{--text:#0b1830;--muted:#46566f}
+  body[data-theme="dark"]{--bg:#0a0f0d;--bg-accent:#10201a;--panel:#141c19;--panel-soft:#19231f;--field:#1b2622;--text:#f4f8f5;--muted:#aebfb5;--line:rgba(255,255,255,.13);--line-strong:rgba(255,255,255,.24);
+    --blue:#3fd987;--blue-strong:#7cebb0;--green:#3fd987;--amber:#ffb84a;--red:#ff7a70;--shadow:0 16px 40px rgba(0,0,0,.5);--shadow-soft:0 8px 22px rgba(0,0,0,.4);--focus:0 0 0 4px rgba(63,217,135,.34);
+    --g-bg:rgba(20,28,25,.88);--g-edge:rgba(255,255,255,.11);--g-shadow:0 14px 40px rgba(0,0,0,.55),0 1px 2px rgba(0,0,0,.5);--fill:rgba(63,217,135,.13);--fill-h:rgba(63,217,135,.22);color-scheme:dark}
+  body[data-theme="dark"]{background:var(--bg) fixed}
+  body[data-theme="dark"] header,body[data-theme="dark"] .tabs{background:rgba(16,23,20,.88)}
+  body[data-theme="dark"] .tab{color:var(--muted)}
+  body[data-theme="dark"] .tab.active,body[data-theme="dark"] .primary{background:linear-gradient(135deg,#5ee6a0,#2cc472);color:#04210f;text-shadow:none}
+  body[data-theme="dark"] .primary::after{background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.55) 50%,transparent 65%)}
+  body[data-theme="dark"] .tab.active::before{color:#04210f}
+  body[data-theme="dark"] button{color:var(--text)}
+  body[data-theme="dark"] .icon-btn,body[data-theme="dark"] .pill{color:var(--text)}
+  body[data-theme="dark"] .version-badge{color:var(--blue-strong);background:rgba(63,217,135,.16)}
+  body[data-theme="dark"] input,body[data-theme="dark"] select,body[data-theme="dark"] textarea{background:var(--field);color:var(--text);border-color:var(--line-strong)}
+  body[data-theme="dark"] ::placeholder{color:#8da197}
+  body[data-theme="dark"] .report-card,body[data-theme="dark"] .dash-card{background:var(--panel-soft);color:var(--text)}
+  body[data-theme="dark"] .panel-header{background:linear-gradient(90deg,rgba(63,217,135,.12),transparent 70%)}
+  body[data-theme="dark"] .toast,body[data-theme="dark"] .command-box,body[data-theme="dark"] .tour-box,body[data-theme="dark"] .settings-card{background:var(--panel);color:var(--text)}
+</style>
+<style id="ui-green-v12">
+  /* v12: mọi theme dùng cùng một màu nhấn xanh lá cây. Theme Sáng: nền trung tính sạch, nhấn xanh lá. */
+  body:not([data-theme]),body[data-theme="light"]{--bg:#eef3ef;--bg-accent:#dcebe1;--panel-soft:#f5f9f6;--blue:#1fa24a;--blue-strong:#157a37;--green:#1fa24a;--line:rgba(20,90,50,.16);--line-strong:rgba(20,90,50,.30);--focus:0 0 0 4px rgba(31,162,74,.26);--g-shadow:0 12px 30px rgba(20,80,45,.12),0 1px 3px rgba(20,80,45,.08);--fill:rgba(31,162,74,.09);--fill-h:rgba(31,162,74,.17)}
+  body:not([data-theme]) .primary,body:not([data-theme]) .tab.active,body[data-theme="light"] .primary,body[data-theme="light"] .tab.active{background:linear-gradient(135deg,#1c9a45,#117233);color:#fff}
+  body:not([data-theme]) .dash-card strong,body[data-theme="light"] .dash-card strong{color:var(--blue-strong)}
+</style>
+<style id="ui-themes-v13">
+  /* v13: 3 theme độc lập. Sáng = trung tính xám/trắng. Tối = trung tính đen/xám. Hoa lá = xanh lá cây tươi. Chỉ Hoa lá có màu xanh lá. */
+  /* ---- SÁNG ---- */
+  body:not([data-theme]),body[data-theme="light"]{--bg:#f2f3f5;--bg-accent:#e6e8ec;--panel:#fff;--panel-soft:#f7f8fa;--field:#fff;--text:#111318;--muted:#575d6a;--line:rgba(17,19,24,.12);--line-strong:rgba(17,19,24,.24);--blue:#232936;--blue-strong:#0b0e14;--focus:0 0 0 4px rgba(17,19,24,.16);--g-bg:rgba(255,255,255,.88);--g-edge:rgba(255,255,255,.95);--g-shadow:0 10px 28px rgba(17,19,24,.09),0 1px 3px rgba(17,19,24,.07);--fill:rgba(17,19,24,.06);--fill-h:rgba(17,19,24,.11);--shadow:0 16px 40px rgba(17,19,24,.10);--shadow-soft:0 8px 22px rgba(17,19,24,.07)}
+  body:not([data-theme])::before,body[data-theme="light"]::before{opacity:.28}
+  body:not([data-theme]) .primary,body:not([data-theme]) .tab.active,body[data-theme="light"] .primary,body[data-theme="light"] .tab.active{background:linear-gradient(135deg,#2f3646,#12151c);color:#fff;box-shadow:0 6px 16px rgba(17,19,24,.28),inset 0 1px 0 rgba(255,255,255,.18)}
+  body:not([data-theme]) .tab.active::before,body[data-theme="light"] .tab.active::before{color:#fff}
+  body:not([data-theme]) .panel-header,body[data-theme="light"] .panel-header{background:linear-gradient(90deg,rgba(17,19,24,.045),transparent 70%)}
+  body:not([data-theme]) .version-badge,body[data-theme="light"] .version-badge{background:rgba(17,19,24,.08);color:var(--text)}
+  /* ---- TỐI ---- */
+  body[data-theme="dark"]{--bg:#0b0c0f;--bg-accent:#14161b;--panel:#16181d;--panel-soft:#1c1f25;--field:#1e2127;--text:#f5f6f8;--muted:#a6acb8;--line:rgba(255,255,255,.12);--line-strong:rgba(255,255,255,.24);--blue:#e9ebef;--blue-strong:#ffffff;--focus:0 0 0 4px rgba(255,255,255,.22);--g-bg:rgba(22,24,29,.9);--g-edge:rgba(255,255,255,.10);--fill:rgba(255,255,255,.08);--fill-h:rgba(255,255,255,.15)}
+  body[data-theme="dark"]::before{opacity:.12}
+  body[data-theme="dark"] header,body[data-theme="dark"] .tabs{background:rgba(18,20,25,.9)}
+  body[data-theme="dark"] .tab.active,body[data-theme="dark"] .primary{background:linear-gradient(135deg,#ffffff,#d5d9e0);color:#0b0c0f;box-shadow:0 6px 18px rgba(255,255,255,.14),inset 0 1px 0 #fff}
+  body[data-theme="dark"] .tab.active::before{color:#0b0c0f}
+  body[data-theme="dark"] .panel-header{background:linear-gradient(90deg,rgba(255,255,255,.06),transparent 70%)}
+  body[data-theme="dark"] .version-badge{background:rgba(255,255,255,.12);color:var(--text)}
+  body[data-theme="dark"] ::placeholder{color:#8a909c}
+  /* ---- HOA LÁ: xanh lá cây tươi ---- */
+  body[data-theme="garden"]{--bg:#d6f8e1;--bg-accent:#aef0c6;--panel-soft:#eefdf3;--blue:#16b84a;--blue-strong:#0b8a35;--green:#16b84a;--text:#052a13;--muted:#35654a;--line:rgba(22,184,74,.24);--line-strong:rgba(22,184,74,.40);--focus:0 0 0 4px rgba(22,184,74,.30);--g-shadow:0 12px 30px rgba(22,184,74,.20),0 1px 3px rgba(11,138,53,.12);--fill:rgba(22,184,74,.12);--fill-h:rgba(22,184,74,.22)}
+  body[data-theme="garden"]::before{opacity:1}
+  body[data-theme="garden"] .primary,body[data-theme="garden"] .tab.active{background:linear-gradient(135deg,#3ee27a,#16b84a);color:#052a13;box-shadow:0 8px 22px rgba(22,184,74,.45),inset 0 1px 0 rgba(255,255,255,.55)}
+  body[data-theme="garden"] .tab.active::before{color:#052a13}
+  body[data-theme="garden"] .primary:hover:not(:disabled){background:linear-gradient(135deg,#5cee92,#1fc955)}
+</style>
+<style id="ui-garden-warm-v14">
+  /* v14: Hoa lá chuyển sang xanh lá ấm, sáng (ngả vàng nhẹ), bớt lạnh. */
+  body[data-theme="garden"]{--bg:#e6fbd6;--bg-accent:#c9f4a6;--panel-soft:#f5fdec;--blue:#3cc83c;--blue-strong:#1f8f22;--green:#3cc83c;--text:#102a0a;--muted:#4a6b36;--line:rgba(80,190,40,.26);--line-strong:rgba(70,175,40,.44);--focus:0 0 0 4px rgba(90,210,50,.32);--g-shadow:0 12px 30px rgba(100,200,40,.22),0 1px 3px rgba(60,140,30,.12);--fill:rgba(90,205,50,.14);--fill-h:rgba(90,205,50,.25)}
+  body[data-theme="garden"] .primary,body[data-theme="garden"] .tab.active{background:linear-gradient(135deg,#9bf26b,#3cc83c);color:#102a0a;box-shadow:0 8px 22px rgba(80,200,50,.48),inset 0 1px 0 rgba(255,255,255,.6)}
+  body[data-theme="garden"] .primary:hover:not(:disabled){background:linear-gradient(135deg,#b0f885,#52d64a)}
+  body[data-theme="garden"] .tab.active::before{color:#102a0a}
+  body[data-theme="garden"]::before{background:radial-gradient(520px 420px at 15% 10%,rgba(150,240,90,.45),transparent 70%),radial-gradient(620px 480px at 85% 5%,rgba(255,250,150,.35),transparent 70%),radial-gradient(560px 440px at 60% 100%,rgba(110,225,70,.34),transparent 70%)}
+</style>
+<style id="ui-garden-fresh-v15">
+  /* v15: Hoa lá tươi hơn: bão hòa cao, sáng rực nhưng vẫn giữ chữ đậm để đọc rõ. */
+  body[data-theme="garden"]{--bg:#d9fcc2;--bg-accent:#b4f585;--panel-soft:#f1ffe4;--blue:#2fe024;--blue-strong:#17a00f;--green:#2fe024;--text:#0b2606;--muted:#3f6a2c;--line:rgba(60,210,30,.32);--line-strong:rgba(50,190,25,.52);--focus:0 0 0 4px rgba(70,230,40,.36);--g-shadow:0 14px 34px rgba(80,225,30,.30),0 1px 3px rgba(40,160,20,.14);--fill:rgba(70,225,35,.18);--fill-h:rgba(70,225,35,.30)}
+  body[data-theme="garden"] .primary,body[data-theme="garden"] .tab.active{background:linear-gradient(135deg,#c4ff7a,#2fe024);color:#0b2606;box-shadow:0 10px 26px rgba(60,225,30,.55),inset 0 1px 0 rgba(255,255,255,.7)}
+  body[data-theme="garden"] .primary:hover:not(:disabled){background:linear-gradient(135deg,#d4ff95,#4aea3c)}
+  body[data-theme="garden"] .tab.active::before{color:#0b2606}
+  body[data-theme="garden"] .tab::before{color:#17a00f}
+  body[data-theme="garden"]::before{background:radial-gradient(520px 420px at 15% 10%,rgba(120,255,60,.55),transparent 70%),radial-gradient(620px 480px at 85% 5%,rgba(255,245,110,.42),transparent 70%),radial-gradient(560px 440px at 60% 100%,rgba(60,235,40,.42),transparent 70%)}
+  body[data-theme="garden"] header{background:rgba(247,255,238,.82)}
+  body[data-theme="garden"] .tabs{background:rgba(247,255,238,.78)}
+  body[data-theme="garden"] .panel-header{background:linear-gradient(90deg,rgba(70,230,35,.20),transparent 72%)}
+</style>
+<style id="ui-garden-lime-v16">
+  /* v16: Hoa lá theo ảnh mẫu của bạn: xanh lá ngả vàng chanh, nền kem xanh, nút xanh #61AC12. Ghi đè v13–v15. */
+  body[data-theme="garden"]{--bg:#f1f8d6;--bg-accent:#dcf86f;--panel:#fff;--panel-soft:#f9ffd9;--field:#fff;--blue:#61ac12;--blue-strong:#46800a;--green:#61ac12;--text:#26340f;--muted:#5f7138;--line:#cbe36f;--line-strong:#a7c63b;--focus:0 0 0 4px rgba(97,172,18,.24);--g-bg:rgba(255,255,255,.92);--g-edge:rgba(255,255,255,.95);--g-shadow:0 10px 28px rgba(102,143,27,.14),0 1px 3px rgba(102,143,27,.10);--fill:rgba(97,172,18,.10);--fill-h:rgba(97,172,18,.19)}
+  body[data-theme="garden"]::before{background:radial-gradient(640px 360px at 0% 0%,rgba(220,248,111,.75),transparent 70%),radial-gradient(560px 340px at 100% 0%,rgba(220,248,111,.45),transparent 70%)}
+  body[data-theme="garden"] header,body[data-theme="garden"] .tabs{background:rgba(251,255,229,.88)}
+  body[data-theme="garden"] .panel-header{background:#f9ffe3}
+  body[data-theme="garden"] .report-card{background:var(--panel-soft);border-color:var(--line)}
+  body[data-theme="garden"] .tab::before{color:var(--blue)}
+  body[data-theme="garden"] .primary,body[data-theme="garden"] .tab.active{background:linear-gradient(135deg,#6fba1a,#559d10);color:#fff;box-shadow:0 6px 16px rgba(97,172,18,.38),inset 0 1px 0 rgba(255,255,255,.35)}
+  body[data-theme="garden"] .primary:hover:not(:disabled){background:linear-gradient(135deg,#7cc826,#61ac12);color:#fff}
+  body[data-theme="garden"] .tab.active::before{color:#fff}
+  body[data-theme="garden"] .primary::after{background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.4) 50%,transparent 65%)}
+  body[data-theme="garden"] .version-badge{background:rgba(97,172,18,.16);color:var(--blue-strong)}
+</style>
+<style id="ui-rawinput-size-v17">
+  /* v17: ô nhập liệu thấp hơn, tự co theo chiều cao cửa sổ để luôn thấy nút Accept / Xác nhận. */
+  body #rawInput{flex:none;min-height:240px;height:clamp(240px,calc(100vh - 500px),520px)}
+</style>
+<style id="ui-settings-scroll-v18">
+  /* v18: lướt thẻ Cài đặt mượt: bỏ làm mờ nền (tốn GPU khi cuộn), cuộn trên lớp riêng của GPU. */
+  body .settings-card{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--panel-soft);transition:border-color .2s,box-shadow .2s,background .2s;contain:layout paint}
+  body .settings-card:hover:not(.active){background:color-mix(in srgb,var(--blue) 8%,var(--panel-soft))}
+  body .settings-card-grid{will-change:scroll-position;transform:translateZ(0)}
+  body .settings-card-scroll{contain:layout}
+  body .settings-scroll-zone{backdrop-filter:none;-webkit-backdrop-filter:none}
+</style>
+<script id="enhancement-pack-v2-script">
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const raw = $('rawInput');
+  if (!raw || document.documentElement.dataset.enhancementV2) return;
+  document.documentElement.dataset.enhancementV2 = '1';
+  const safe = (fn, fallback=null) => { try { return fn(); } catch (_) { return fallback; } };
+  const actionsKey = 'dwrRecentActionsV1';
+  const draftKey = 'dwrRawDraftV1';
+  const tourKey = 'dwrOnboardingDoneV1';
+  const actionLog = safe(() => JSON.parse(localStorage.getItem(actionsKey)||'[]'), []);
+  const logAction = label => {
+    const list = safe(() => JSON.parse(localStorage.getItem(actionsKey)||'[]'), []);
+    list.unshift({label, at:new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})});
+    safe(() => localStorage.setItem(actionsKey, JSON.stringify(list.slice(0,5))));
+    updateDashboard();
+  };
+  const pages = [...document.querySelectorAll('.tab')];
+  const commandActions = [
+    {label:'Chuyển sang Nhập liệu', hint:'Tab', run:()=>pages.find(x=>x.dataset.tab==='inputPage')?.click()},
+    {label:'Chuyển sang Báo cáo tuần', hint:'Tab', run:()=>pages.find(x=>x.dataset.tab==='weeklyPage')?.click()},
+    {label:'Chuyển sang Tìm kiếm', hint:'Tab', run:()=>pages.find(x=>x.dataset.tab==='searchPage')?.click()},
+    {label:'Chuyển sang Không mã dự án', hint:'Tab', run:()=>pages.find(x=>x.dataset.tab==='noProjectPage')?.click()},
+    {label:'Chuyển sang Dự án ngoài', hint:'Tab', run:()=>pages.find(x=>x.dataset.tab==='outsideProjectPage')?.click()},
+    {label:'Phân tích nội dung (Accept)', hint:'Ctrl+Enter', run:()=>$('acceptBtn')?.click()},
+    {label:'Lưu dữ liệu', hint:'Ctrl+Shift+Enter', run:()=>$('saveBtn')?.click()},
+    {label:'Mở thư mục gốc', hint:'Chọn thư mục', run:()=>$('chooseFolderBtn')?.click()},
+    {label:'Sao lưu Google Sheet', hint:'Backup', run:()=>$('quickGoogleSheetBackupBtn')?.click()},
+    {label:'Xóa nội dung đang nhập', hint:'', run:()=>{if(confirm('Xóa nội dung đang nhập?')){raw.value='';raw.dispatchEvent(new Event('input',{bubbles:true}));raw.focus();}}},
+    {label:'Tập trung vào ô nhập báo cáo', hint:'', run:()=>{pages.find(x=>x.dataset.tab==='inputPage')?.click();raw.focus();}}
+  ];
+  const overlay=document.createElement('div');
+  overlay.className='command-overlay';overlay.id='commandPalette';overlay.innerHTML='<div class="command-box" role="dialog" aria-modal="true" aria-label="Tìm lệnh"><input id="commandSearch" placeholder="Tìm thao tác… (ví dụ: báo cáo tuần)" autocomplete="off"><div id="commandResults" class="command-results"></div><div class="command-help">↑ ↓ để chọn · Enter để chạy · Esc để đóng · Ctrl+K để mở</div></div>';
+  document.body.appendChild(overlay);
+  const search=$('commandSearch'), results=$('commandResults');
+  let selected=0, shown=[];
+  function renderCommands(){
+    const q=(search.value||'').trim().toLocaleLowerCase('vi');
+    shown=commandActions.filter(a=>a.label.toLocaleLowerCase('vi').includes(q));
+    selected=Math.min(selected,Math.max(0,shown.length-1));
+    results.innerHTML=shown.length?shown.map((a,i)=>`<button class="command-item ${i===selected?'selected':''}" data-index="${i}"><span>${a.label}</span><small>${a.hint||''}</small></button>`).join(''):'<div style="padding:14px;color:var(--muted)">Không tìm thấy thao tác.</div>';
+    results.querySelectorAll('[data-index]').forEach(b=>b.addEventListener('click',()=>runCommand(Number(b.dataset.index))));
+  }
+  function openPalette(){overlay.classList.add('open');search.value='';selected=0;renderCommands();setTimeout(()=>search.focus(),0);}
+  function closePalette(){overlay.classList.remove('open');}
+  function runCommand(i){const item=shown[i];if(item){closePalette();logAction(item.label);item.run();}}
+  search.addEventListener('input',()=>{selected=0;renderCommands()});
+  search.addEventListener('keydown',e=>{if(e.key==='ArrowDown'){e.preventDefault();selected=Math.min(selected+1,shown.length-1);renderCommands()}else if(e.key==='ArrowUp'){e.preventDefault();selected=Math.max(0,selected-1);renderCommands()}else if(e.key==='Enter'){e.preventDefault();runCommand(selected)}else if(e.key==='Escape')closePalette()});
+  overlay.addEventListener('click',e=>{if(e.target===overlay)closePalette()});
+  // Capture first so Ctrl+K opens the palette instead of the older clear-input shortcut.
+  document.addEventListener('keydown',e=>{if(e.ctrlKey&&!e.shiftKey&&e.key.toLowerCase()==='k'){e.preventDefault();e.stopImmediatePropagation();openPalette();}},true);
+
+  // Dashboard uses live app state only; no sample statistics are fabricated.
+  const page=$('inputPage'), workspace=page?.querySelector('.workspace');
+  if(page && workspace && !$('enhanceDashboard')){
+    const dash=document.createElement('section');dash.id='enhanceDashboard';
+    dash.innerHTML='<div class="dashboard-strip"><div class="dash-card"><div class="dash-label">Bản ghi xem trước</div><strong id="dashPreviewCount">0</strong><small>Đang có trong bảng chuẩn hóa</small></div><div class="dash-card"><div class="dash-label">Cần kiểm tra</div><strong id="dashWarningCount">0</strong><small>Lỗi tham khảo / cảnh báo</small></div><div class="dash-card"><div class="dash-label">Nội dung nháp</div><strong id="dashDraftState">Trống</strong><small id="dashDraftTime">Tự lưu trên máy này</small></div><div class="dash-card"><div class="dash-label">Thư mục gốc</div><strong id="dashFolderState" style="font-size:15px">Chưa chọn</strong><small>Đường dẫn lưu ảnh / tài liệu</small></div></div><div class="dashboard-lower"><div class="dash-card"><b>Tác vụ gần đây</b><div id="dashRecentActions" class="dashboard-list">Chưa có thao tác được ghi nhận.</div></div><div class="dash-card"><b>Nhắc nhở</b><div id="dashReminder" class="dashboard-list">Hãy kiểm tra các dòng cảnh báo trước khi lưu.</div></div></div>';
+    workspace.insertAdjacentElement('afterend',dash);
+  }
+  function updateDashboard(){
+    const cards=[...document.querySelectorAll('#previewList .report-card')];
+    if($('dashPreviewCount'))$('dashPreviewCount').textContent=cards.length;
+    if($('dashWarningCount'))$('dashWarningCount').textContent=cards.filter(c=>c.classList.contains('warning')||c.classList.contains('reference-missing')).length;
+    if($('dashDraftState'))$('dashDraftState').textContent=raw.value.trim()?'Có nội dung':'Trống';
+    if($('dashFolderState'))$('dashFolderState').textContent=$('rootFolder')?.value?'Đã chọn':'Chưa chọn';
+    if($('dashRecentActions')){const a=safe(()=>JSON.parse(localStorage.getItem(actionsKey)||'[]'),[]);$('dashRecentActions').textContent=a.length?a.map(x=>`${x.at} · ${x.label}`).join('  |  '):'Chưa có thao tác được ghi nhận.';}
+    if($('dashReminder')){const n=cards.filter(c=>c.classList.contains('warning')||c.classList.contains('reference-missing')).length;$('dashReminder').textContent=n?`Có ${n} thẻ cần kiểm tra trước khi lưu.`:'Không có cảnh báo trong bảng xem trước hiện tại.';}
+  }
+  raw.addEventListener('input',updateDashboard);
+  $('rootFolder')?.addEventListener('change',updateDashboard);
+  const preview=$('previewList');
+  if(preview)new MutationObserver(()=>{updateDashboard();decorateCards()}).observe(preview,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+
+  // Draft autosave and explicit restore prompt.
+  let draftTimer=null;
+  raw.addEventListener('input',()=>{
+    clearTimeout(draftTimer);
+    draftTimer=setTimeout(()=>{
+      if(raw.value.trim())safe(()=>localStorage.setItem(draftKey,JSON.stringify({text:raw.value,updatedAt:Date.now()})));
+      else safe(()=>localStorage.removeItem(draftKey));
+      if($('dashDraftTime'))$('dashDraftTime').textContent='Đã tự lưu lúc '+new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});
+    },900);
+  });
+  const savedDraft=safe(()=>JSON.parse(localStorage.getItem(draftKey)||'null'));
+  if(savedDraft?.text?.trim()&&!raw.value.trim()){
+    const age=Math.max(0,Math.round((Date.now()-savedDraft.updatedAt)/60000));
+    if(confirm(`Tìm thấy bản nháp${age?` từ ${age} phút trước`:''}. Bạn có muốn khôi phục không?`)){
+      raw.value=savedDraft.text;raw.dispatchEvent(new Event('input',{bubbles:true}));
+    }else safe(()=>localStorage.removeItem(draftKey));
+  }
+
+  // Category colors and focus tracking.
+  function decorateCards(){
+    const categoryClasses=['category-new-install','category-line-install','category-repair','category-improvement'];
+    document.querySelectorAll('#previewList .report-card').forEach(card=>{
+      const text=(card.innerText||'').toLocaleLowerCase('vi');
+      let wanted='';
+      if(text.includes('lắp máy mới')) wanted='category-new-install';
+      else if(text.includes('lắp đặt tại line')) wanted='category-line-install';
+      else if(text.includes('sửa máy')) wanted='category-repair';
+      else if(text.includes('cải tiến')) wanted='category-improvement';
+      // Only mutate the class attribute when the desired category actually changes.
+      // This prevents the preview MutationObserver from repeatedly triggering itself.
+      const current=categoryClasses.find(name=>card.classList.contains(name))||'';
+      if(current===wanted) return;
+      categoryClasses.forEach(name=>{if(card.classList.contains(name))card.classList.remove(name)});
+      if(wanted)card.classList.add(wanted);
+    });
+  }
+  document.addEventListener('focusin',e=>{
+    const card=e.target.closest?.('#previewList .report-card');
+    if(!card)return;
+    document.querySelectorAll('#previewList .report-card.focus-highlight').forEach(c=>c.classList.remove('focus-highlight'));
+    card.classList.add('focus-highlight');
+    card.scrollIntoView({behavior:'smooth',block:'nearest'});
+  });
+
+  // Make the summary count pills useful: clicking a count scrolls to the first matching card.
+  const total=$('totalPill');
+  if(total){total.dataset.filter='all';total.title='Cuộn đến bảng chuẩn hóa';total.addEventListener('click',()=>preview?.scrollIntoView({behavior:'smooth',block:'start'}));}
+  // Shortcut hints for the main actions.
+  if($('acceptBtn'))$('acceptBtn').title='Phân tích nội dung vừa dán và tạo bảng xem trước (Ctrl+Enter)';
+  if($('saveBtn'))$('saveBtn').title='Lưu dữ liệu trong bảng chuẩn hóa (Ctrl+Shift+Enter)';
+
+  // Floating actions appear only after the user scrolls down.
+  if(!$('enhanceFloatingActions')){
+    const float=document.createElement('div');float.id='enhanceFloatingActions';float.className='enhance-floating-actions';float.style.display='none';
+    float.innerHTML='<button type="button" id="floatSaveBtn">Lưu</button><button type="button" id="floatBackupBtn">Backup Google Sheet</button><button type="button" id="floatClearBtn">Clear</button>';
+    document.body.appendChild(float);
+    $('floatSaveBtn').addEventListener('click',()=>$('saveBtn')?.click());
+    $('floatBackupBtn').addEventListener('click',()=>$('quickGoogleSheetBackupBtn')?.click());
+    $('floatClearBtn').addEventListener('click',()=>$('clearPreviewBtn')?.click());
+    const updateFloat=()=>{float.style.display=window.scrollY>260&&document.querySelector('#inputPage.active')?'flex':'none';};
+    window.addEventListener('scroll',updateFloat,{passive:true});document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>setTimeout(updateFloat,0)));updateFloat();
+  }
+
+  // First-run onboarding.
+  if(localStorage.getItem(tourKey)!=='true'){
+    const tour=document.createElement('div');tour.className='tour-overlay';tour.id='firstRunTour';
+    tour.innerHTML='<div class="tour-box" role="dialog" aria-modal="true"><div class="tour-step-number" id="tourStepNumber">Hướng dẫn nhanh · 1/4</div><h2 id="tourTitle">Dán dữ liệu báo cáo</h2><p id="tourText">Dán nội dung báo cáo vào ô bên trái. Mỗi lần nhập có thể gồm nhiều dòng công việc.</p><div class="tour-actions"><button id="tourSkip">Bỏ qua</button><button id="tourNext" class="primary">Tiếp theo</button></div></div>';
+    document.body.appendChild(tour);
+    const steps=[['Dán dữ liệu báo cáo','Dán nội dung báo cáo vào ô bên trái. Mỗi lần nhập có thể gồm nhiều dòng công việc.'],['Phân tích nội dung','Bấm Accept / Xác nhận để chuẩn hóa dữ liệu thành các thẻ.'],['Kiểm tra bảng chuẩn hóa','Kiểm tra cảnh báo và bổ sung thông tin còn thiếu trước khi lưu.'],['Lưu dữ liệu','Bấm Lưu để ghi dữ liệu vào ứng dụng.']];
+    let si=0;
+    const finish=()=>{tour.classList.remove('open');safe(()=>localStorage.setItem(tourKey,'true'));};
+    const paint=()=>{$('tourStepNumber').textContent=`Hướng dẫn nhanh · ${si+1}/${steps.length}`;$('tourTitle').textContent=steps[si][0];$('tourText').textContent=steps[si][1];$('tourNext').textContent=si===steps.length-1?'Hoàn tất':'Tiếp theo';};
+    $('tourSkip').addEventListener('click',finish);
+    $('tourNext').addEventListener('click',()=>{if(si<steps.length-1){si++;paint()}else finish()});
+    tour.addEventListener('click',e=>{if(e.target===tour)finish()});
+    setTimeout(()=>{tour.classList.add('open');paint()},700);
+  }
+  // Record primary actions for the dashboard.
+  [['acceptBtn','Phân tích báo cáo'],['saveBtn','Lưu dữ liệu'],['quickGoogleSheetBackupBtn','Backup Google Sheet'],['chooseFolderBtn','Chọn thư mục'],['excelBtn','Thêm vào Excel']].forEach(([id,label])=>$(id)?.addEventListener('click',()=>logAction(label),true));
+  updateDashboard();decorateCards();
+})();
+</script>
+
 </body>
 </html>
