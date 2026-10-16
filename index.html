@@ -2675,6 +2675,7 @@
                 <section id="settingsSectionProjects" class="settings-section">
                     <h3>Mã dự án</h3>
                     <p class="muted">Danh sách lấy từ cột Dự án trong bảng báo cáo tuần. Bấm - để bỏ hàng dự án, bấm + để thêm hàng dự án.</p>
+                    <p id="weeklyProjectRangeHint" class="muted" style="font-style: italic;">Chưa tải báo cáo tuần. Danh sách hiện đang rỗng cho khoảng ngày hiện tại.</p>
                     <div class="field-row">
                         <input id="weeklyProjectInput" type="text" placeholder="Nhập mã dự án, ví dụ: AUTM2602E8, AUTS260202, AUTJ260202">
                         <button id="addWeeklyProjectBtn">+</button>
@@ -2875,6 +2876,7 @@
 
     <div id="projectContextMenu" class="project-context-menu">
         <button id="projectDetailMenuBtn" type="button">Detail</button>
+        <button id="projectAddRowMenuBtn" type="button">Thêm dòng</button>
         <button id="projectDeleteMenuBtn" type="button">Xóa dòng</button>
     </div>
 
@@ -3151,6 +3153,7 @@
             weeklyProjectInput: document.getElementById('weeklyProjectInput'),
             addWeeklyProjectBtn: document.getElementById('addWeeklyProjectBtn'),
             weeklyProjectList: document.getElementById('weeklyProjectList'),
+            weeklyProjectRangeHint: document.getElementById('weeklyProjectRangeHint'),
             weeklyColumnInput: document.getElementById('weeklyColumnInput'),
             addWeeklyColumnBtn: document.getElementById('addWeeklyColumnBtn'),
             weeklyColumnList: document.getElementById('weeklyColumnList'),
@@ -3210,6 +3213,7 @@
             restoreWeeklyBtn: document.getElementById('restoreWeeklyBtn'),
             projectContextMenu: document.getElementById('projectContextMenu'),
             projectDetailMenuBtn: document.getElementById('projectDetailMenuBtn'),
+            projectAddRowMenuBtn: document.getElementById('projectAddRowMenuBtn'),
             projectDeleteMenuBtn: document.getElementById('projectDeleteMenuBtn'),
             projectDetailDrawer: document.getElementById('projectDetailDrawer'),
             detailResizeHandle: document.getElementById('detailResizeHandle'),
@@ -3506,6 +3510,11 @@
             hideProjectContextMenu();
             openProjectDetail(state.detailMenuProject);
         });
+        els.projectAddRowMenuBtn.addEventListener('click', () => {
+            const index = state.weeklyContextMenuIndex;
+            hideProjectContextMenu();
+            insertWeeklyRowBelow(index);
+        });
         els.projectDeleteMenuBtn.addEventListener('click', () => {
             const index = state.weeklyContextMenuIndex;
             hideProjectContextMenu();
@@ -3568,7 +3577,7 @@
 
         els.settingsBtn.addEventListener('click', () => {
             renderMemberList();
-            renderWeeklyProjectSettings();
+            renderWeeklyProjectSettings(state.currentWeeklyRangeKey);
             renderWeeklyColumnSettings();
             renderSetupExcelSettings();
             renderSyncSettings();
@@ -6506,7 +6515,7 @@
                 state.weeklyProjects.push(project);
                 saveWeeklyProjects();
             }
-            renderWeeklyProjectSettings();
+            renderWeeklyProjectSettings(state.currentWeeklyRangeKey);
             await refreshWeeklyRowsFromSettings(true);
             els.weeklyProjectInput.value = '';
             els.weeklyProjectInput.focus();
@@ -6516,7 +6525,7 @@
             const oldProject = getWeeklyProjectSettingsList()[index];
             const newProject = normalizeProjectCode(value);
             if (!oldProject || !newProject) {
-                renderWeeklyProjectSettings();
+                renderWeeklyProjectSettings(state.currentWeeklyRangeKey);
                 return;
             }
 
@@ -6553,7 +6562,7 @@
 
             saveWeeklyProjects();
             saveWeeklyProjectExclusions();
-            renderWeeklyProjectSettings();
+            renderWeeklyProjectSettings(state.currentWeeklyRangeKey);
             await refreshWeeklyRowsFromSettings(true);
         }
 
@@ -6567,12 +6576,17 @@
             }
             saveWeeklyProjects();
             saveWeeklyProjectExclusions();
-            renderWeeklyProjectSettings();
+            renderWeeklyProjectSettings(state.currentWeeklyRangeKey);
             refreshWeeklyRowsFromSettings();
         }
 
-        function renderWeeklyProjectSettings() {
+        function renderWeeklyProjectSettings(rangeKey = state.currentWeeklyRangeKey) {
+            // Keep the active range explicit for all callers that refresh this panel.
+            if (rangeKey !== undefined && rangeKey !== state.currentWeeklyRangeKey) {
+                state.currentWeeklyRangeKey = rangeKey || '';
+            }
             const projects = getWeeklyProjectSettingsList();
+            updateWeeklyProjectRangeHint();
             if (!projects.length) {
                 els.weeklyProjectList.innerHTML = '<div class="empty">Chưa có mã dự án trong bảng.</div>';
                 return;
@@ -6598,9 +6612,34 @@
             });
         }
 
+        function updateWeeklyProjectRangeHint() {
+            const hint = els.weeklyProjectRangeHint;
+            if (!hint) return;
+            const rangeKey = state.currentWeeklyRangeKey;
+            if (rangeKey && /__/.test(rangeKey)) {
+                const [from, to] = rangeKey.split('__');
+                hint.textContent = `Đang hiển thị mã dự án trong khoảng ngày ${formatPreviewDate(from) || '?'} → ${formatPreviewDate(to) || '?'}.`;
+            } else {
+                hint.textContent = 'Chưa tải báo cáo tuần. Hãy bấm "Xem trước" ở trang Báo cáo tuần để lọc mã dự án theo khoảng ngày đang chọn.';
+            }
+        }
+
         function getWeeklyProjectSettingsList() {
             const map = new Map();
-            [...state.weeklyRows.map((row) => row.du_an || row.project_full), ...state.weeklyProjects].forEach((project) => {
+            const rangeKey = state.currentWeeklyRangeKey;
+            const rangeRows = rangeKey && state.weeklyRowsByRange instanceof Map
+                ? state.weeklyRowsByRange.get(rangeKey)
+                : null;
+            // Khi đã tải một khoảng ngày, chỉ hiển thị mã có trong khoảng đó.
+            // Danh sách state.weeklyProjects là danh mục toàn cục nên không được
+            // trộn toàn bộ vào danh sách của tuần hiện tại.
+            const sourceRows = Array.isArray(rangeRows) ? rangeRows : (rangeKey ? state.weeklyRows : []);
+            const rowProjects = sourceRows.map((row) => row.du_an || row.project_full);
+            const rowKeys = new Set(rowProjects.map(normalizeProjectKey).filter(Boolean));
+            const projectSettings = rangeKey
+                ? state.weeklyProjects.filter((project) => rowKeys.has(normalizeProjectKey(project)))
+                : state.weeklyProjects;
+            [...rowProjects, ...projectSettings].forEach((project) => {
                 const key = normalizeProjectKey(project);
                 if (!key) return;
                 if (state.weeklyProjectExclusions.some((item) => normalizeProjectKey(item) === key)) return;
@@ -7069,8 +7108,8 @@
                 if (key && !exactRangeRowsByKey.has(key)) exactRangeRowsByKey.set(key, row);
             });
 
-            const usedKeys = new Set();
             const mergedRows = [];
+            const usedKeys = new Set();
 
             incomingRows.forEach((incomingRow) => {
                 const key = normalizeProjectKey(incomingRow.du_an || incomingRow.project_full);
@@ -7079,6 +7118,15 @@
                 const mergedRow = cachedRow
                     ? mergeWeeklyRowWithoutLosingEdits(cachedRow, incomingRow)
                     : incomingRow;
+                if (usedKeys.has(key)) {
+                    const existingIndex = mergedRows.findIndex((item) => (
+                        normalizeProjectKey(item.du_an || item.project_full) === key
+                    ));
+                    if (existingIndex >= 0) {
+                        mergeWeeklyRowContent(mergedRows[existingIndex], mergedRow);
+                        return;
+                    }
+                }
                 usedKeys.add(key);
                 mergedRows.push(mergedRow);
             });
@@ -7584,6 +7632,8 @@
                 weeklyRow.reference_missing = false;
             });
 
+            mergeDuplicateWeeklyRows(index, projectKey);
+
             let replacedProject = false;
             state.weeklyProjects = state.weeklyProjects
                 .map((item) => {
@@ -7613,8 +7663,48 @@
 
             await fillWeeklyMachineReference();
             cacheCurrentWeeklyRows();
-            renderWeeklyProjectSettings();
+            renderWeeklyProjectSettings(state.currentWeeklyRangeKey);
             renderWeeklyPreview();
+        }
+
+        function mergeDuplicateWeeklyRows(keepIndex, projectKey) {
+            if (!projectKey) return;
+            const indicesToRemove = [];
+            state.weeklyRows.forEach((weeklyRow, rowIndex) => {
+                if (rowIndex === keepIndex) return;
+                if (normalizeProjectKey(weeklyRow.du_an || weeklyRow.project_full) !== projectKey) return;
+                mergeWeeklyRowContent(state.weeklyRows[keepIndex], weeklyRow);
+                indicesToRemove.push(rowIndex);
+            });
+            if (!indicesToRemove.length) return;
+            indicesToRemove.reverse().forEach((removeIndex) => {
+                state.weeklyRows.splice(removeIndex, 1);
+            });
+            state.weeklyRows.forEach((weeklyRow, rowIndex) => {
+                weeklyRow.stt = rowIndex + 1;
+            });
+        }
+
+        function mergeWeeklyRowContent(target, source) {
+            if (!target || !source) return;
+            if (!target.ten_may && source.ten_may) target.ten_may = source.ten_may;
+            if (!target.ghi_chu && source.ghi_chu) target.ghi_chu = source.ghi_chu;
+            const textFields = ['noi_dung', 'tien_do', 'kho_khan', 'huong_giai_quyet', 'thong_tin_khac'];
+            textFields.forEach((field) => {
+                const targetValue = String(target[field] || '').trim();
+                const sourceValue = String(source[field] || '').trim();
+                if (!sourceValue) return;
+                if (!targetValue) {
+                    target[field] = sourceValue;
+                    return;
+                }
+                if (targetValue.includes(sourceValue)) return;
+                target[field] = `${targetValue}\n${sourceValue}`;
+            });
+            if (source.reference_suggestions && source.reference_suggestions.length
+                && (!target.reference_suggestions || !target.reference_suggestions.length)) {
+                target.reference_suggestions = source.reference_suggestions;
+            }
         }
 
         async function updateWeeklyPreviewProject(index, value) {
@@ -7772,6 +7862,28 @@
             finishWeeklyRowsMutation();
         }
 
+        function insertWeeklyRowBelow(index) {
+            const insertIndex = Number.isInteger(index) && index >= 0 && index < state.weeklyRows.length
+                ? index + 1
+                : state.weeklyRows.length;
+            const newRow = createWeeklyRow('');
+            state.weeklyRows.splice(insertIndex, 0, newRow);
+            finishWeeklyRowsMutation();
+            focusWeeklyProjectInput(insertIndex);
+        }
+
+        function focusWeeklyProjectInput(index) {
+            requestAnimationFrame(() => {
+                const row = els.weeklyPreviewBody && els.weeklyPreviewBody.querySelector(`tr[data-weekly-index="${index}"]`);
+                if (!row) return;
+                const input = row.querySelector('input[data-weekly-project-edit]');
+                if (input && typeof input.focus === 'function') {
+                    input.focus();
+                    if (typeof input.select === 'function') input.select();
+                }
+            });
+        }
+
         function finishWeeklyRowsMutation() {
             state.weeklyRows.forEach((row, rowIndex) => {
                 row.stt = rowIndex + 1;
@@ -7820,11 +7932,14 @@
             const index = Number(projectRow.dataset.weeklyIndex);
             const row = state.weeklyRows[index];
             const project = String((row && (row.du_an || row.project_full)) || projectRow.dataset.weeklyProject || '').trim();
-            if (!project) return;
 
+            // Cho phép mở menu cả ở dòng trống vừa thêm, để người dùng có thể tiếp tục thêm dòng.
             event.preventDefault();
             state.detailMenuProject = project;
             state.weeklyContextMenuIndex = index;
+            if (els.projectDetailMenuBtn) {
+                els.projectDetailMenuBtn.hidden = !project;
+            }
             const menuWidth = 128;
             const left = Math.min(event.clientX, window.innerWidth - menuWidth - 10);
             const top = Math.min(event.clientY, window.innerHeight - 48);
