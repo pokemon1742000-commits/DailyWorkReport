@@ -2691,6 +2691,10 @@
                     <h2>Nội dung không có mã dự án</h2>
                     <div class="summary">
                         <span class="pill" id="noProjectTotalPill">Tổng: 0</span>
+                        <label class="show-all-toggle" style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted);">
+                            <input id="showAllNoProjectToggle" type="checkbox">
+                            Hiện tất cả (bỏ filter nội dung trống)
+                        </label>
                         <button id="saveNoProjectBtn">Lưu vào thư mục</button>
                         <button id="clearNoProjectBtn">Clear</button>
                     </div>
@@ -2725,6 +2729,10 @@
                     <h2>Dự án ngoài</h2>
                     <div class="summary">
                         <span class="pill" id="outsideProjectTotalPill">Tổng: 0</span>
+                        <label class="show-all-toggle" style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted);">
+                            <input id="showAllOutsideToggle" type="checkbox">
+                            Hiện tất cả (gồm cả không mã dự án + bỏ check tham khảo)
+                        </label>
                     </div>
                 </div>
                 <div class="panel-body">
@@ -3321,6 +3329,8 @@
             previewReports: [],
             noProjectReports: [],
             outsideProjectReports: [],
+            showAllNoProject: false,
+            showAllOutside: false,
             saveReadyToClear: false,
             dirty: false,
             acceptedRawInput: '',
@@ -3402,6 +3412,8 @@
             saveNoProjectBtn: document.getElementById('saveNoProjectBtn'),
             clearNoProjectBtn: document.getElementById('clearNoProjectBtn'),
             noProjectStatus: document.getElementById('noProjectStatus'),
+            showAllNoProjectToggle: document.getElementById('showAllNoProjectToggle'),
+            showAllOutsideToggle: document.getElementById('showAllOutsideToggle'),
             outsideProjectTotalPill: document.getElementById('outsideProjectTotalPill'),
             outsideProjectResults: document.getElementById('outsideProjectResults'),
             zaloDestinationBar: document.getElementById('zaloDestinationBar'),
@@ -3748,6 +3760,19 @@
         els.quickGoogleSheetBackupBtn.addEventListener('click', quickBackupToGoogleSheet);
 
         els.saveNoProjectBtn.addEventListener('click', saveNoProjectReports);
+
+        if (els.showAllNoProjectToggle) {
+            els.showAllNoProjectToggle.addEventListener('change', (event) => {
+                state.showAllNoProject = Boolean(event.target.checked);
+                renderNoProjectReports();
+            });
+        }
+        if (els.showAllOutsideToggle) {
+            els.showAllOutsideToggle.addEventListener('change', (event) => {
+                state.showAllOutside = Boolean(event.target.checked);
+                renderOutsideProjectReports();
+            });
+        }
 
         function clearPreview() {
             els.rawInput.value = '';
@@ -5653,7 +5678,16 @@
                         report.reference_suggestions = info && Array.isArray(info.suggestions) ? info.suggestions : [];
                     });
                 } catch (error) {
+                    // Lookup tham khảo lỗi (worker crash, v.v.) — vẫn giữ tất cả
+                    // bản ghi có mã dự án hợp lệ vào danh sách "dự án ngoài" thay vì
+                    // biến mất, để người dùng không tưởng nhầm là mất data.
                     console.error('Không phân loại được dự án ngoài:', error);
+                    reports.forEach((report) => {
+                        if (isNoProjectReport(report)) return;
+                        if (report.reference_missing === undefined) {
+                            report.reference_missing = true;
+                        }
+                    });
                 }
             }
             state.noProjectReports = reports.filter((report) => isNoProjectReport(report) && hasMeaningfulWorkContent(report));
@@ -5682,8 +5716,13 @@
 
         function renderOutsideProjectReports() {
             if (!els.outsideProjectResults) return;
-            const rows = state.outsideProjectReports || [];
-            els.outsideProjectTotalPill.textContent = `Tổng: ${rows.length}`;
+            const baseRows = state.outsideProjectReports || [];
+            const rows = state.showAllOutside
+                ? (Array.isArray(state.allReports) ? state.allReports.slice() : baseRows)
+                : baseRows;
+            els.outsideProjectTotalPill.textContent = state.showAllOutside
+                ? `Tổng: ${rows.length} (đang bỏ filter)`
+                : `Tổng: ${rows.length}`;
             els.outsideProjectResults.innerHTML = rows.length
                 ? rows.map((report) => reportTableRowHtml(report)).join('')
                 : '<tr><td colspan="7" class="muted">Chưa có dự án ngoài.</td></tr>';
@@ -5732,8 +5771,13 @@
 
         function renderNoProjectReports() {
             if (!els.noProjectResults) return;
-            const rows = state.noProjectReports || [];
-            els.noProjectTotalPill.textContent = `Tổng: ${rows.length}`;
+            const baseRows = state.noProjectReports || [];
+            const rows = state.showAllNoProject
+                ? (Array.isArray(state.allReports) ? state.allReports.filter(isNoProjectReport) : baseRows)
+                : baseRows;
+            els.noProjectTotalPill.textContent = state.showAllNoProject
+                ? `Tổng: ${rows.length} (đang bỏ filter)`
+                : `Tổng: ${rows.length}`;
             els.saveNoProjectBtn.disabled = !rows.length || !state.rootFolder;
             els.saveNoProjectBtn.title = !state.rootFolder
                 ? 'Chọn thư mục lưu ảnh / tài liệu ở tab Nhập liệu trước.'
