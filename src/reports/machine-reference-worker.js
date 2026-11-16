@@ -8,6 +8,7 @@ const REFERENCE_FOLDER = path.join(__dirname, '..', '..', 'reference_files');
 const MACHINE_REFERENCE_FILE = path.join(REFERENCE_FOLDER, 'Thamkhao.md');
 const AUTJ_MACHINE_REFERENCE_FILE = path.join(REFERENCE_FOLDER, 'Thamkhao2.md');
 const THAMKHAO3_MACHINE_REFERENCE_FILE = path.join(REFERENCE_FOLDER, 'Thamkhao3.md');
+const THAMKHAO4_MACHINE_REFERENCE_FILE = path.join(REFERENCE_FOLDER, 'thamkhao4.md');
 
 let machineReferenceCache = null;
 let machineReferencePromise = null;
@@ -24,9 +25,10 @@ async function loadMachineReference() {
     machineReferencePromise = Promise.all([
         readMachineReferenceFile(MACHINE_REFERENCE_FILE),
         readMachineReferenceFile(AUTJ_MACHINE_REFERENCE_FILE),
-        readMachineReferenceFile(THAMKHAO3_MACHINE_REFERENCE_FILE)
-    ]).then(([reference, autjReference, thamkhao3Reference]) => {
-        Object.assign(reference, autjReference, thamkhao3Reference);
+        readMachineReferenceFile(THAMKHAO3_MACHINE_REFERENCE_FILE),
+        readMachineReferenceFile(THAMKHAO4_MACHINE_REFERENCE_FILE)
+    ]).then(([reference, autjReference, thamkhao3Reference, thamkhao4Reference]) => {
+        Object.assign(reference, autjReference, thamkhao3Reference, thamkhao4Reference);
         machineReferenceCache = reference;
         return reference;
     }).catch((error) => {

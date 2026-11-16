@@ -27,7 +27,8 @@ test('generated Markdown files include records from each source workbook', () =>
     const examples = [
         ['Thamkhao.md', 'MEC2201011'],
         ['Thamkhao2.md', 'MEC2403104'],
-        ['Thamkhao3.md', 'MEC2201011']
+        ['Thamkhao3.md', 'MEC2201011'],
+        ['thamkhao4.md', 'MEC2201011']
     ];
 
     examples.forEach(([filename, projectCode]) => {
