@@ -6,7 +6,8 @@ const os = require('os');
 const { execFile, spawn } = require('child_process');
 const initSqlJs = require('sql.js');
 const ExcelJS = require('exceljs');
-const { lookupMachineReferenceByProjects } = require('./src/reports/machine-reference');
+const { lookupMachineReferenceByProjects, resetMachineReferenceWorker } = require('./src/reports/machine-reference');
+const { convertXlsmToMarkdown } = require('./src/reports/machine-reference-import');
 const {
     selectReleaseUpdateAsset,
     canAutoInstallUpdate
@@ -37,6 +38,32 @@ const DEFAULT_WEEKLY_LOGO = path.join(__dirname, 'assets', 'meiko-automation-log
 const APP_ICON_FILE = path.join(__dirname, 'assets', 'daily-work-report-icon.png');
 const SETUP_TRACKING_TEMPLATE_FILE = path.join(__dirname, 'reference_files', 'Theo_doi_setup_may_cho_khach_hang.xlsx');
 const DEFAULT_SETUP_TRACKING_OUTPUT_NAME = 'lắp đặt, sửa tính từ 22-06-2026.xlsx';
+const USER_REFERENCE_FOLDER_NAME = 'machine-references';
+
+function userMachineReferenceFolder() {
+    return path.join(app.getPath('userData'), USER_REFERENCE_FOLDER_NAME);
+}
+
+function nextUserReferenceNumber(folder) {
+    const numbers = fs.readdirSync(folder, { withFileTypes: true })
+        .map((entry) => entry.name.match(/^thamkhao(\d+)\.md$/i))
+        .filter(Boolean)
+        .map((match) => Number(match[1]));
+    return Math.max(4, ...numbers) + 1;
+}
+
+function listUserMachineReferences() {
+    const folder = userMachineReferenceFolder();
+    if (!fs.existsSync(folder)) return [];
+    return fs.readdirSync(folder, { withFileTypes: true })
+        .filter((entry) => /^thamkhao\d+\.md$/i.test(entry.name))
+        .map((entry) => {
+            const markdownPath = path.join(folder, entry.name);
+            const stat = fs.statSync(markdownPath);
+            return { markdown: entry.name, updatedAt: stat.mtime.toISOString(), size: stat.size };
+        })
+        .sort((a, b) => a.markdown.localeCompare(b.markdown, undefined, { numeric: true }));
+}
 const GITHUB_OWNER = 'pokemon1742000-commits';
 const GITHUB_REPO = 'DailyWorkReport';
 const GITHUB_REPO_URL = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}`;
@@ -2561,6 +2588,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+    process.env.DAILY_WORK_REPORT_REFERENCE_FOLDER = userMachineReferenceFolder();
     registerAppResourceProtocol();
     session.defaultSession.setPermissionCheckHandler((_webContents, permission) => permission === 'media');
     session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
@@ -2582,6 +2610,35 @@ app.on('before-quit', () => {
 app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
         createWindow();
+    }
+});
+
+ipcMain.handle('list-machine-reference-imports', async () => listUserMachineReferences());
+
+ipcMain.handle('import-machine-reference-xlsm', async () => {
+    const result = await dialog.showOpenDialog({
+        title: 'Chọn file XLSM tham khảo máy',
+        properties: ['openFile'],
+        filters: [{ name: 'Excel Macro-Enabled Workbook', extensions: ['xlsm'] }]
+    });
+    if (result.canceled || !result.filePaths.length) return null;
+    const sourcePath = result.filePaths[0];
+    const folder = userMachineReferenceFolder();
+    fs.mkdirSync(folder, { recursive: true });
+    const number = nextUserReferenceNumber(folder);
+    const sourceName = `${String(number).padStart(2, '0')}-${path.basename(sourcePath)}`;
+    const savedSource = path.join(folder, sourceName);
+    const markdownName = `thamkhao${number}.md`;
+    const markdownPath = path.join(folder, markdownName);
+    fs.copyFileSync(sourcePath, savedSource);
+    try {
+        const conversion = convertXlsmToMarkdown(savedSource, markdownPath);
+        resetMachineReferenceWorker();
+        return { source: sourceName, markdown: markdownName, rows: conversion.rows };
+    } catch (error) {
+        if (fs.existsSync(savedSource)) fs.unlinkSync(savedSource);
+        if (fs.existsSync(markdownPath)) fs.unlinkSync(markdownPath);
+        throw error;
     }
 });
 

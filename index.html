@@ -2614,9 +2614,21 @@
         <button class="tab" data-tab="outsideProjectPage">Dự án ngoài</button>
         <button class="tab" data-tab="searchPage">Tìm kiếm</button>
         <button class="tab" data-tab="weeklyPage">Báo cáo tuần</button>
+        <button class="tab" data-tab="machineReferencePage">Tham khảo máy</button>
     </nav>
 
     <main>
+        <section id="machineReferencePage" class="page">
+            <section class="panel">
+                <div class="panel-header"><h2>Tham khảo máy</h2><button id="addMachineReferenceBtn" class="primary">Thêm file XLSM</button></div>
+                <div class="panel-body">
+                    <p class="muted">Chọn file .xlsm có sheet <strong>Danh sách máy</strong>. File được lưu riêng trong dữ liệu ứng dụng và tự động chuyển thành thamkhaoXX.md.</p>
+                    <div id="machineReferenceStatus" class="status-line" data-level="info">Sẵn sàng.</div>
+                    <div id="machineReferenceList" class="category-table-wrap" style="margin-top:14px; overflow:auto;"></div>
+                </div>
+            </section>
+        </section>
+
         <section id="inputPage" class="page active">
             <div class="workspace">
                 <section class="panel">
@@ -3386,7 +3398,8 @@
             operation: null,
             operationDisabledButtons: new Map(),
             searchRequestId: 0,
-            searchCache: new Map()
+            searchCache: new Map(),
+            machineReferenceImports: []
         };
 
         const els = {
@@ -3477,6 +3490,9 @@
             restoreGoogleSheetBtn: document.getElementById('restoreGoogleSheetBtn'),
             reloadBtn: document.getElementById('reloadBtn'),
             searchInput: document.getElementById('searchInput'),
+            addMachineReferenceBtn: document.getElementById('addMachineReferenceBtn'),
+            machineReferenceStatus: document.getElementById('machineReferenceStatus'),
+            machineReferenceList: document.getElementById('machineReferenceList'),
             excelFilter: document.getElementById('excelFilter'),
             searchBtn: document.getElementById('searchBtn'),
             searchResults: document.getElementById('searchResults'),
@@ -3578,6 +3594,24 @@
         renderFolderStructure();
         updateSaveButton();
         setInterval(updateCurrentDateTime, 1000);
+
+        els.addMachineReferenceBtn.addEventListener('click', async () => {
+            els.addMachineReferenceBtn.disabled = true;
+            els.machineReferenceStatus.textContent = 'Đang chuyển đổi file XLSM...';
+            try {
+                const result = await ipcRenderer.invoke('import-machine-reference-xlsm');
+                if (result) {
+                    els.machineReferenceStatus.textContent = `Đã thêm ${result.source} → ${result.markdown} (${result.rows} dòng).`;
+                    showToast('Tham khảo máy', [`Đã thêm ${result.markdown}.`]);
+                    await refreshMachineReferenceImports();
+                }
+            } catch (error) {
+                els.machineReferenceStatus.textContent = error.message || String(error);
+                showToast('Không thể thêm file XLSM', [error.message || String(error)]);
+            } finally {
+                els.addMachineReferenceBtn.disabled = false;
+            }
+        });
 
         document.querySelectorAll('.tab').forEach((tab) => {
             tab.addEventListener('click', () => {
@@ -4371,6 +4405,19 @@
             state.dirty = Boolean(state.rawInputDirty || state.previewDirty || state.noProjectDirty);
         }
 
+        async function refreshMachineReferenceImports() {
+            try {
+                state.machineReferenceImports = await ipcRenderer.invoke('list-machine-reference-imports');
+                if (!state.machineReferenceImports.length) {
+                    els.machineReferenceList.innerHTML = '<div class="empty">Chưa có file tham khảo được thêm.</div>';
+                    return;
+                }
+                els.machineReferenceList.innerHTML = `<table><thead><tr><th>Markdown</th><th>Ngày cập nhật</th><th>Dung lượng</th></tr></thead><tbody>${state.machineReferenceImports.map((item) => `<tr><td>${item.markdown}</td><td>${new Date(item.updatedAt).toLocaleString('vi-VN')}</td><td>${item.size.toLocaleString('vi-VN')} bytes</td></tr>`).join('')}</tbody></table>`;
+            } catch (error) {
+                els.machineReferenceStatus.textContent = error.message || String(error);
+            }
+        }
+
         function activateTab(tabId) {
             const isKnownTab = Array.from(document.querySelectorAll('.tab')).some((tab) => tab.dataset.tab === tabId);
             if (!isKnownTab || !document.getElementById(tabId)) return;
@@ -4386,6 +4433,8 @@
                 renderOutsideProjectReports();
             } else if (tabId === 'noProjectPage') {
                 renderNoProjectReports();
+            } else if (tabId === 'machineReferencePage') {
+                refreshMachineReferenceImports();
             }
         }
 

@@ -37,6 +37,12 @@ function getWorker() {
     return currentWorker;
 }
 
+function resetMachineReferenceWorker() {
+    if (!worker) return;
+    worker.terminate();
+    worker = null;
+}
+
 function lookupMachineReferenceByProjects(projects, options = {}) {
     const currentWorker = getWorker();
     const id = nextRequestId++;
@@ -57,4 +63,4 @@ function lookupMachineReferenceByProjects(projects, options = {}) {
     });
 }
 
-module.exports = { lookupMachineReferenceByProjects };
+module.exports = { lookupMachineReferenceByProjects, resetMachineReferenceWorker };

@@ -5,6 +5,7 @@ const { normalizeProjectCode } = require('./report-utils');
 const { parseMachineReferenceMarkdown } = require('./machine-reference-data');
 
 const REFERENCE_FOLDER = path.join(__dirname, '..', '..', 'reference_files');
+const USER_REFERENCE_FOLDER = process.env.DAILY_WORK_REPORT_REFERENCE_FOLDER || path.join(process.env.APPDATA || process.env.HOME || '', 'Daily Work Report', 'machine-references');
 const MACHINE_REFERENCE_FILE = path.join(REFERENCE_FOLDER, 'Thamkhao.md');
 const AUTJ_MACHINE_REFERENCE_FILE = path.join(REFERENCE_FOLDER, 'Thamkhao2.md');
 const THAMKHAO3_MACHINE_REFERENCE_FILE = path.join(REFERENCE_FOLDER, 'Thamkhao3.md');
@@ -22,13 +23,18 @@ async function loadMachineReference() {
     if (machineReferenceCache) return machineReferenceCache;
     if (machineReferencePromise) return machineReferencePromise;
 
+    const optionalFiles = fs.existsSync(USER_REFERENCE_FOLDER)
+        ? fs.readdirSync(USER_REFERENCE_FOLDER).filter((name) => /^thamkhao\d+\.md$/i.test(name)).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).map((name) => path.join(USER_REFERENCE_FOLDER, name))
+        : [];
     machineReferencePromise = Promise.all([
         readMachineReferenceFile(MACHINE_REFERENCE_FILE),
         readMachineReferenceFile(AUTJ_MACHINE_REFERENCE_FILE),
         readMachineReferenceFile(THAMKHAO3_MACHINE_REFERENCE_FILE),
-        readMachineReferenceFile(THAMKHAO4_MACHINE_REFERENCE_FILE)
-    ]).then(([reference, autjReference, thamkhao3Reference, thamkhao4Reference]) => {
-        Object.assign(reference, autjReference, thamkhao3Reference, thamkhao4Reference);
+        readMachineReferenceFile(THAMKHAO4_MACHINE_REFERENCE_FILE),
+        ...optionalFiles.map(readMachineReferenceFile)
+    ]).then((references) => {
+        const reference = {};
+        references.forEach((item) => Object.assign(reference, item));
         machineReferenceCache = reference;
         return reference;
     }).catch((error) => {
